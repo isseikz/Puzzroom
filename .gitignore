@@ -1,0 +1,58 @@
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
+*.swp
+captures
+
+# macOS
+.DS_Store
+
+# Xcode
+## Ignores all files in the xcodeproj directory...
+*.xcodeproj/*
+# ...but re-includes the ones that should be versioned.
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcodeproj/project.xcworkspace/
+
+## Ignores all files in the xcworkspace directory...
+*.xcworkspace/*
+# ...but re-includes the one that should be versioned.
+!*.xcworkspace/contents.xcworkspacedata
+
+## Other Xcode files
+build/
+DerivedData/
+xcuserdata/
+**/xcshareddata/WorkspaceSettings.xcsettings
+*.moved-aside
+
+# Android & Gradle
+*.iml
+.idea/
+.gradle/
+**/build/
+local.properties
+.externalNativeBuild/
+.cxx/
+.kotlin/
+
+# This is an unusual rule. You may not need it.
+# It prevents ignoring 'build' folders inside 'src'.
+!src/**/build/
+
+# Dependencies
+## Swift Package Manager
+.build/
+Packages/
+
+## CocoaPods
+Pods/
+Podfile.lock
+
+## Carthage
+Carthage/
+
+## JavaScript
+node_modules/
