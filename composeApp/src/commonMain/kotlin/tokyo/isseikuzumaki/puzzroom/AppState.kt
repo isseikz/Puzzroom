@@ -6,86 +6,38 @@ import androidx.compose.runtime.setValue
 import tokyo.isseikuzumaki.puzzroom.domain.*
 
 /**
- * アプリケーション全体の状態を管理するクラス
+ * アプリケーション全体の一時的UI状態を管理するクラス
+ *
+ * このクラスは永続化されないUI状態のみを管理します。
+ * 永続化が必要なデータ（Project, Room, Furnitureなど）は
+ * ProjectViewModelで管理されます。
+ *
+ * @see tokyo.isseikuzumaki.puzzroom.ui.viewmodel.ProjectViewModel
  */
 class AppState {
-    var project by mutableStateOf(Project())
-        private set
-
+    /**
+     * 選択中の部屋（一時的な選択状態）
+     */
     var selectedRoom by mutableStateOf<Room?>(null)
         private set
 
+    /**
+     * 家具テンプレートのリスト（定数 + セッション中のカスタムテンプレート）
+     */
     var furnitureTemplates by mutableStateOf<List<FurnitureTemplate>>(FurnitureTemplate.PRESETS)
         private set
 
+    /**
+     * 選択中の家具テンプレート（一時的な選択状態）
+     */
     var selectedFurnitureTemplate by mutableStateOf<FurnitureTemplate?>(null)
         private set
 
     /**
-     * プロジェクトを更新
-     */
-    fun updateProject(newProject: Project) {
-        project = newProject
-    }
-
-    /**
-     * Room を追加
-     */
-    fun addRoom(room: Room) {
-        val currentFloorPlan = project.floorPlans.firstOrNull() ?: FloorPlan()
-        val updatedFloorPlan = currentFloorPlan.copy(
-            rooms = currentFloorPlan.rooms + room
-        )
-        project = project.copy(
-            floorPlans = listOf(updatedFloorPlan)
-        )
-    }
-
-    /**
      * Room を選択
      */
-    fun selectRoom(room: Room) {
+    fun selectRoom(room: Room?) {
         selectedRoom = room
-    }
-
-    /**
-     * LayoutEntry を追加
-     */
-    fun addLayoutEntry(layoutEntry: LayoutEntry) {
-        val currentFloorPlan = project.floorPlans.firstOrNull() ?: FloorPlan()
-        val updatedFloorPlan = currentFloorPlan.copy(
-            layouts = currentFloorPlan.layouts + layoutEntry
-        )
-        project = project.copy(
-            floorPlans = listOf(updatedFloorPlan)
-        )
-    }
-
-    /**
-     * Furniture を追加
-     */
-    fun addFurniture(furniture: Furniture) {
-        val currentFloorPlan = project.floorPlans.firstOrNull() ?: FloorPlan()
-        val updatedFloorPlan = currentFloorPlan.copy(
-            furnitures = currentFloorPlan.furnitures + furniture
-        )
-        project = project.copy(
-            floorPlans = listOf(updatedFloorPlan)
-        )
-    }
-
-    /**
-     * レイアウト URL を設定
-     */
-    fun setLayoutUrl(url: String?) {
-        project = project.copy(layoutUrl = url)
-    }
-
-    /**
-     * 現在の FloorPlan を取得
-     */
-    fun getCurrentFloorPlan(): FloorPlan? {
-        return project.floorPlans.firstOrNull()
     }
 
     /**
@@ -96,7 +48,7 @@ class AppState {
     }
 
     /**
-     * カスタム家具テンプレートを追加
+     * カスタム家具テンプレートを追加（セッション中のみ有効）
      */
     fun addCustomFurnitureTemplate(template: FurnitureTemplate) {
         furnitureTemplates = furnitureTemplates + template

@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 
 enum class AppScreen {
+    ProjectList,
     Room,
     Furniture,
     File

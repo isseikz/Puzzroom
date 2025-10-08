@@ -7,11 +7,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -22,7 +19,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import tokyo.isseikuzumaki.puzzroom.ui.screen.FurnitureScreen
+import tokyo.isseikuzumaki.puzzroom.ui.screen.ProjectListScreen
 import tokyo.isseikuzumaki.puzzroom.ui.screen.RoomScreen
+import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.rememberProjectViewModel
 
 @Composable
 @Preview
@@ -30,6 +29,7 @@ fun App(
     navController: NavHostController = rememberNavController()
 ) {
     val appState = remember { AppState() }
+    val projectViewModel = rememberProjectViewModel()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination?.route
 
@@ -41,28 +41,50 @@ fun App(
         ) {
             NavHost(
                 navController = navController,
-                startDestination = AppScreen.Room.name,
+                startDestination = AppScreen.ProjectList.name,
                 modifier = Modifier.fillMaxSize()
                     .background(color = MaterialTheme.colorScheme.background)
             ) {
+                composable(route = AppScreen.ProjectList.name) {
+                    ProjectListScreen(
+                        viewModel = projectViewModel,
+                        onProjectClick = { projectId ->
+                            projectViewModel.openProject(projectId)
+                            navController.navigate(AppScreen.Room.name)
+                        },
+                        onCreateNew = {
+                            projectViewModel.createNewProject()
+                            navController.navigate(AppScreen.Room.name)
+                        }
+                    )
+                }
                 composable(route = AppScreen.Room.name) {
-                    RoomScreen(appState = appState)
+                    RoomScreen(
+                        appState = appState,
+                        viewModel = projectViewModel
+                    )
                 }
                 composable(route = AppScreen.Furniture.name) {
-                    FurnitureScreen(appState = appState)
+                    FurnitureScreen(
+                        appState = appState,
+                        viewModel = projectViewModel
+                    )
                 }
                 composable(route = AppScreen.File.name) {  }
             }
 
-            AppBar(
-                navController = navController,
-                currentScreen = AppScreen.valueOf(currentDestination ?: AppScreen.Room.name),
-                canNavigateBack = navController.previousBackStackEntry != null,
-                navigateUp = { navController.navigateUp() },
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .background(color = MaterialTheme.colorScheme.primaryContainer)
-            )
+            // プロジェクト一覧以外の画面でナビゲーションバーを表示
+            if (currentDestination != AppScreen.ProjectList.name) {
+                AppBar(
+                    navController = navController,
+                    currentScreen = AppScreen.valueOf(currentDestination ?: AppScreen.ProjectList.name),
+                    canNavigateBack = navController.previousBackStackEntry != null,
+                    navigateUp = { navController.navigateUp() },
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .background(color = MaterialTheme.colorScheme.primaryContainer)
+                )
+            }
         }
     }
 }

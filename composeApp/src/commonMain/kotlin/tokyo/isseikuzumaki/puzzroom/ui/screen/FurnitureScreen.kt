@@ -14,16 +14,27 @@ import tokyo.isseikuzumaki.puzzroom.ui.component.FurnitureLayoutCanvas
 import tokyo.isseikuzumaki.puzzroom.ui.component.FurnitureLibraryPanel
 import tokyo.isseikuzumaki.puzzroom.ui.component.FurniturePlacementToolbar
 import tokyo.isseikuzumaki.puzzroom.ui.component.PlacedFurniture
+import tokyo.isseikuzumaki.puzzroom.ui.component.SaveStateIndicator
+import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.ProjectViewModel
 
 @Composable
 fun FurnitureScreen(
-    appState: AppState
+    appState: AppState,
+    viewModel: ProjectViewModel
 ) {
-    val currentFloorPlan = appState.getCurrentFloorPlan()
+    val saveState by viewModel.saveState.collectAsState()
+    val project by viewModel.currentProject.collectAsState()
+    val currentFloorPlan = project?.floorPlans?.firstOrNull()
     val rooms = currentFloorPlan?.rooms ?: emptyList()
     var selectedRoom by remember { mutableStateOf<Room?>(appState.selectedRoom) }
 
     Column(modifier = Modifier.fillMaxSize()) {
+        // 保存状態インジケーター
+        SaveStateIndicator(
+            saveState = saveState,
+            onRetry = { viewModel.saveNow() }
+        )
+
         // 部屋選択
         if (selectedRoom == null) {
             Text(
@@ -79,6 +90,21 @@ fun FurnitureScreen(
             var placedFurnitures by remember { mutableStateOf<List<PlacedFurniture>>(emptyList()) }
             var currentPosition by remember { mutableStateOf<Point?>(null) }
             var selectedFurnitureIndex by remember { mutableStateOf<Int?>(null) }
+
+            // Projectから配置済み家具を読み込む
+            LaunchedEffect(selectedRoom, currentFloorPlan?.layouts) {
+                selectedRoom?.let { room ->
+                    placedFurnitures = currentFloorPlan?.layouts
+                        ?.filter { it.room.id == room.id }  // 選択中の部屋の家具のみ
+                        ?.map { layout ->
+                            PlacedFurniture(
+                                furniture = layout.furniture,
+                                position = layout.position,
+                                rotation = layout.rotation
+                            )
+                        } ?: emptyList()
+                }
+            }
 
             // テンプレート選択時に家具を作成
             LaunchedEffect(appState.selectedFurnitureTemplate) {
@@ -155,7 +181,7 @@ fun FurnitureScreen(
                     // 家具配置キャンバス
                     FurnitureLayoutCanvas(
                         room = selectedRoom!!,
-                        backgroundImageUrl = appState.project.layoutUrl,
+                        backgroundImageUrl = project?.layoutUrl,
                         furnitureToPlace = currentFurniture,
                         furnitureRotation = furnitureRotation,
                         placedFurnitures = placedFurnitures,
@@ -178,18 +204,23 @@ fun FurnitureScreen(
                                     furniture
                                 }
                             }
-                            // AppStateも更新
-                            val updatedLayoutEntry = appState.getCurrentFloorPlan()?.layouts?.getOrNull(index)?.copy(position = newPosition)
-                            if (updatedLayoutEntry != null) {
-                                val currentFloorPlan = appState.getCurrentFloorPlan()!!
-                                val updatedFloorPlan = currentFloorPlan.copy(
-                                    layouts = currentFloorPlan.layouts.mapIndexed { i, layout ->
-                                        if (i == index) updatedLayoutEntry else layout
+                            // ViewModelを更新
+                            project?.let { currentProject ->
+                                currentFloorPlan?.let { floorPlan ->
+                                    val updatedLayoutEntry = floorPlan.layouts.getOrNull(index)?.copy(position = newPosition)
+                                    if (updatedLayoutEntry != null) {
+                                        val updatedFloorPlan = floorPlan.copy(
+                                            layouts = floorPlan.layouts.mapIndexed { i, layout ->
+                                                if (i == index) updatedLayoutEntry else layout
+                                            }
+                                        )
+                                        val updatedProject = currentProject.copy(
+                                            floorPlans = listOf(updatedFloorPlan)
+                                        )
+                                        // 自動保存トリガー
+                                        viewModel.updateProject(updatedProject)
                                     }
-                                )
-                                appState.updateProject(appState.project.copy(
-                                    floorPlans = listOf(updatedFloorPlan)
-                                ))
+                                }
                             }
                         },
                         modifier = Modifier.weight(1f)
@@ -208,21 +239,40 @@ fun FurnitureScreen(
                         onRotationChange = { furnitureRotation = it },
                         onConfirm = {
                             currentPosition?.let { position ->
-                                val layoutEntry = LayoutEntry(
-                                    room = selectedRoom!!,
-                                    furniture = currentFurniture!!,
-                                    position = position,
-                                    rotation = furnitureRotation.degree()
-                                )
-                                placedFurnitures = placedFurnitures + PlacedFurniture(
-                                    furniture = currentFurniture!!,
-                                    position = position,
-                                    rotation = furnitureRotation.degree()
-                                )
-                                appState.addLayoutEntry(layoutEntry)
-                                appState.addFurniture(currentFurniture!!)
-                                appState.selectFurnitureTemplate(null)
-                                currentPosition = null
+                                project?.let { currentProject ->
+                                    currentFloorPlan?.let { floorPlan ->
+                                        currentFurniture?.let { furniture ->
+                                            selectedRoom?.let { room ->
+                                                val layoutEntry = LayoutEntry(
+                                                    room = room,
+                                                    furniture = furniture,
+                                                    position = position,
+                                                    rotation = furnitureRotation.degree()
+                                                )
+                                                placedFurnitures = placedFurnitures + PlacedFurniture(
+                                                    furniture = furniture,
+                                                    position = position,
+                                                    rotation = furnitureRotation.degree()
+                                                )
+
+                                                // Projectを更新
+                                                val updatedFloorPlan = floorPlan.copy(
+                                                    layouts = floorPlan.layouts + layoutEntry,
+                                                    furnitures = floorPlan.furnitures + furniture
+                                                )
+                                                val updatedProject = currentProject.copy(
+                                                    floorPlans = listOf(updatedFloorPlan)
+                                                )
+
+                                                appState.selectFurnitureTemplate(null)
+                                                currentPosition = null
+
+                                                // 自動保存トリガー
+                                                viewModel.updateProject(updatedProject)
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         },
                         onCancel = {
