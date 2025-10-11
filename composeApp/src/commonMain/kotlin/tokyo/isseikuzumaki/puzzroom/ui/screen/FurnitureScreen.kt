@@ -10,6 +10,10 @@ import androidx.compose.ui.unit.dp
 import tokyo.isseikuzumaki.puzzroom.AppState
 import tokyo.isseikuzumaki.puzzroom.domain.*
 import tokyo.isseikuzumaki.puzzroom.domain.Degree.Companion.degree
+import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppCard
+import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppSubtitleText
+import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppCaptionText
+import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppTitleText
 import tokyo.isseikuzumaki.puzzroom.ui.component.FurnitureLayoutCanvas
 import tokyo.isseikuzumaki.puzzroom.ui.component.FurnitureLibraryPanel
 import tokyo.isseikuzumaki.puzzroom.ui.component.FurniturePlacementToolbar
@@ -37,15 +41,14 @@ fun FurnitureScreen(
 
         // 部屋選択
         if (selectedRoom == null) {
-            Text(
-                "部屋を選択してください",
-                style = MaterialTheme.typography.headlineSmall,
+            AppTitleText(
+                text = "部屋を選択してください",
                 modifier = Modifier.padding(16.dp)
             )
 
             if (rooms.isEmpty()) {
-                Text(
-                    "部屋が登録されていません。Room 画面で部屋を作成してください。",
+                AppCaptionText(
+                    text = "部屋が登録されていません。Room 画面で部屋を作成してください。",
                     modifier = Modifier.padding(16.dp)
                 )
             } else {
@@ -55,27 +58,20 @@ fun FurnitureScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(rooms) { room ->
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth(),
+                        AppCard(
                             onClick = {
                                 selectedRoom = room
                                 appState.selectRoom(room)
-                            }
+                            },
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(16.dp)
                             ) {
-                                Text(
-                                    room.name,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                Text(
-                                    "頂点数: ${room.shape.points.size}",
-                                    style = MaterialTheme.typography.bodySmall
-                                )
+                                AppSubtitleText(text = room.name)
+                                AppCaptionText(text = "頂点数: ${room.shape.points.size}")
                             }
                         }
                     }

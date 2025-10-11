@@ -17,6 +17,8 @@ import tokyo.isseikuzumaki.puzzroom.domain.Room
 import tokyo.isseikuzumaki.puzzroom.ui.LoadDialog
 import tokyo.isseikuzumaki.puzzroom.ui.PhotoPickerButton
 import tokyo.isseikuzumaki.puzzroom.ui.SaveDialog
+import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppButton
+import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppSecondaryButton
 import tokyo.isseikuzumaki.puzzroom.ui.component.AngleInputPanel
 import tokyo.isseikuzumaki.puzzroom.ui.component.DimensionInputPanel
 import tokyo.isseikuzumaki.puzzroom.ui.component.EditMode
@@ -76,20 +78,16 @@ fun RoomScreen(
                 }
             }
 
-            Button(onClick = {
+            AppButton(onClick = {
                 project?.let {
                     savedJson = Json.encodeToString(Project.serializer(), it)
                     showSaveDialog = true
                 }
-            }) {
-                Text("保存")
-            }
+            }, text = "保存")
 
-            Button(onClick = {
+            AppSecondaryButton(onClick = {
                 showLoadDialog = true
-            }) {
-                Text("読み込み")
-            }
+            }, text = "読み込み")
         }
 
         // Main content
@@ -202,27 +200,31 @@ fun RoomScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Button(
-                            onClick = { editingDimensionOrAngle = EditingType.Dimension },
-                            modifier = Modifier.weight(1f),
-                            colors = if (editingDimensionOrAngle == EditingType.Dimension) {
-                                ButtonDefaults.buttonColors()
-                            } else {
-                                ButtonDefaults.outlinedButtonColors()
-                            }
-                        ) {
-                            Text("寸法")
+                        if (editingDimensionOrAngle == EditingType.Dimension) {
+                            AppButton(
+                                onClick = { editingDimensionOrAngle = EditingType.Dimension },
+                                text = "寸法",
+                                modifier = Modifier.weight(1f)
+                            )
+                        } else {
+                            AppSecondaryButton(
+                                onClick = { editingDimensionOrAngle = EditingType.Dimension },
+                                text = "寸法",
+                                modifier = Modifier.weight(1f)
+                            )
                         }
-                        Button(
-                            onClick = { editingDimensionOrAngle = EditingType.Angle },
-                            modifier = Modifier.weight(1f),
-                            colors = if (editingDimensionOrAngle == EditingType.Angle) {
-                                ButtonDefaults.buttonColors()
-                            } else {
-                                ButtonDefaults.outlinedButtonColors()
-                            }
-                        ) {
-                            Text("角度")
+                        if (editingDimensionOrAngle == EditingType.Angle) {
+                            AppButton(
+                                onClick = { editingDimensionOrAngle = EditingType.Angle },
+                                text = "角度",
+                                modifier = Modifier.weight(1f)
+                            )
+                        } else {
+                            AppSecondaryButton(
+                                onClick = { editingDimensionOrAngle = EditingType.Angle },
+                                text = "角度",
+                                modifier = Modifier.weight(1f)
+                            )
                         }
                     }
 
