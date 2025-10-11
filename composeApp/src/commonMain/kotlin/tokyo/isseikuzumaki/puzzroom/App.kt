@@ -18,8 +18,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import tokyo.isseikuzumaki.puzzroom.ui.atoms.WarmLightColorScheme
+import tokyo.isseikuzumaki.puzzroom.ui.pages.ProjectListPage
 import tokyo.isseikuzumaki.puzzroom.ui.screen.FurnitureScreen
-import tokyo.isseikuzumaki.puzzroom.ui.screen.ProjectListScreen
 import tokyo.isseikuzumaki.puzzroom.ui.screen.RoomScreen
 import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.rememberProjectViewModel
 
@@ -33,57 +34,62 @@ fun App(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination?.route
 
-    Scaffold { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            NavHost(
-                navController = navController,
-                startDestination = AppScreen.ProjectList.name,
-                modifier = Modifier.fillMaxSize()
-                    .background(color = MaterialTheme.colorScheme.background)
+    // Apply warm color theme
+    MaterialTheme(
+        colorScheme = WarmLightColorScheme
+    ) {
+        Scaffold { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
             ) {
-                composable(route = AppScreen.ProjectList.name) {
-                    ProjectListScreen(
-                        viewModel = projectViewModel,
-                        onProjectClick = { projectId ->
-                            projectViewModel.openProject(projectId)
-                            navController.navigate(AppScreen.Room.name)
-                        },
-                        onCreateNew = {
-                            projectViewModel.createNewProject()
-                            navController.navigate(AppScreen.Room.name)
-                        }
-                    )
-                }
-                composable(route = AppScreen.Room.name) {
-                    RoomScreen(
-                        appState = appState,
-                        viewModel = projectViewModel
-                    )
-                }
-                composable(route = AppScreen.Furniture.name) {
-                    FurnitureScreen(
-                        appState = appState,
-                        viewModel = projectViewModel
-                    )
-                }
-                composable(route = AppScreen.File.name) {  }
-            }
-
-            // プロジェクト一覧以外の画面でナビゲーションバーを表示
-            if (currentDestination != AppScreen.ProjectList.name) {
-                AppBar(
+                NavHost(
                     navController = navController,
-                    currentScreen = AppScreen.valueOf(currentDestination ?: AppScreen.ProjectList.name),
-                    canNavigateBack = navController.previousBackStackEntry != null,
-                    navigateUp = { navController.navigateUp() },
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .background(color = MaterialTheme.colorScheme.primaryContainer)
-                )
+                    startDestination = AppScreen.ProjectList.name,
+                    modifier = Modifier.fillMaxSize()
+                        .background(color = MaterialTheme.colorScheme.background)
+                ) {
+                    composable(route = AppScreen.ProjectList.name) {
+                        ProjectListPage(
+                            viewModel = projectViewModel,
+                            onProjectClick = { projectId ->
+                                projectViewModel.openProject(projectId)
+                                navController.navigate(AppScreen.Room.name)
+                            },
+                            onCreateNew = {
+                                projectViewModel.createNewProject()
+                                navController.navigate(AppScreen.Room.name)
+                            }
+                        )
+                    }
+                    composable(route = AppScreen.Room.name) {
+                        RoomScreen(
+                            appState = appState,
+                            viewModel = projectViewModel
+                        )
+                    }
+                    composable(route = AppScreen.Furniture.name) {
+                        FurnitureScreen(
+                            appState = appState,
+                            viewModel = projectViewModel
+                        )
+                    }
+                    composable(route = AppScreen.File.name) {  }
+                }
+
+                // プロジェクト一覧以外の画面でナビゲーションバーを表示
+                if (currentDestination != AppScreen.ProjectList.name) {
+                    AppBar(
+                        navController = navController,
+                        currentScreen = AppScreen.valueOf(currentDestination ?: AppScreen.ProjectList.name),
+                        canNavigateBack = navController.previousBackStackEntry != null,
+                        navigateUp = { navController.navigateUp() },
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .background(color = MaterialTheme.colorScheme.primaryContainer)
+                    )
+                }
             }
         }
     }
