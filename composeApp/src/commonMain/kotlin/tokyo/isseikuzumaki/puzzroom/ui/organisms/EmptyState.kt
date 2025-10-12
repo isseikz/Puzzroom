@@ -45,13 +45,9 @@ fun EmptyState(
             textAlign = TextAlign.Center
         )
         VerticalSpacer(height = 24.dp)
-        AppButton(onClick = onAction) {
-            AppIcon(
-                imageVector = Icons.Default.Add,
-                contentDescription = null
-            )
-            HorizontalSpacer(width = 8.dp)
-            AppText(text = actionText)
-        }
+        AppButton(
+            text = actionText,
+            onClick = onAction
+        )
     }
 }
