@@ -23,7 +23,7 @@ import tokyo.isseikuzumaki.puzzroom.ui.state.ProjectUiState
 import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.ProjectViewModel
 
 /**
- * プロジェクト一覧画面
+ * Project list screen
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,10 +41,10 @@ fun ProjectListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("マイプロジェクト") },
+                title = { Text("My Projects") },
                 actions = {
                     IconButton(onClick = onCreateNew) {
-                        Icon(Icons.Default.Add, "新規作成")
+                        Icon(Icons.Default.Add, "Create New")
                     }
                 }
             )
@@ -101,14 +101,14 @@ fun ProjectListScreen(
                 )
             }
             is ProjectUiState.EditingProject -> {
-                // 編集画面は別のルートで表示
+                // The editing screen is displayed on a different route
             }
         }
     }
 }
 
 /**
- * プロジェクトカード
+ * Project card
  */
 @Composable
 fun ProjectCard(
@@ -132,7 +132,7 @@ fun ProjectCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // サムネイル
+            // Thumbnail
             if (project.layoutUrl != null) {
                 AsyncImage(
                     model = project.layoutUrl,
@@ -173,38 +173,29 @@ fun ProjectCard(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "${project.floorPlans.size} 間取り図",
+                    text = "${project.floorPlans.size} floor plans",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            // 名前変更ボタン
-            IconButton(onClick = { showRenameDialog = true }) {
-                Icon(
-                    Icons.Default.Edit,
-                    contentDescription = "名前変更",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            // 削除ボタン
+            // Delete button
             IconButton(onClick = { showDeleteDialog = true }) {
                 Icon(
                     Icons.Default.Delete,
-                    contentDescription = "削除",
+                    contentDescription = "Delete",
                     tint = MaterialTheme.colorScheme.error
                 )
             }
         }
     }
 
-    // 削除確認ダイアログ
+    // Delete confirmation dialog
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("プロジェクトを削除") },
-            text = { Text("「${project.name}」を削除しますか？この操作は取り消せません。") },
+            title = { Text("Delete Project") },
+            text = { Text("Are you sure you want to delete \"${project.name}\"? This action cannot be undone.") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -215,12 +206,12 @@ fun ProjectCard(
                         contentColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("削除")
+                    Text("Delete")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("キャンセル")
+                    Text("Cancel")
                 }
             }
         )
@@ -263,7 +254,7 @@ fun ProjectCard(
 }
 
 /**
- * 空のプロジェクト一覧
+ * Empty project list
  */
 @Composable
 fun EmptyProjectList(
@@ -276,13 +267,13 @@ fun EmptyProjectList(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "プロジェクトがありません",
+            text = "No projects",
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "新しいプロジェクトを作成しましょう",
+            text = "Let's create a new project",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -290,13 +281,13 @@ fun EmptyProjectList(
         Button(onClick = onCreateNew) {
             Icon(Icons.Default.Add, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
-            Text("新規作成")
+            Text("Create New")
         }
     }
 }
 
 /**
- * エラー表示
+ * Error display
  */
 @Composable
 fun ErrorView(
@@ -326,7 +317,7 @@ fun ErrorView(
         )
         Spacer(modifier = Modifier.height(24.dp))
         Button(onClick = onRetry) {
-            Text("リトライ")
+            Text("Retry")
         }
     }
 }

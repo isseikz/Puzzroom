@@ -37,7 +37,7 @@ fun AngleInputPanel(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "部屋を選択してください",
+                    text = "Please select a room",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -71,11 +71,11 @@ fun AngleInputPanel(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "角度編集",
+                    text = "Edit Angles",
                     style = MaterialTheme.typography.titleMedium
                 )
-                TextButton(onClick = onClose) {
-                    Text("閉じる")
+                Button(onClick = onClose) {
+                    Text("Close")
                 }
             }
 
@@ -93,12 +93,12 @@ fun AngleInputPanel(
                         modifier = Modifier.padding(12.dp)
                     ) {
                         Text(
-                            text = "⚠️ ポリゴンが開いています",
+                            text = "⚠️ Polygon is open",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
                         Text(
-                            text = "開き: ${gapDistance.roundToInt()} cm",
+                            text = "Gap: ${gapDistance.roundToInt()} cm",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
@@ -110,7 +110,7 @@ fun AngleInputPanel(
                             ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("自動で閉じる")
+                            Text("Auto Close")
                         }
                     }
                 }
@@ -120,7 +120,7 @@ fun AngleInputPanel(
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(interiorAngles.size) { index ->
+                items(count = interiorAngles.size) { index ->
                     AngleInput(
                         vertexNumber = index + 1,
                         currentAngle = interiorAngles[index],
@@ -134,7 +134,7 @@ fun AngleInputPanel(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "※ 各頂点の内角を個別に変更できます。\n角度調整により、ポリゴンが開く場合があります。\n変更は即座に反映され、自動保存されます。",
+                text = "* You can change the interior angle of each vertex individually.\nAdjusting the angle may open the polygon.\nChanges are reflected immediately and saved automatically.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -161,11 +161,7 @@ private fun AngleInput(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = "頂点 $vertexNumber:",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.width(70.dp)
-        )
+        Text("Vertex ${vertexNumber}")
 
         OutlinedTextField(
             value = inputValue,
@@ -181,7 +177,7 @@ private fun AngleInput(
                     isError = newValue.isNotEmpty()
                 }
             },
-            label = { Text("度") },
+            label = { Text("Angle (°)") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             isError = isError,
             singleLine = true,
@@ -189,7 +185,7 @@ private fun AngleInput(
         )
 
         Text(
-            text = "現在: ${currentAngle.roundToInt()}°",
+            text = "Current: ${currentAngle.roundToInt()}°",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = 8.dp)

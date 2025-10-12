@@ -60,6 +60,7 @@ kotlin {
             implementation(libs.coil.compose)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.navigation.compose)
+                                    implementation(compose.materialIconsExtended)
 
         }
         commonTest.dependencies {

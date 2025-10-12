@@ -29,13 +29,13 @@ fun SaveStateIndicator(
             ) {
                 Icon(
                     Icons.Default.Check,
-                    contentDescription = "保存済み",
+                    contentDescription = "Saved",
                     tint = Color.Gray,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "保存済み",
+                    text = "Saved",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )
@@ -52,7 +52,7 @@ fun SaveStateIndicator(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "保存中...",
+                    text = "Saving...",
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -68,13 +68,13 @@ fun SaveStateIndicator(
                 ) {
                     Icon(
                         Icons.Default.Warning,
-                        contentDescription = "保存失敗",
+                        contentDescription = "Failed to save",
                         tint = MaterialTheme.colorScheme.error
                     )
                 }
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "保存失敗",
+                    text = "Failed to save",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error
                 )

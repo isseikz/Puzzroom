@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.dp
 import tokyo.isseikuzumaki.puzzroom.domain.Polygon
 
 /**
- * ポリゴン一覧を表示し、選択・編集・削除アクションを提供するパネル
+ * A panel that displays a list of polygons and provides selection, editing, and deletion actions
  */
 @Composable
 fun PolygonListPanel(
@@ -34,14 +34,14 @@ fun PolygonListPanel(
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = "部屋一覧",
+                text = "Room List",
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
             if (polygons.isEmpty()) {
                 Text(
-                    text = "部屋が登録されていません。\nキャンバスをクリックして部屋を作成してください。",
+                    text = "No rooms are registered.\nPlease click on the canvas to create a room.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 32.dp)
@@ -67,7 +67,7 @@ fun PolygonListPanel(
 }
 
 /**
- * 個別のポリゴンカード
+ * Individual polygon card
  */
 @Composable
 private fun PolygonCard(
@@ -104,7 +104,7 @@ private fun PolygonCard(
                     style = MaterialTheme.typography.titleSmall
                 )
                 Text(
-                    text = "頂点数: ${polygon.points.size}",
+                    text = "Number of vertices: ${polygon.points.size}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -117,7 +117,7 @@ private fun PolygonCard(
                 ) {
                     Icon(
                         Icons.Default.Edit,
-                        contentDescription = "編集",
+                        contentDescription = "Edit",
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -127,7 +127,7 @@ private fun PolygonCard(
                 ) {
                     Icon(
                         Icons.Default.Delete,
-                        contentDescription = "削除",
+                        contentDescription = "Delete",
                         modifier = Modifier.size(20.dp),
                         tint = MaterialTheme.colorScheme.error
                     )

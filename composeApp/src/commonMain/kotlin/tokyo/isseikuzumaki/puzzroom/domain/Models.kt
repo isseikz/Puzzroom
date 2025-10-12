@@ -49,26 +49,26 @@ data class FloorPlan(
 data class Project(
     @OptIn(ExperimentalUuidApi::class)
     val id: String = Uuid.random().toString(),
-    val name: String = "Untitled",
+    val name: String,
     val layoutUrl: String? = null,
     val floorPlans: List<FloorPlan> = emptyList(),
 )
 
 /**
- * 家具のカテゴリ
+ * Furniture category
  */
 enum class FurnitureCategory {
-    LIVING,      // リビング
-    BEDROOM,     // 寝室
-    KITCHEN,     // キッチン
-    DINING,      // ダイニング
-    BATHROOM,    // バスルーム
-    OFFICE,      // オフィス
-    CUSTOM       // カスタム
+    LIVING,      // Living
+    BEDROOM,     // Bedroom
+    KITCHEN,     // Kitchen
+    DINING,      // Dining
+    BATHROOM,    // Bathroom
+    OFFICE,      // Office
+    CUSTOM       // Custom
 }
 
 /**
- * 家具テンプレート
+ * Furniture template
  */
 @Serializable
 data class FurnitureTemplate(
@@ -80,7 +80,7 @@ data class FurnitureTemplate(
     val depth: Centimeter,
 ) {
     /**
-     * テンプレートから家具を作成（長方形）
+     * Create furniture from template (rectangle)
      */
     fun createFurniture(): Furniture {
         val polygon = Polygon(
@@ -95,109 +95,109 @@ data class FurnitureTemplate(
     }
 
     companion object {
-        // プリセット家具テンプレート
+        // Preset furniture templates
         val PRESETS = listOf(
-            // リビング
+            // Living
             FurnitureTemplate(
-                name = "ソファ（2人掛け）",
+                name = "Sofa (2-seater)",
                 category = FurnitureCategory.LIVING,
                 width = Centimeter(150),
                 depth = Centimeter(80)
             ),
             FurnitureTemplate(
-                name = "ソファ（3人掛け）",
+                name = "Sofa (3-seater)",
                 category = FurnitureCategory.LIVING,
                 width = Centimeter(200),
                 depth = Centimeter(90)
             ),
             FurnitureTemplate(
-                name = "センターテーブル",
+                name = "Center table",
                 category = FurnitureCategory.LIVING,
                 width = Centimeter(120),
                 depth = Centimeter(60)
             ),
             FurnitureTemplate(
-                name = "テレビボード",
+                name = "TV stand",
                 category = FurnitureCategory.LIVING,
                 width = Centimeter(180),
                 depth = Centimeter(40)
             ),
 
-            // 寝室
+            // Bedroom
             FurnitureTemplate(
-                name = "シングルベッド",
+                name = "Single bed",
                 category = FurnitureCategory.BEDROOM,
                 width = Centimeter(100),
                 depth = Centimeter(200)
             ),
             FurnitureTemplate(
-                name = "セミダブルベッド",
+                name = "Semi-double bed",
                 category = FurnitureCategory.BEDROOM,
                 width = Centimeter(120),
                 depth = Centimeter(200)
             ),
             FurnitureTemplate(
-                name = "ダブルベッド",
+                name = "Double bed",
                 category = FurnitureCategory.BEDROOM,
                 width = Centimeter(140),
                 depth = Centimeter(200)
             ),
             FurnitureTemplate(
-                name = "ワードローブ",
+                name = "Wardrobe",
                 category = FurnitureCategory.BEDROOM,
                 width = Centimeter(120),
                 depth = Centimeter(60)
             ),
 
-            // ダイニング
+            // Dining
             FurnitureTemplate(
-                name = "ダイニングテーブル（4人）",
+                name = "Dining table (4 people)",
                 category = FurnitureCategory.DINING,
                 width = Centimeter(150),
                 depth = Centimeter(85)
             ),
             FurnitureTemplate(
-                name = "ダイニングテーブル（6人）",
+                name = "Dining table (6 people)",
                 category = FurnitureCategory.DINING,
                 width = Centimeter(180),
                 depth = Centimeter(90)
             ),
             FurnitureTemplate(
-                name = "ダイニングチェア",
+                name = "Dining chair",
                 category = FurnitureCategory.DINING,
                 width = Centimeter(45),
                 depth = Centimeter(50)
             ),
 
-            // キッチン
+            // Kitchen
             FurnitureTemplate(
-                name = "冷蔵庫",
+                name = "Refrigerator",
                 category = FurnitureCategory.KITCHEN,
                 width = Centimeter(60),
                 depth = Centimeter(70)
             ),
             FurnitureTemplate(
-                name = "食器棚",
+                name = "Cupboard",
                 category = FurnitureCategory.KITCHEN,
                 width = Centimeter(90),
                 depth = Centimeter(45)
             ),
 
-            // オフィス
+            // Office
             FurnitureTemplate(
-                name = "デスク",
+                name = "Desk",
                 category = FurnitureCategory.OFFICE,
                 width = Centimeter(120),
                 depth = Centimeter(60)
             ),
             FurnitureTemplate(
-                name = "オフィスチェア",
+                name = "Office chair",
                 category = FurnitureCategory.OFFICE,
                 width = Centimeter(60),
                 depth = Centimeter(60)
             ),
             FurnitureTemplate(
-                name = "本棚",
+                name = "Bookshelf",
                 category = FurnitureCategory.OFFICE,
                 width = Centimeter(90),
                 depth = Centimeter(30)

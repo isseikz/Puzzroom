@@ -11,20 +11,20 @@ import tokyo.isseikuzumaki.puzzroom.domain.FurnitureCategory
 import tokyo.isseikuzumaki.puzzroom.domain.FurnitureTemplate
 
 /**
- * カテゴリ名を日本語で取得
+ * Get category name in English
  */
 fun FurnitureCategory.displayName(): String = when (this) {
-    FurnitureCategory.LIVING -> "リビング"
-    FurnitureCategory.BEDROOM -> "寝室"
-    FurnitureCategory.KITCHEN -> "キッチン"
-    FurnitureCategory.DINING -> "ダイニング"
-    FurnitureCategory.BATHROOM -> "バスルーム"
-    FurnitureCategory.OFFICE -> "オフィス"
-    FurnitureCategory.CUSTOM -> "カスタム"
+    FurnitureCategory.LIVING -> "Living"
+    FurnitureCategory.BEDROOM -> "Bedroom"
+    FurnitureCategory.KITCHEN -> "Kitchen"
+    FurnitureCategory.DINING -> "Dining"
+    FurnitureCategory.BATHROOM -> "Bathroom"
+    FurnitureCategory.OFFICE -> "Office"
+    FurnitureCategory.CUSTOM -> "Custom"
 }
 
 /**
- * 家具ライブラリ選択パネル
+ * Furniture library selection panel
  */
 @Composable
 fun FurnitureLibraryPanel(
@@ -38,12 +38,12 @@ fun FurnitureLibraryPanel(
 
     Column(modifier = modifier) {
         Text(
-            "家具を選択",
+            "Select furniture",
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(16.dp)
         )
 
-        // カテゴリフィルター
+        // Category filter
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -53,7 +53,7 @@ fun FurnitureLibraryPanel(
             FilterChip(
                 selected = selectedCategory == null,
                 onClick = { selectedCategory = null },
-                label = { Text("すべて") }
+                label = { Text("All") }
             )
             FurnitureCategory.entries.forEach { category ->
                 val count = templates.count { it.category == category }
@@ -69,7 +69,7 @@ fun FurnitureLibraryPanel(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-        // 家具リスト
+        // Furniture list
         val filteredTemplates = if (selectedCategory != null) {
             templates.filter { it.category == selectedCategory }
         } else {
@@ -90,20 +90,20 @@ fun FurnitureLibraryPanel(
             }
         }
 
-        // カスタム家具作成ボタン
+        // Custom furniture creation button
         Button(
             onClick = onCreateCustom,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Text("+ カスタム家具を作成")
+            Text("+ Create custom furniture")
         }
     }
 }
 
 /**
- * 家具テンプレートカード
+ * Furniture template card
  */
 @Composable
 fun FurnitureTemplateCard(
@@ -144,7 +144,7 @@ fun FurnitureTemplateCard(
             }
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                "サイズ: ${template.width.value}cm × ${template.depth.value}cm",
+                "Size: ${template.width.value}cm × ${template.depth.value}cm",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

@@ -1,6 +1,7 @@
-package tokyo.isseikuzumaki.puzzroom.ui
+package tokyo.isseikuzumaki.puzzroom.ui.component
 
 import androidx.compose.material.Text
+import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,7 +16,7 @@ actual fun PhotoPickerButton(
     onImagePicked: (String) -> Unit
 ) {
     var openPicker by remember { mutableStateOf(false) }
-    androidx.compose.material3.Button(
+    Button(
         onClick = { openPicker = true }
     ) {
         Text("Pick Photo")

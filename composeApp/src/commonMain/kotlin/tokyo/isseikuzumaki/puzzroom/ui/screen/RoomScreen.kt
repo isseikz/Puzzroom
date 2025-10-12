@@ -2,20 +2,19 @@ package tokyo.isseikuzumaki.puzzroom.ui.screen
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.dp
 import kotlinx.serialization.json.Json
 import tokyo.isseikuzumaki.puzzroom.AppState
 import tokyo.isseikuzumaki.puzzroom.domain.FloorPlan
-import tokyo.isseikuzumaki.puzzroom.domain.Polygon
 import tokyo.isseikuzumaki.puzzroom.domain.PolygonGeometry
 import tokyo.isseikuzumaki.puzzroom.domain.Project
 import tokyo.isseikuzumaki.puzzroom.domain.Room
 import tokyo.isseikuzumaki.puzzroom.ui.LoadDialog
-import tokyo.isseikuzumaki.puzzroom.ui.PhotoPickerButton
+import tokyo.isseikuzumaki.puzzroom.ui.component.PhotoPickerButton
 import tokyo.isseikuzumaki.puzzroom.ui.SaveDialog
 import tokyo.isseikuzumaki.puzzroom.ui.component.AngleInputPanel
 import tokyo.isseikuzumaki.puzzroom.ui.component.DimensionInputPanel
@@ -26,7 +25,7 @@ import tokyo.isseikuzumaki.puzzroom.ui.component.SaveStateIndicator
 import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.ProjectViewModel
 
 /**
- * 編集タイプ（寸法 or 角度）
+ * Editing type (Dimension or Angle)
  */
 private enum class EditingType {
     Dimension,
@@ -41,23 +40,23 @@ fun RoomScreen(
     val saveState by viewModel.saveState.collectAsState()
     val project by viewModel.currentProject.collectAsState()
 
-    // ポリゴンリスト（Projectから取得）
+    // Polygon list (acquired from Project)
     val polygons = remember(project) {
         project?.floorPlans?.firstOrNull()?.rooms?.map { it.shape } ?: emptyList()
     }
 
-    // 編集状態
+    // Editing state
     var editMode by remember { mutableStateOf<EditMode>(EditMode.Creation) }
     var selectedPolygonIndex by remember { mutableStateOf<Int?>(null) }
     var editingDimensionOrAngle by remember { mutableStateOf<EditingType>(EditingType.Dimension) }
 
-    // ダイアログ状態
+    // Dialog state
     var savedJson by remember { mutableStateOf<String?>(null) }
     var showSaveDialog by remember { mutableStateOf(false) }
     var showLoadDialog by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Header: 保存状態とアクション
+        // Header: Save state and actions
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -82,13 +81,13 @@ fun RoomScreen(
                     showSaveDialog = true
                 }
             }) {
-                Text("保存")
+                Text("Save")
             }
 
             Button(onClick = {
                 showLoadDialog = true
             }) {
-                Text("読み込み")
+                Text("Load")
             }
         }
 
@@ -105,10 +104,10 @@ fun RoomScreen(
                 backgroundImageUrl = project?.layoutUrl,
                 editMode = editMode,
                 onNewVertex = { offset ->
-                    // 作成モード中の頂点追加（視覚的フィードバックのみ）
+                    // Adding a vertex in creation mode (visual feedback only)
                 },
                 onCompletePolygon = { newPolygon ->
-                    // ポリゴン完成 → Projectに追加
+                    // Polygon complete -> Add to Project
                     project?.let {
                         val newRoom = Room(
                             name = "Room ${polygons.size + 1}",
@@ -125,7 +124,7 @@ fun RoomScreen(
                     }
                 },
                 onVertexMove = { polygonIndex, vertexIndex, newPosition ->
-                    // 頂点をドラッグで移動
+                    // Move vertex by dragging
                     project?.let { currentProject ->
                         val currentFloorPlan = currentProject.floorPlans.firstOrNull()
                         if (currentFloorPlan != null && polygonIndex in currentFloorPlan.rooms.indices) {
@@ -164,14 +163,14 @@ fun RoomScreen(
                     selectedIndex = selectedPolygonIndex,
                     onSelect = { index ->
                         selectedPolygonIndex = index
-                        editMode = EditMode.Creation // 選択時は作成モードに戻す
+                        editMode = EditMode.Creation // Return to creation mode when selected
                     },
                     onEdit = { index ->
                         selectedPolygonIndex = index
                         editMode = EditMode.Editing(index)
                     },
                     onDelete = { index ->
-                        // ポリゴンを削除
+                        // Delete polygon
                         project?.let { currentProject ->
                             val currentFloorPlan = currentProject.floorPlans.firstOrNull()
                             if (currentFloorPlan != null && index in currentFloorPlan.rooms.indices) {
@@ -182,7 +181,7 @@ fun RoomScreen(
                                 )
                                 viewModel.updateProject(updatedProject)
 
-                                // 選択状態をクリア
+                                // Clear selection state
                                 if (selectedPolygonIndex == index) {
                                     selectedPolygonIndex = null
                                     editMode = EditMode.Creation
@@ -195,7 +194,7 @@ fun RoomScreen(
                     modifier = Modifier.weight(1f)
                 )
 
-                // Dimension/Angle input (編集モード時のみ表示)
+                // Dimension/Angle input (only displayed in editing mode)
                 if (editMode is EditMode.Editing && selectedPolygonIndex != null) {
                     // Toggle between Dimension and Angle editing
                     Row(
@@ -211,7 +210,7 @@ fun RoomScreen(
                                 ButtonDefaults.outlinedButtonColors()
                             }
                         ) {
-                            Text("寸法")
+                            Text("Dimension")
                         }
                         Button(
                             onClick = { editingDimensionOrAngle = EditingType.Angle },
@@ -222,7 +221,7 @@ fun RoomScreen(
                                 ButtonDefaults.outlinedButtonColors()
                             }
                         ) {
-                            Text("角度")
+                            Text("Angle")
                         }
                     }
 
@@ -233,7 +232,7 @@ fun RoomScreen(
                             DimensionInputPanel(
                                 polygon = selectedPolygon,
                                 onDimensionChange = { edgeIndex, newLength ->
-                                    // 寸法変更
+                                    // Change dimension
                                     project?.let { currentProject ->
                                         val currentFloorPlan = currentProject.floorPlans.firstOrNull()
                                         if (currentFloorPlan != null && selectedPolygonIndex!! in currentFloorPlan.rooms.indices) {
@@ -267,7 +266,7 @@ fun RoomScreen(
                             AngleInputPanel(
                                 polygon = selectedPolygon,
                                 onAngleChange = { vertexIndex, newAngleDegrees ->
-                                    // 角度変更
+                                    // Change angle
                                     project?.let { currentProject ->
                                         val currentFloorPlan = currentProject.floorPlans.firstOrNull()
                                         if (currentFloorPlan != null && selectedPolygonIndex!! in currentFloorPlan.rooms.indices) {
@@ -292,7 +291,7 @@ fun RoomScreen(
                                     }
                                 },
                                 onAutoClose = {
-                                    // 自動的に閉じる
+                                    // Close automatically
                                     project?.let { currentProject ->
                                         val currentFloorPlan = currentProject.floorPlans.firstOrNull()
                                         if (currentFloorPlan != null && selectedPolygonIndex!! in currentFloorPlan.rooms.indices) {

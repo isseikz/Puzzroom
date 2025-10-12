@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 import tokyo.isseikuzumaki.puzzroom.domain.Centimeter
 
 /**
- * 家具配置時のツールバー
+ * Toolbar for furniture placement
  */
 @Composable
 fun FurniturePlacementToolbar(
@@ -39,38 +39,38 @@ fun FurniturePlacementToolbar(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 家具名表示
+            // Display furniture name
             Text(
-                text = "配置中: $furnitureName",
+                text = "Placing: $furnitureName",
                 style = MaterialTheme.typography.titleMedium
             )
 
-            // サイズ調整
+            // Adjust size
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 SizeInputField(
-                    label = "幅 (cm)",
+                    label = "Width (cm)",
                     value = width.value,
                     onValueChange = { onWidthChange(Centimeter(it)) },
                     modifier = Modifier.weight(1f)
                 )
                 SizeInputField(
-                    label = "奥行き (cm)",
+                    label = "Depth (cm)",
                     value = depth.value,
                     onValueChange = { onDepthChange(Centimeter(it)) },
                     modifier = Modifier.weight(1f)
                 )
             }
 
-            // 回転調整
+            // Adjust rotation
             RotationControl(
                 rotation = rotation,
                 onRotationChange = onRotationChange
             )
 
-            // 確定・キャンセルボタン
+            // Confirm/Cancel buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -81,7 +81,7 @@ fun FurniturePlacementToolbar(
                 ) {
                     Icon(Icons.Default.Close, contentDescription = null)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("キャンセル")
+                    Text("Cancel")
                 }
                 Button(
                     onClick = onConfirm,
@@ -89,7 +89,7 @@ fun FurniturePlacementToolbar(
                 ) {
                     Icon(Icons.Default.Check, contentDescription = null)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("配置確定")
+                    Text("Confirm placement")
                 }
             }
         }
@@ -97,7 +97,7 @@ fun FurniturePlacementToolbar(
 }
 
 /**
- * サイズ入力フィールド
+ * Size input field
  */
 @Composable
 private fun SizeInputField(
@@ -126,7 +126,7 @@ private fun SizeInputField(
 }
 
 /**
- * 回転コントロール
+ * Rotation control
  */
 @Composable
 private fun RotationControl(
@@ -138,14 +138,14 @@ private fun RotationControl(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // 回転角度表示とスライダー
+        // Rotation angle display and slider
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "回転角度:",
+                text = "Rotation angle:",
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
@@ -161,7 +161,7 @@ private fun RotationControl(
             )
         }
 
-        // クイック回転ボタン
+        // Quick rotation buttons
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
