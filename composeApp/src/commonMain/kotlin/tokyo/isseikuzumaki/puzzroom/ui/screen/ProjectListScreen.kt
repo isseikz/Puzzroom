@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -80,7 +81,10 @@ fun ProjectListScreen(
                             ProjectCard(
                                 project = project,
                                 onClick = { onProjectClick(project.id) },
-                                onDelete = { viewModel.deleteProject(project.id) }
+                                onDelete = { viewModel.deleteProject(project.id) },
+                                onRename = { newName ->
+                                    viewModel.updateProject(project.copy(name = newName))
+                                }
                             )
                         }
                     }
@@ -109,9 +113,11 @@ fun ProjectListScreen(
 fun ProjectCard(
     project: Project,
     onClick: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onRename: (String) -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showRenameDialog by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier
@@ -172,6 +178,15 @@ fun ProjectCard(
                 )
             }
 
+            // Rename button
+            IconButton(onClick = { showRenameDialog = true }) {
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = "Rename",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+
             // Delete button
             IconButton(onClick = { showDeleteDialog = true }) {
                 Icon(
@@ -204,6 +219,41 @@ fun ProjectCard(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Rename dialog
+    if (showRenameDialog) {
+        var newName by remember { mutableStateOf(project.name) }
+        
+        AlertDialog(
+            onDismissRequest = { showRenameDialog = false },
+            title = { Text("Rename Project") },
+            text = {
+                OutlinedTextField(
+                    value = newName,
+                    onValueChange = { newName = it },
+                    label = { Text("Project Name") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (newName.isNotBlank()) {
+                            onRename(newName)
+                            showRenameDialog = false
+                        }
+                    }
+                ) {
+                    Text("Rename")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRenameDialog = false }) {
                     Text("Cancel")
                 }
             }
