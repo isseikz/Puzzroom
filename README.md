@@ -7,8 +7,8 @@ This project implements the **Atomic Design** methodology for UI components, pro
 ### Component Structure
 
 - **Atoms** (5 components): Basic UI elements (Button, Text, Icon, Spacer, Card)
-- **Molecules** (4 components): Simple combinations of atoms
-- **Organisms** (5 components): Complex sections combining molecules
+- **Molecules** (5 components): Simple combinations of atoms
+- **Organisms** (9 components): Complex sections combining molecules
 - **Templates** (2 templates): Page layout structures
 - **Pages** (2+ pages): Complete pages with data and state management
 

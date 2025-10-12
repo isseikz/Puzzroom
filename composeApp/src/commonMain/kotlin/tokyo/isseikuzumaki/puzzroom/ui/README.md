@@ -12,7 +12,7 @@ ui/
 ├── templates/      # Page layout structures
 ├── pages/          # Complete pages with data (ViewModel integration)
 ├── theme/          # Theme configuration (colors, typography)
-├── component/      # Legacy components (to be migrated)
+├── component/      # Legacy components (specialized/platform-specific)
 ├── screen/         # Legacy screens (to be migrated)
 ├── state/          # UI state classes
 └── viewmodel/      # ViewModels
@@ -34,6 +34,7 @@ Small functional units combining atoms:
 - `TitleWithSubtitle` - Title and subtitle combination
 - `ImageWithFallback` - Image with fallback display
 - `ConfirmationDialog` - Confirmation dialog
+- `SaveStateIndicator` - Save state indicator with icon and message
 
 ### Organisms
 Larger sections combining molecules and atoms:
@@ -42,6 +43,10 @@ Larger sections combining molecules and atoms:
 - `ErrorDisplay` - Error display with retry option
 - `LoadingIndicator` - Loading state display
 - `ProjectList` - List of project cards
+- `SaveLoadDialogs` - Save and load dialogs for JSON data
+- `PolygonListPanel` - Panel displaying list of polygons/rooms
+- `FurnitureLibraryPanel` - Furniture selection panel with categories
+- `FurniturePlacementToolbar` - Toolbar for furniture placement controls
 
 ### Templates
 Page layout structures without specific data:

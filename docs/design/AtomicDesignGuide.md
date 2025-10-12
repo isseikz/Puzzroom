@@ -6,16 +6,17 @@
 
 Atomic Design は、UI コンポーネントを5つの階層で構造化する設計手法です。小さなコンポーネント（Atoms）から大きなコンポーネント（Pages）へと段階的に組み立てていきます。
 
-## ディレクトリ構造
+## Directory Structure
 
 ```
 ui/
-├── atoms/          # 最小のUIコンポーネント
-├── molecules/      # Atomsを組み合わせた小さな機能単位
-├── organisms/      # MoleculesとAtomsを組み合わせた大きなセクション
-├── templates/      # ページのレイアウト構造
-├── pages/          # 実際のデータを含む完成したページ
-└── theme/          # テーマ設定（色、タイポグラフィ）
+├── atoms/          # 最小のUIコンポーネント (5 components)
+├── molecules/      # Atomsを組み合わせた小さな機能単位 (5 components)
+├── organisms/      # MoleculesとAtomsを組み合わせた大きなセクション (9 components)
+├── templates/      # ページのレイアウト構造 (2 templates)
+├── pages/          # 実際のデータを含む完成したページ (2 pages)
+├── theme/          # テーマ設定（色、タイポグラフィ）
+└── component/      # レガシーコンポーネント（特殊機能向け）
 ```
 
 ## 各階層の説明
@@ -53,6 +54,7 @@ AppText(
 - `TitleWithSubtitle.kt` - タイトルとサブタイトル
 - `ImageWithFallback.kt` - 画像とフォールバック表示
 - `ConfirmationDialog.kt` - 確認ダイアログ
+- `SaveStateIndicator.kt` - 保存状態インジケーター
 
 **使用方法:**
 ```kotlin
@@ -77,6 +79,10 @@ MoleculesとAtomsを組み合わせて、画面の大きなセクションを形
 - `ErrorDisplay.kt` - エラー表示
 - `LoadingIndicator.kt` - ローディングインジケータ
 - `ProjectList.kt` - プロジェクトリスト
+- `SaveLoadDialogs.kt` - 保存/読込ダイアログ
+- `PolygonListPanel.kt` - ポリゴンリストパネル
+- `FurnitureLibraryPanel.kt` - 家具ライブラリパネル
+- `FurniturePlacementToolbar.kt` - 家具配置ツールバー
 
 **使用方法:**
 ```kotlin
