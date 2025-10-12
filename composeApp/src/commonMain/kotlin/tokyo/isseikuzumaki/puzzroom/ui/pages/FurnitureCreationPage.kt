@@ -3,21 +3,21 @@ package tokyo.isseikuzumaki.puzzroom.ui.pages
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import tokyo.isseikuzumaki.puzzroom.AppState
 import tokyo.isseikuzumaki.puzzroom.domain.*
-import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppButton
-import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppCard
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppText
+import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppTextField
+import tokyo.isseikuzumaki.puzzroom.ui.atoms.VerticalSpacer
 import tokyo.isseikuzumaki.puzzroom.ui.component.EditMode
 import tokyo.isseikuzumaki.puzzroom.ui.component.EditablePolygonCanvas
+import tokyo.isseikuzumaki.puzzroom.ui.molecules.ActionButtons
+import tokyo.isseikuzumaki.puzzroom.ui.molecules.CategorySelector
+import tokyo.isseikuzumaki.puzzroom.ui.molecules.DimensionInput
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.FurnitureTemplateCard
 import kotlin.math.roundToInt
 
@@ -48,17 +48,17 @@ fun FurnitureCreationPage(
             Tab(
                 selected = creationMode == FurnitureCreationMode.PRESET,
                 onClick = { creationMode = FurnitureCreationMode.PRESET },
-                text = { Text("Presets") }
+                text = { AppText("Presets") }
             )
             Tab(
                 selected = creationMode == FurnitureCreationMode.SIMPLE,
                 onClick = { creationMode = FurnitureCreationMode.SIMPLE },
-                text = { Text("Simple Editor") }
+                text = { AppText("Simple Editor") }
             )
             Tab(
                 selected = creationMode == FurnitureCreationMode.DETAILED,
                 onClick = { creationMode = FurnitureCreationMode.DETAILED },
-                text = { Text("Detailed Editor") }
+                text = { AppText("Detailed Editor") }
             )
         }
         
@@ -102,7 +102,7 @@ private fun PresetSelectionContent(
     var selectedPreset by remember { mutableStateOf<FurnitureTemplate?>(null) }
     
     Column(modifier = modifier.fillMaxSize()) {
-        Text(
+        AppText(
             "Select a preset furniture template",
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(16.dp)
@@ -123,31 +123,18 @@ private fun PresetSelectionContent(
         }
         
         // Action buttons
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedButton(
-                onClick = onCancel,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Cancel")
-            }
-            Button(
-                onClick = {
-                    selectedPreset?.let { preset ->
-                        appState.addCustomFurnitureTemplate(preset)
-                        onFurnitureCreated()
-                    }
-                },
-                enabled = selectedPreset != null,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Add to Library")
-            }
-        }
+        ActionButtons(
+            onCancel = onCancel,
+            onConfirm = {
+                selectedPreset?.let { preset ->
+                    appState.addCustomFurnitureTemplate(preset)
+                    onFurnitureCreated()
+                }
+            },
+            confirmText = "Add to Library",
+            confirmEnabled = selectedPreset != null,
+            modifier = Modifier.padding(16.dp)
+        )
     }
 }
 
@@ -172,103 +159,53 @@ private fun SimpleEditorContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
+        AppText(
             "Create a rectangular furniture",
             style = MaterialTheme.typography.titleMedium
         )
         
-        OutlinedTextField(
+        AppTextField(
             value = name,
             onValueChange = { name = it },
-            label = { Text("Furniture Name") },
+            label = "Furniture Name",
             modifier = Modifier.fillMaxWidth()
         )
         
-        // Category selection
-        Column {
-            Text("Category", style = MaterialTheme.typography.labelMedium)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                FurnitureCategory.entries.take(3).forEach { category ->
-                    FilterChip(
-                        selected = selectedCategory == category,
-                        onClick = { selectedCategory = category },
-                        label = { Text(category.name) }
-                    )
-                }
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                FurnitureCategory.entries.drop(3).forEach { category ->
-                    FilterChip(
-                        selected = selectedCategory == category,
-                        onClick = { selectedCategory = category },
-                        label = { Text(category.name) }
-                    )
-                }
-            }
-        }
+        CategorySelector(
+            selectedCategory = selectedCategory,
+            onCategorySelected = { selectedCategory = it }
+        )
         
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedTextField(
-                value = widthStr,
-                onValueChange = { widthStr = it },
-                label = { Text("Width (cm)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.weight(1f)
-            )
-            OutlinedTextField(
-                value = depthStr,
-                onValueChange = { depthStr = it },
-                label = { Text("Depth (cm)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.weight(1f)
-            )
-        }
+        DimensionInput(
+            widthValue = widthStr,
+            depthValue = depthStr,
+            onWidthChange = { widthStr = it },
+            onDepthChange = { depthStr = it }
+        )
         
         Spacer(modifier = Modifier.weight(1f))
         
         // Action buttons
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedButton(
-                onClick = onCancel,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Cancel")
-            }
-            Button(
-                onClick = {
-                    val width = widthStr.toIntOrNull()
-                    val depth = depthStr.toIntOrNull()
-                    if (name.isNotBlank() && width != null && depth != null && width > 0 && depth > 0) {
-                        val template = FurnitureTemplate(
-                            name = name,
-                            category = selectedCategory,
-                            width = Centimeter(width),
-                            depth = Centimeter(depth)
-                        )
-                        appState.addCustomFurnitureTemplate(template)
-                        onFurnitureCreated()
-                    }
-                },
-                enabled = name.isNotBlank() && 
+        ActionButtons(
+            onCancel = onCancel,
+            onConfirm = {
+                val width = widthStr.toIntOrNull()
+                val depth = depthStr.toIntOrNull()
+                if (name.isNotBlank() && width != null && depth != null && width > 0 && depth > 0) {
+                    val template = FurnitureTemplate(
+                        name = name,
+                        category = selectedCategory,
+                        width = Centimeter(width),
+                        depth = Centimeter(depth)
+                    )
+                    appState.addCustomFurnitureTemplate(template)
+                    onFurnitureCreated()
+                }
+            },
+            confirmEnabled = name.isNotBlank() && 
                          widthStr.toIntOrNull()?.let { it > 0 } == true &&
-                         depthStr.toIntOrNull()?.let { it > 0 } == true,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Create")
-            }
-        }
+                         depthStr.toIntOrNull()?.let { it > 0 } == true
+        )
     }
 }
 
@@ -293,19 +230,19 @@ private fun DetailedEditorContent(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
+            AppText(
                 "Create a custom shape furniture",
                 style = MaterialTheme.typography.titleMedium
             )
             
-            OutlinedTextField(
+            AppTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Furniture Name") },
+                label = "Furniture Name",
                 modifier = Modifier.fillMaxWidth()
             )
             
-            // Category selection
+            // Category selection (compact version for detailed editor)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -314,12 +251,12 @@ private fun DetailedEditorContent(
                     FilterChip(
                         selected = selectedCategory == category,
                         onClick = { selectedCategory = category },
-                        label = { Text(category.name.take(3)) }
+                        label = { AppText(category.name.take(3)) }
                     )
                 }
             }
             
-            Text(
+            AppText(
                 "Click on the canvas to add vertices. Click on the first vertex to close the shape.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -375,43 +312,29 @@ private fun DetailedEditorContent(
         }
         
         // Action buttons
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedButton(
-                onClick = onCancel,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Cancel")
-            }
-            Button(
-                onClick = {
-                    val finalPolygon = polygons.firstOrNull()
-                    if (name.isNotBlank() && finalPolygon != null) {
-                        // Calculate bounding box for width and depth
-                        val xs = finalPolygon.points.map { it.x.value }
-                        val ys = finalPolygon.points.map { it.y.value }
-                        val width = (xs.maxOrNull() ?: 0) - (xs.minOrNull() ?: 0)
-                        val depth = (ys.maxOrNull() ?: 0) - (ys.minOrNull() ?: 0)
-                        
-                        val template = FurnitureTemplate(
-                            name = name,
-                            category = selectedCategory,
-                            width = Centimeter(width),
-                            depth = Centimeter(depth)
-                        )
-                        appState.addCustomFurnitureTemplate(template)
-                        onFurnitureCreated()
-                    }
-                },
-                enabled = name.isNotBlank() && polygons.isNotEmpty(),
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Create")
-            }
-        }
+        ActionButtons(
+            onCancel = onCancel,
+            onConfirm = {
+                val finalPolygon = polygons.firstOrNull()
+                if (name.isNotBlank() && finalPolygon != null) {
+                    // Calculate bounding box for width and depth
+                    val xs = finalPolygon.points.map { it.x.value }
+                    val ys = finalPolygon.points.map { it.y.value }
+                    val width = (xs.maxOrNull() ?: 0) - (xs.minOrNull() ?: 0)
+                    val depth = (ys.maxOrNull() ?: 0) - (ys.minOrNull() ?: 0)
+                    
+                    val template = FurnitureTemplate(
+                        name = name,
+                        category = selectedCategory,
+                        width = Centimeter(width),
+                        depth = Centimeter(depth)
+                    )
+                    appState.addCustomFurnitureTemplate(template)
+                    onFurnitureCreated()
+                }
+            },
+            confirmEnabled = name.isNotBlank() && polygons.isNotEmpty(),
+            modifier = Modifier.padding(16.dp)
+        )
     }
 }
