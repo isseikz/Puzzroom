@@ -29,23 +29,23 @@ fun FurnitureScreen(
     var selectedRoom by remember { mutableStateOf<Room?>(appState.selectedRoom) }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // 保存状態インジケーター
+        // Save state indicator
         SaveStateIndicator(
             saveState = saveState,
             onRetry = { viewModel.saveNow() }
         )
 
-        // 部屋選択
+        // Room selection
         if (selectedRoom == null) {
             Text(
-                "部屋を選択してください",
+                "Please select a room",
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(16.dp)
             )
 
             if (rooms.isEmpty()) {
                 Text(
-                    "部屋が登録されていません。Room 画面で部屋を作成してください。",
+                    "No rooms are registered. Please create a room on the Room screen.",
                     modifier = Modifier.padding(16.dp)
                 )
             } else {
@@ -73,7 +73,7 @@ fun FurnitureScreen(
                                     style = MaterialTheme.typography.titleMedium
                                 )
                                 Text(
-                                    "頂点数: ${room.shape.points.size}",
+                                    "Number of vertices: ${room.shape.points.size}",
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
@@ -82,7 +82,7 @@ fun FurnitureScreen(
                 }
             }
         } else {
-            // 家具配置
+            // Furniture placement
             var furnitureWidth by remember { mutableStateOf(Centimeter(100)) }
             var furnitureDepth by remember { mutableStateOf(Centimeter(100)) }
             var furnitureRotation by remember { mutableStateOf(0f) }
@@ -91,11 +91,11 @@ fun FurnitureScreen(
             var currentPosition by remember { mutableStateOf<Point?>(null) }
             var selectedFurnitureIndex by remember { mutableStateOf<Int?>(null) }
 
-            // Projectから配置済み家具を読み込む
+            // Load placed furniture from Project
             LaunchedEffect(selectedRoom, currentFloorPlan?.layouts) {
                 selectedRoom?.let { room ->
                     placedFurnitures = currentFloorPlan?.layouts
-                        ?.filter { it.room.id == room.id }  // 選択中の部屋の家具のみ
+                        ?.filter { it.room.id == room.id }  // Only furniture in the selected room
                         ?.map { layout ->
                             PlacedFurniture(
                                 furniture = layout.furniture,
@@ -106,13 +106,13 @@ fun FurnitureScreen(
                 }
             }
 
-            // テンプレート選択時に家具を作成
+            // Create furniture when template is selected
             LaunchedEffect(appState.selectedFurnitureTemplate) {
                 appState.selectedFurnitureTemplate?.let { template ->
                     furnitureWidth = template.width
                     furnitureDepth = template.depth
                     furnitureRotation = 0f
-                    selectedFurnitureIndex = null  // 選択をクリア
+                    selectedFurnitureIndex = null  // Clear selection
                     currentFurniture = Furniture(
                         name = template.name,
                         shape = Polygon(
@@ -127,7 +127,7 @@ fun FurnitureScreen(
                 }
             }
 
-            // サイズ変更時に家具を再作成
+            // Recreate furniture when size is changed
             LaunchedEffect(furnitureWidth, furnitureDepth) {
                 if (appState.selectedFurnitureTemplate != null) {
                     currentFurniture = Furniture(
@@ -152,18 +152,18 @@ fun FurnitureScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        "部屋: ${selectedRoom!!.name}",
+                        "Room: ${selectedRoom!!.name}",
                         style = MaterialTheme.typography.titleMedium
                     )
                     Button(onClick = {
                         selectedRoom = null
                     }) {
-                        Text("部屋選択に戻る")
+                        Text("Back to room selection")
                     }
                 }
 
                 Row(modifier = Modifier.weight(1f)) {
-                    // 家具ライブラリパネル
+                    // Furniture library panel
                     FurnitureLibraryPanel(
                         templates = appState.furnitureTemplates,
                         selectedTemplate = appState.selectedFurnitureTemplate,
@@ -171,14 +171,14 @@ fun FurnitureScreen(
                             appState.selectFurnitureTemplate(template)
                         },
                         onCreateCustom = {
-                            // TODO: カスタム家具作成ダイアログ
+                            // TODO: Custom furniture creation dialog
                         },
                         modifier = Modifier
                             .width(300.dp)
                             .fillMaxHeight()
                     )
 
-                    // 家具配置キャンバス
+                    // Furniture placement canvas
                     FurnitureLayoutCanvas(
                         room = selectedRoom!!,
                         backgroundImageUrl = project?.layoutUrl,
@@ -192,7 +192,7 @@ fun FurnitureScreen(
                         onFurnitureSelected = { index ->
                             selectedFurnitureIndex = index
                             if (index != null) {
-                                // 家具選択時は配置モードを解除
+                                // Deselect placement mode when furniture is selected
                                 appState.selectFurnitureTemplate(null)
                             }
                         },
@@ -204,7 +204,7 @@ fun FurnitureScreen(
                                     furniture
                                 }
                             }
-                            // ViewModelを更新
+                            // Update ViewModel
                             project?.let { currentProject ->
                                 currentFloorPlan?.let { floorPlan ->
                                     val updatedLayoutEntry = floorPlan.layouts.getOrNull(index)?.copy(position = newPosition)
@@ -217,7 +217,7 @@ fun FurnitureScreen(
                                         val updatedProject = currentProject.copy(
                                             floorPlans = listOf(updatedFloorPlan)
                                         )
-                                        // 自動保存トリガー
+                                        // Auto-save trigger
                                         viewModel.updateProject(updatedProject)
                                     }
                                 }
@@ -227,7 +227,7 @@ fun FurnitureScreen(
                     )
                 }
 
-                // ツールバー（家具選択時のみ表示）
+                // Toolbar (only displayed when furniture is selected)
                 if (appState.selectedFurnitureTemplate != null && currentFurniture != null) {
                     FurniturePlacementToolbar(
                         furnitureName = appState.selectedFurnitureTemplate!!.name,
@@ -255,7 +255,7 @@ fun FurnitureScreen(
                                                     rotation = furnitureRotation.degree()
                                                 )
 
-                                                // Projectを更新
+                                                // Update Project
                                                 val updatedFloorPlan = floorPlan.copy(
                                                     layouts = floorPlan.layouts + layoutEntry,
                                                     furnitures = floorPlan.furnitures + furniture
@@ -267,7 +267,7 @@ fun FurnitureScreen(
                                                 appState.selectFurnitureTemplate(null)
                                                 currentPosition = null
 
-                                                // 自動保存トリガー
+                                                // Auto-save trigger
                                                 viewModel.updateProject(updatedProject)
                                             }
                                         }

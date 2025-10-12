@@ -15,14 +15,14 @@ fun SaveDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Polygons を保存") },
+        title = { Text("Save Polygons") },
         text = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(8.dp)
             ) {
-                Text("以下の JSON をコピーして保存してください:")
+                Text("Copy and save the following JSON:")
                 Spacer(modifier = Modifier.height(8.dp))
                 TextField(
                     value = json,
@@ -37,7 +37,7 @@ fun SaveDialog(
         },
         confirmButton = {
             Button(onClick = onDismiss) {
-                Text("閉じる")
+                Text("Close")
             }
         }
     )
@@ -53,14 +53,14 @@ fun LoadDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Polygons を読み込み") },
+        title = { Text("Load") },
         text = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(8.dp)
             ) {
-                Text("JSON を貼り付けてください:")
+                Text("Input JSON:")
                 Spacer(modifier = Modifier.height(8.dp))
                 TextField(
                     value = jsonInput,
@@ -87,15 +87,15 @@ fun LoadDialog(
                 try {
                     onLoad(jsonInput)
                 } catch (e: Exception) {
-                    errorMessage = "読み込みに失敗しました: ${e.message}"
+                    errorMessage = "Failed to load: ${e.message}"
                 }
             }) {
-                Text("読み込む")
+                Text("Load")
             }
         },
         dismissButton = {
             Button(onClick = onDismiss) {
-                Text("キャンセル")
+                Text("Cancel")
             }
         }
     )

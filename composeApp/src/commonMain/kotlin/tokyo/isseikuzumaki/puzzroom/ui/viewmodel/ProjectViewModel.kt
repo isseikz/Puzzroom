@@ -91,8 +91,8 @@ class ProjectViewModel(
     /**
      * 新規プロジェクトを作成
      */
-    fun createNewProject(name: String = "新規プロジェクト") {
-        val newProject = Project(name = name)
+    fun createNewProject(name: String? = null) {
+        val newProject = Project(name = name ?: "Untitled")
         _currentProject.value = newProject
         _uiState.value = ProjectUiState.EditingProject(newProject)
         _saveState.value = SaveState.Saved

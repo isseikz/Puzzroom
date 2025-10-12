@@ -34,7 +34,7 @@ fun DimensionInputPanel(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "部屋を選択してください",
+                    text = "Please select a room",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -60,11 +60,11 @@ fun DimensionInputPanel(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "寸法編集",
+                    text = "Edit Dimensions",
                     style = MaterialTheme.typography.titleMedium
                 )
-                TextButton(onClick = onClose) {
-                    Text("閉じる")
+                Button(onClick = onClose) {
+                    Text("Close")
                 }
             }
 
@@ -87,7 +87,7 @@ fun DimensionInputPanel(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "※ 各辺の長さを個別に変更できます。\n変更は即座に反映され、自動保存されます。",
+                text = "* You can change the length of each side individually.\nChanges are reflected immediately and saved automatically.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -114,11 +114,7 @@ private fun DimensionInput(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = "辺 $edgeNumber:",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.width(60.dp)
-        )
+        Text("Side ${edgeNumber}")
 
         OutlinedTextField(
             value = inputValue,
@@ -134,7 +130,7 @@ private fun DimensionInput(
                     isError = newValue.isNotEmpty()
                 }
             },
-            label = { Text("cm") },
+            label = { Text("Length (cm)") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             isError = isError,
             singleLine = true,
@@ -142,7 +138,7 @@ private fun DimensionInput(
         )
 
         Text(
-            text = "現在: ${currentLength}cm",
+            text = "Current: ${currentLength}cm",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = 8.dp)

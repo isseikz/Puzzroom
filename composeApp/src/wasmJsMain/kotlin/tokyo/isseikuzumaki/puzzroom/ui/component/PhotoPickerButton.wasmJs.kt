@@ -1,12 +1,12 @@
-package tokyo.isseikuzumaki.puzzroom.ui
+package tokyo.isseikuzumaki.puzzroom.ui.component
 
 import androidx.compose.material3.Button
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import kotlinx.browser.document
 import org.w3c.dom.HTMLInputElement
-import org.w3c.dom.Text
 import org.w3c.files.FileReader
 import org.w3c.files.get
 

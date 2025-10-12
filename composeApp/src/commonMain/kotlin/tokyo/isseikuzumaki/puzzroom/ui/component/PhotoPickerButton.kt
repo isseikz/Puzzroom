@@ -1,4 +1,4 @@
-package tokyo.isseikuzumaki.puzzroom.ui
+package tokyo.isseikuzumaki.puzzroom.ui.component
 
 import androidx.compose.runtime.Composable
 

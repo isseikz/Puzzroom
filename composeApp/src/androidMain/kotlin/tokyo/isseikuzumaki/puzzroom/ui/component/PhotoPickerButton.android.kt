@@ -1,4 +1,4 @@
-package tokyo.isseikuzumaki.puzzroom.ui
+package tokyo.isseikuzumaki.puzzroom.ui.component
 
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
