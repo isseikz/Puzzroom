@@ -179,6 +179,15 @@ fun ProjectCard(
                 )
             }
 
+            // Rename button
+            IconButton(onClick = { showRenameDialog = true }) {
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = "Rename",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+
             // Delete button
             IconButton(onClick = { showDeleteDialog = true }) {
                 Icon(
@@ -217,18 +226,18 @@ fun ProjectCard(
         )
     }
 
-    // 名前変更ダイアログ
+    // Rename dialog
     if (showRenameDialog) {
         var newName by remember { mutableStateOf(project.name) }
         
         AlertDialog(
             onDismissRequest = { showRenameDialog = false },
-            title = { Text("プロジェクト名を変更") },
+            title = { Text("Rename Project") },
             text = {
                 OutlinedTextField(
                     value = newName,
                     onValueChange = { newName = it },
-                    label = { Text("プロジェクト名") },
+                    label = { Text("Project Name") },
                     singleLine = true
                 )
             },
@@ -241,12 +250,12 @@ fun ProjectCard(
                         }
                     }
                 ) {
-                    Text("変更")
+                    Text("Rename")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showRenameDialog = false }) {
-                    Text("キャンセル")
+                    Text("Cancel")
                 }
             }
         )
