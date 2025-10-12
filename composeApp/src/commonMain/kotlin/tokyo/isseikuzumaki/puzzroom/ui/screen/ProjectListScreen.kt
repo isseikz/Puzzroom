@@ -84,7 +84,6 @@ fun ProjectListScreen(
                                 onDelete = { viewModel.deleteProject(project.id) },
                                 onRename = { newName ->
                                     viewModel.updateProject(project.copy(name = newName))
-                                    viewModel.loadProjects()
                                 }
                             )
                         }

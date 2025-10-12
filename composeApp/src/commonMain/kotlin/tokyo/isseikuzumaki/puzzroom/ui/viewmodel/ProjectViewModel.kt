@@ -109,9 +109,20 @@ class ProjectViewModel(
     fun updateProject(project: Project) {
         _currentProject.value = project
 
-        // 編集中の状態も更新
-        if (_uiState.value is ProjectUiState.EditingProject) {
-            _uiState.value = ProjectUiState.EditingProject(project)
+        when (_uiState.value) {
+            is ProjectUiState.EditingProject -> { // 編集中
+                _uiState.value = ProjectUiState.EditingProject(project)
+            }
+            is ProjectUiState.ProjectList -> { // 一覧画面のプロジェクト名編集
+                val before = (_uiState.value as ProjectUiState.ProjectList).projects
+                val after = before.map {
+                    if (it.id == project.id) project else it
+                }
+                _uiState.value = ProjectUiState.ProjectList(after)
+            }
+            else -> {
+                // 他の状態では何もしない
+            }
         }
 
         viewModelScope.launch {
