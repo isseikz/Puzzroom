@@ -12,6 +12,8 @@ import androidx.navigation.NavHostController
 
 enum class AppScreen {
     ProjectList,
+    FurnitureManagement,
+    FurnitureCreation,
     Room,
     Furniture,
     File
@@ -45,6 +47,20 @@ fun AppBar(
     Column(
         modifier = modifier
     ) {
+        NavigationButton(
+            text = "Projects",
+            targetScreen = AppScreen.ProjectList,
+            currentScreen = currentScreen,
+            onClick = { screen -> navController.navigate(screen.name) },
+        )
+
+        NavigationButton(
+            text = "Furniture Library",
+            targetScreen = AppScreen.FurnitureManagement,
+            currentScreen = currentScreen,
+            onClick = { screen -> navController.navigate(screen.name) },
+        )
+
         NavigationButton(
             text = "Room",
             targetScreen = AppScreen.Room,
