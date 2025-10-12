@@ -18,6 +18,7 @@ fun ProjectList(
     projects: List<Project>,
     onProjectClick: (String) -> Unit,
     onProjectDelete: (String) -> Unit,
+    onProjectRename: (String, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -29,7 +30,8 @@ fun ProjectList(
             ProjectCardItem(
                 project = project,
                 onClick = { onProjectClick(project.id) },
-                onDelete = { onProjectDelete(project.id) }
+                onDelete = { onProjectDelete(project.id) },
+                onRename = { newName -> onProjectRename(project.id, newName) }
             )
         }
     }

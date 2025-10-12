@@ -56,6 +56,7 @@ fun ProjectListPage(
                         projects = state.projects,
                         onProjectClick = onProjectClick,
                         onProjectDelete = { projectId -> viewModel.deleteProject(projectId) },
+                        onProjectRename = { projectId, newName -> viewModel.renameProject(projectId, newName) },
                         modifier = modifier
                     )
                 }

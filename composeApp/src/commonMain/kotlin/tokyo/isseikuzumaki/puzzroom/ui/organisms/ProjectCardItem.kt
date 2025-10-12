@@ -3,15 +3,14 @@ package tokyo.isseikuzumaki.puzzroom.ui.organisms
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import tokyo.isseikuzumaki.puzzroom.domain.Project
-import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppCard
-import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppIconButton
-import tokyo.isseikuzumaki.puzzroom.ui.atoms.HorizontalSpacer
+import tokyo.isseikuzumaki.puzzroom.ui.atoms.*
 import tokyo.isseikuzumaki.puzzroom.ui.molecules.ConfirmationDialog
 import tokyo.isseikuzumaki.puzzroom.ui.molecules.ImageWithFallback
 import tokyo.isseikuzumaki.puzzroom.ui.molecules.TitleWithSubtitle
@@ -24,9 +23,11 @@ fun ProjectCardItem(
     project: Project,
     onClick: () -> Unit,
     onDelete: () -> Unit,
+    onRename: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showRenameDialog by remember { mutableStateOf(false) }
 
     AppCard(
         modifier = modifier.fillMaxWidth(),
@@ -53,6 +54,13 @@ fun ProjectCardItem(
                 modifier = Modifier.weight(1f)
             )
 
+            // Edit button
+            AppIconButton(
+                imageVector = Icons.Default.Edit,
+                contentDescription = "Rename",
+                onClick = { showRenameDialog = true }
+            )
+
             // Delete button
             AppIconButton(
                 imageVector = Icons.Default.Delete,
@@ -61,6 +69,41 @@ fun ProjectCardItem(
                 tint = MaterialTheme.colorScheme.error
             )
         }
+    }
+
+    // Rename dialog
+    if (showRenameDialog) {
+        var newName by remember { mutableStateOf(project.name) }
+        
+        AlertDialog(
+            onDismissRequest = { showRenameDialog = false },
+            title = { AppText("Rename Project") },
+            text = {
+                OutlinedTextField(
+                    value = newName,
+                    onValueChange = { newName = it },
+                    label = { AppText("Project Name") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                AppTextButton(
+                    text = "Rename",
+                    onClick = {
+                        if (newName.isNotBlank()) {
+                            onRename(newName)
+                            showRenameDialog = false
+                        }
+                    }
+                )
+            },
+            dismissButton = {
+                AppTextButton(
+                    text = "Cancel",
+                    onClick = { showRenameDialog = false }
+                )
+            }
+        )
     }
 
     // Delete confirmation dialog
