@@ -222,7 +222,6 @@ private fun DetailedEditorContent(
     var name by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf(FurnitureCategory.CUSTOM) }
     var polygons by remember { mutableStateOf<List<Polygon>>(emptyList()) }
-    var currentPolygon by remember { mutableStateOf<Polygon?>(null) }
     
     Column(modifier = modifier.fillMaxSize()) {
         // Input fields
@@ -271,38 +270,17 @@ private fun DetailedEditorContent(
                 .padding(horizontal = 16.dp)
         ) {
             EditablePolygonCanvas(
-                polygons = polygons + listOfNotNull(currentPolygon),
+                polygons = polygons,
                 selectedPolygonIndex = null,
                 backgroundImageUrl = null,
                 editMode = EditMode.Creation,
                 onNewVertex = { offset ->
-                    val point = Point(
-                        x = Centimeter(offset.x.roundToInt()),
-                        y = Centimeter(offset.y.roundToInt())
-                    )
-                    
-                    if (currentPolygon == null) {
-                        currentPolygon = Polygon(points = listOf(point))
-                    } else {
-                        val current = currentPolygon!!
-                        // Check if clicking near the first point to close the polygon
-                        val firstPoint = current.points.first()
-                        val distance = kotlin.math.sqrt(
-                            ((point.x.value - firstPoint.x.value) * (point.x.value - firstPoint.x.value) +
-                             (point.y.value - firstPoint.y.value) * (point.y.value - firstPoint.y.value)).toFloat()
-                        )
-                        
-                        if (distance < 20 && current.points.size >= 3) {
-                            // Close the polygon
-                            polygons = polygons + currentPolygon!!
-                            currentPolygon = null
-                        } else {
-                            currentPolygon = current.copy(points = current.points + point)
-                        }
-                    }
+                    // Canvas handles vertex tracking internally
                 },
                 onCompletePolygon = { polygon ->
-                    // Not used in this mode
+                    if (polygon.points.size >= 3) {
+                        polygons = polygons + polygon
+                    }
                 },
                 onVertexMove = { _, _, _ ->
                     // Not used in creation mode
@@ -315,8 +293,7 @@ private fun DetailedEditorContent(
         ActionButtons(
             onCancel = onCancel,
             onConfirm = {
-                val finalPolygon = polygons.firstOrNull()
-                if (name.isNotBlank() && finalPolygon != null) {
+                polygons.firstOrNull()?.takeIf { name.isNotBlank() }?.let { finalPolygon ->
                     // Calculate bounding box for width and depth
                     val xs = finalPolygon.points.map { it.x.value }
                     val ys = finalPolygon.points.map { it.y.value }
