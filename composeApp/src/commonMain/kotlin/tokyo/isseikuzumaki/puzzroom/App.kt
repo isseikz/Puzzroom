@@ -35,58 +35,55 @@ fun App(
     val currentDestination = backStackEntry?.destination?.route
 
     PuzzroomTheme {
-        Scaffold { innerPadding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            NavHost(
+                navController = navController,
+                startDestination = AppScreen.ProjectList.name,
+                modifier = Modifier.fillMaxSize()
+                    .background(color = MaterialTheme.colorScheme.background)
             ) {
-                NavHost(
-                    navController = navController,
-                    startDestination = AppScreen.ProjectList.name,
-                    modifier = Modifier.fillMaxSize()
-                        .background(color = MaterialTheme.colorScheme.background)
-                ) {
-                    composable(route = AppScreen.ProjectList.name) {
-                        ProjectListPage(
-                            viewModel = projectViewModel,
-                            onProjectClick = { projectId ->
-                                projectViewModel.openProject(projectId)
-                                navController.navigate(AppScreen.Room.name)
-                            },
-                            onCreateNew = {
-                                projectViewModel.createNewProject()
-                                navController.navigate(AppScreen.Room.name)
-                            }
-                        )
-                    }
-                    composable(route = AppScreen.Room.name) {
-                        RoomScreen(
-                            appState = appState,
-                            viewModel = projectViewModel
-                        )
-                    }
-                    composable(route = AppScreen.Furniture.name) {
-                        FurnitureScreen(
-                            appState = appState,
-                            viewModel = projectViewModel
-                        )
-                    }
-                    composable(route = AppScreen.File.name) {  }
-                }
-
-                // プロジェクト一覧以外の画面でナビゲーションバーを表示
-                if (currentDestination != AppScreen.ProjectList.name) {
-                    AppBar(
-                        navController = navController,
-                        currentScreen = AppScreen.valueOf(currentDestination ?: AppScreen.ProjectList.name),
-                        canNavigateBack = navController.previousBackStackEntry != null,
-                        navigateUp = { navController.navigateUp() },
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .background(color = MaterialTheme.colorScheme.primaryContainer)
+                composable(route = AppScreen.ProjectList.name) {
+                    ProjectListPage(
+                        viewModel = projectViewModel,
+                        onProjectClick = { projectId ->
+                            projectViewModel.openProject(projectId)
+                            navController.navigate(AppScreen.Room.name)
+                        },
+                        onCreateNew = {
+                            projectViewModel.createNewProject()
+                            navController.navigate(AppScreen.Room.name)
+                        }
                     )
                 }
+                composable(route = AppScreen.Room.name) {
+                    RoomScreen(
+                        appState = appState,
+                        viewModel = projectViewModel
+                    )
+                }
+                composable(route = AppScreen.Furniture.name) {
+                    FurnitureScreen(
+                        appState = appState,
+                        viewModel = projectViewModel
+                    )
+                }
+                composable(route = AppScreen.File.name) {  }
+            }
+
+            // プロジェクト一覧以外の画面でナビゲーションバーを表示
+            if (currentDestination != AppScreen.ProjectList.name) {
+                AppBar(
+                    navController = navController,
+                    currentScreen = AppScreen.valueOf(currentDestination ?: AppScreen.ProjectList.name),
+                    canNavigateBack = navController.previousBackStackEntry != null,
+                    navigateUp = { navController.navigateUp() },
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .background(color = MaterialTheme.colorScheme.primaryContainer)
+                )
             }
         }
     }
