@@ -6,11 +6,32 @@ This project implements the **Atomic Design** methodology for UI components, pro
 
 ### Component Structure
 
-- **Atoms** (5 components): Basic UI elements (Button, Text, Icon, Spacer, Card)
-- **Molecules** (5 components): Simple combinations of atoms
-- **Organisms** (9 components): Complex sections combining molecules
-- **Templates** (2 templates): Page layout structures
-- **Pages** (2+ pages): Complete pages with data and state management
+The UI is organized in a strict hierarchy - always follow this when creating or modifying components:
+
+- **Atoms** (`ui/atoms/` - 5 components): Basic UI elements that cannot be broken down further
+  - `AppButton`, `AppText`, `AppIcon`, `AppSpacer`, `AppCard`
+  - **Rule**: Generic, reusable, no business logic
+  
+- **Molecules** (`ui/molecules/` - 5 components): Simple combinations of 2-3 atoms
+  - `IconWithLabel`, `TitleWithSubtitle`, `ImageWithFallback`, `ConfirmationDialog`, `SaveStateIndicator`
+  - **Rule**: Single purpose, minimal logic
+  
+- **Organisms** (`ui/organisms/` - 9 components): Complex sections combining molecules and atoms
+  - `ProjectCardItem`, `EmptyState`, `ErrorDisplay`, `LoadingIndicator`, `ProjectList`, etc.
+  - **Rule**: Feature-specific, can contain logic
+  
+- **Templates** (`ui/templates/` - 2 templates): Page layout structures without data
+  - `ListScreenTemplate`, `EditorScreenTemplate`
+  - **Rule**: Define layout only, receive content via parameters
+  
+- **Pages** (`ui/pages/` - 2+ pages): Complete pages with ViewModel integration
+  - `ProjectListPage`, `RoomEditorPage`
+  - **Rule**: Integrate state management and compose templates
+
+### Data Flow Pattern
+
+- **State Down**: ViewModel → Pages → Templates → Organisms → Molecules → Atoms
+- **Events Up**: User interactions flow back through callbacks to ViewModel
 
 ### Theme
 
@@ -20,8 +41,34 @@ The app uses a **warm color palette** designed for a calm, comfortable user expe
 - Tertiary: Warm beige (#E5D4C1)
 - Background: Warm white (#FAF4F0)
 
+**Always use theme colors** via `MaterialTheme.colorScheme` - never hardcode colors.
+
+### Creating New Components
+
+**Step 1**: Determine the correct level based on complexity:
+- Single element? → Create/use an Atom
+- Combining 2-3 atoms? → Create a Molecule
+- Multiple molecules? → Create an Organism
+- Full page layout? → Create a Template
+- Needs data/ViewModel? → Create a Page
+
+**Step 2**: Place in correct directory:
+```kotlin
+ui/atoms/AppButton.kt           // Atoms: App[Element].kt
+ui/molecules/IconWithLabel.kt   // Molecules: [Descriptive][Purpose].kt
+ui/organisms/ProjectCardItem.kt // Organisms: [Feature][Component].kt
+ui/templates/ListTemplate.kt    // Templates: [Purpose]Template.kt
+ui/pages/ProjectListPage.kt     // Pages: [Feature]Page.kt
+```
+
+**Step 3**: Follow composition pattern - compose upward through hierarchy:
+```
+Atoms → Molecules → Organisms → Templates → Pages
+```
+
 ### Documentation
 
+- [**GitHub Copilot Instructions**](./.github/copilot-instructions.md) - **Read this for AI-assisted development**
 - [Atomic Design Guide](./docs/design/AtomicDesignGuide.md) - Detailed implementation guide (Japanese)
 - [UI Structure README](./composeApp/src/commonMain/kotlin/tokyo/isseikuzumaki/puzzroom/ui/README.md) - Overview (English)
 - [Architecture Diagrams](./docs/design/AtomicDesignArchitecture.md) - Visual architecture
