@@ -11,10 +11,10 @@ import tokyo.isseikuzumaki.puzzroom.AppState
 import tokyo.isseikuzumaki.puzzroom.domain.*
 import tokyo.isseikuzumaki.puzzroom.domain.Degree.Companion.degree
 import tokyo.isseikuzumaki.puzzroom.ui.component.FurnitureLayoutCanvas
-import tokyo.isseikuzumaki.puzzroom.ui.component.FurnitureLibraryPanel
-import tokyo.isseikuzumaki.puzzroom.ui.component.FurniturePlacementToolbar
 import tokyo.isseikuzumaki.puzzroom.ui.component.PlacedFurniture
-import tokyo.isseikuzumaki.puzzroom.ui.component.SaveStateIndicator
+import tokyo.isseikuzumaki.puzzroom.ui.molecules.SaveStateIndicator
+import tokyo.isseikuzumaki.puzzroom.ui.organisms.FurnitureLibraryPanel
+import tokyo.isseikuzumaki.puzzroom.ui.organisms.FurniturePlacementToolbar
 import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.ProjectViewModel
 
 @Composable

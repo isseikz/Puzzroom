@@ -13,15 +13,15 @@ import tokyo.isseikuzumaki.puzzroom.domain.FloorPlan
 import tokyo.isseikuzumaki.puzzroom.domain.PolygonGeometry
 import tokyo.isseikuzumaki.puzzroom.domain.Project
 import tokyo.isseikuzumaki.puzzroom.domain.Room
-import tokyo.isseikuzumaki.puzzroom.ui.LoadDialog
 import tokyo.isseikuzumaki.puzzroom.ui.component.PhotoPickerButton
-import tokyo.isseikuzumaki.puzzroom.ui.SaveDialog
 import tokyo.isseikuzumaki.puzzroom.ui.component.AngleInputPanel
 import tokyo.isseikuzumaki.puzzroom.ui.component.DimensionInputPanel
 import tokyo.isseikuzumaki.puzzroom.ui.component.EditMode
 import tokyo.isseikuzumaki.puzzroom.ui.component.EditablePolygonCanvas
-import tokyo.isseikuzumaki.puzzroom.ui.component.PolygonListPanel
-import tokyo.isseikuzumaki.puzzroom.ui.component.SaveStateIndicator
+import tokyo.isseikuzumaki.puzzroom.ui.molecules.SaveStateIndicator
+import tokyo.isseikuzumaki.puzzroom.ui.organisms.LoadDialog
+import tokyo.isseikuzumaki.puzzroom.ui.organisms.PolygonListPanel
+import tokyo.isseikuzumaki.puzzroom.ui.organisms.SaveDialog
 import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.ProjectViewModel
 
 /**

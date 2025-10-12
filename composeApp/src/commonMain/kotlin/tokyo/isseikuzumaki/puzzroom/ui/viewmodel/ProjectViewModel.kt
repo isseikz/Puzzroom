@@ -171,6 +171,29 @@ class ProjectViewModel(
     }
 
     /**
+     * プロジェクト名を変更
+     */
+    fun renameProject(projectId: String, newName: String) {
+        viewModelScope.launch {
+            loadProjectUseCase(projectId)
+                .onSuccess { project ->
+                    val renamedProject = project.copy(name = newName)
+                    saveProjectUseCase(renamedProject)
+                        .onSuccess {
+                            // 名前変更後、一覧を再読み込み
+                            loadProjects()
+                        }
+                        .onFailure { error ->
+                            _uiState.value = ProjectUiState.Error(error.toUiError())
+                        }
+                }
+                .onFailure { error ->
+                    _uiState.value = ProjectUiState.Error(error.toUiError())
+                }
+        }
+    }
+
+    /**
      * プロジェクト一覧画面に戻る
      */
     fun backToProjectList() {

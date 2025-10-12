@@ -19,8 +19,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import tokyo.isseikuzumaki.puzzroom.ui.screen.FurnitureScreen
-import tokyo.isseikuzumaki.puzzroom.ui.screen.ProjectListScreen
 import tokyo.isseikuzumaki.puzzroom.ui.screen.RoomScreen
+import tokyo.isseikuzumaki.puzzroom.ui.pages.ProjectListPage
+import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
 import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.rememberProjectViewModel
 
 @Composable
@@ -33,11 +34,10 @@ fun App(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination?.route
 
-    Scaffold { innerPadding ->
+    PuzzroomTheme {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
         ) {
             NavHost(
                 navController = navController,
@@ -46,7 +46,7 @@ fun App(
                     .background(color = MaterialTheme.colorScheme.background)
             ) {
                 composable(route = AppScreen.ProjectList.name) {
-                    ProjectListScreen(
+                    ProjectListPage(
                         viewModel = projectViewModel,
                         onProjectClick = { projectId ->
                             projectViewModel.openProject(projectId)
