@@ -69,6 +69,7 @@ fun FurnitureCreationPage(
             FurnitureCreationMode.PRESET -> {
                 PresetSelectionContent(
                     appState = appState,
+                    furnitureTemplateViewModel = furnitureTemplateViewModel,
                     onFurnitureCreated = onFurnitureCreated,
                     onCancel = onCancel
                 )
@@ -76,6 +77,7 @@ fun FurnitureCreationPage(
             FurnitureCreationMode.SIMPLE -> {
                 SimpleEditorContent(
                     appState = appState,
+                    furnitureTemplateViewModel = furnitureTemplateViewModel,
                     onFurnitureCreated = onFurnitureCreated,
                     onCancel = onCancel
                 )
@@ -83,6 +85,7 @@ fun FurnitureCreationPage(
             FurnitureCreationMode.DETAILED -> {
                 DetailedEditorContent(
                     appState = appState,
+                    furnitureTemplateViewModel = furnitureTemplateViewModel,
                     onFurnitureCreated = onFurnitureCreated,
                     onCancel = onCancel
                 )
@@ -97,6 +100,7 @@ fun FurnitureCreationPage(
 @Composable
 private fun PresetSelectionContent(
     appState: AppState,
+    furnitureTemplateViewModel: FurnitureTemplateViewModel,
     onFurnitureCreated: () -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier
@@ -146,6 +150,7 @@ private fun PresetSelectionContent(
 @Composable
 private fun SimpleEditorContent(
     appState: AppState,
+    furnitureTemplateViewModel: FurnitureTemplateViewModel,
     onFurnitureCreated: () -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier
@@ -217,6 +222,7 @@ private fun SimpleEditorContent(
 @Composable
 private fun DetailedEditorContent(
     appState: AppState,
+    furnitureTemplateViewModel: FurnitureTemplateViewModel,
     onFurnitureCreated: () -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier
