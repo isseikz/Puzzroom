@@ -248,4 +248,43 @@ class FileStorageTest {
         assertEquals(1, storage.listProjects().size)
         assertEquals(1, storage.listFurnitureTemplates().size)
     }
+
+    @Test
+    fun `FurnitureTemplate should fail with blank name`() {
+        // When & Then
+        assertFailsWith<IllegalArgumentException> {
+            FurnitureTemplate(
+                name = "",
+                category = FurnitureCategory.CUSTOM,
+                width = Centimeter(100),
+                depth = Centimeter(50)
+            )
+        }
+    }
+
+    @Test
+    fun `FurnitureTemplate should fail with zero width`() {
+        // When & Then
+        assertFailsWith<IllegalArgumentException> {
+            FurnitureTemplate(
+                name = "Test",
+                category = FurnitureCategory.CUSTOM,
+                width = Centimeter(0),
+                depth = Centimeter(50)
+            )
+        }
+    }
+
+    @Test
+    fun `FurnitureTemplate should fail with negative depth`() {
+        // When & Then
+        assertFailsWith<IllegalArgumentException> {
+            FurnitureTemplate(
+                name = "Test",
+                category = FurnitureCategory.CUSTOM,
+                width = Centimeter(100),
+                depth = Centimeter(-10)
+            )
+        }
+    }
 }
