@@ -15,6 +15,7 @@ import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppIconButton
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.EmptyState
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.FurnitureTemplateCard
 import tokyo.isseikuzumaki.puzzroom.ui.templates.ListScreenTemplate
+import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.FurnitureTemplateViewModel
 
 /**
  * Furniture management page - allows users to manage furniture templates
@@ -22,9 +23,12 @@ import tokyo.isseikuzumaki.puzzroom.ui.templates.ListScreenTemplate
 @Composable
 fun FurnitureManagementPage(
     appState: AppState,
+    furnitureTemplateViewModel: FurnitureTemplateViewModel,
     onCreateNew: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val templates by furnitureTemplateViewModel.allTemplates.collectAsState()
+    
     ListScreenTemplate(
         title = "Furniture Library",
         actions = {
@@ -35,7 +39,6 @@ fun FurnitureManagementPage(
             )
         }
     ) { contentModifier ->
-        val templates = appState.furnitureTemplates
 
         if (templates.isEmpty()) {
             EmptyState(

@@ -15,15 +15,18 @@ import tokyo.isseikuzumaki.puzzroom.ui.component.PlacedFurniture
 import tokyo.isseikuzumaki.puzzroom.ui.molecules.SaveStateIndicator
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.FurnitureLibraryPanel
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.FurniturePlacementToolbar
+import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.FurnitureTemplateViewModel
 import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.ProjectViewModel
 
 @Composable
 fun FurnitureScreen(
     appState: AppState,
-    viewModel: ProjectViewModel
+    viewModel: ProjectViewModel,
+    furnitureTemplateViewModel: FurnitureTemplateViewModel
 ) {
     val saveState by viewModel.saveState.collectAsState()
     val project by viewModel.currentProject.collectAsState()
+    val furnitureTemplates by furnitureTemplateViewModel.allTemplates.collectAsState()
     val currentFloorPlan = project?.floorPlans?.firstOrNull()
     val rooms = currentFloorPlan?.rooms ?: emptyList()
     var selectedRoom by remember { mutableStateOf<Room?>(appState.selectedRoom) }
@@ -165,7 +168,7 @@ fun FurnitureScreen(
                 Row(modifier = Modifier.weight(1f)) {
                     // Furniture library panel
                     FurnitureLibraryPanel(
-                        templates = appState.furnitureTemplates,
+                        templates = furnitureTemplates,
                         selectedTemplate = appState.selectedFurnitureTemplate,
                         onTemplateSelected = { template ->
                             appState.selectFurnitureTemplate(template)

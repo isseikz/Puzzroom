@@ -11,20 +11,16 @@ import tokyo.isseikuzumaki.puzzroom.domain.*
  * このクラスは永続化されないUI状態のみを管理します。
  * 永続化が必要なデータ（Project, Room, Furnitureなど）は
  * ProjectViewModelで管理されます。
+ * カスタム家具テンプレートは FurnitureTemplateViewModel で管理されます。
  *
  * @see tokyo.isseikuzumaki.puzzroom.ui.viewmodel.ProjectViewModel
+ * @see tokyo.isseikuzumaki.puzzroom.ui.viewmodel.FurnitureTemplateViewModel
  */
 class AppState {
     /**
      * 選択中の部屋（一時的な選択状態）
      */
     var selectedRoom by mutableStateOf<Room?>(null)
-        private set
-
-    /**
-     * 家具テンプレートのリスト（定数 + セッション中のカスタムテンプレート）
-     */
-    var furnitureTemplates by mutableStateOf<List<FurnitureTemplate>>(FurnitureTemplate.PRESETS)
         private set
 
     /**
@@ -45,12 +41,5 @@ class AppState {
      */
     fun selectFurnitureTemplate(template: FurnitureTemplate?) {
         selectedFurnitureTemplate = template
-    }
-
-    /**
-     * カスタム家具テンプレートを追加（セッション中のみ有効）
-     */
-    fun addCustomFurnitureTemplate(template: FurnitureTemplate) {
-        furnitureTemplates = furnitureTemplates + template
     }
 }

@@ -8,12 +8,15 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 import platform.Foundation.*
+import tokyo.isseikuzumaki.puzzroom.domain.FurnitureTemplate
 import tokyo.isseikuzumaki.puzzroom.domain.Project
 
 /**
  * iOS実装のFileStorage
  *
- * ストレージ場所: Documents/projects/
+ * ストレージ場所: 
+ * - Projects: Documents/projects/
+ * - Furniture Templates: Documents/furniture_templates/
  */
 @OptIn(ExperimentalForeignApi::class)
 actual class FileStorage : IFileStorage {
@@ -37,11 +40,25 @@ actual class FileStorage : IFileStorage {
         "$documentsPath/projects"
     }
 
+    private val furnitureTemplatesPath: String by lazy {
+        "$documentsPath/furniture_templates"
+    }
+
     init {
         // プロジェクトディレクトリを作成
         if (!fileManager.fileExistsAtPath(projectsPath)) {
             fileManager.createDirectoryAtPath(
                 projectsPath,
+                withIntermediateDirectories = true,
+                attributes = null,
+                error = null
+            )
+        }
+        
+        // 家具テンプレートディレクトリを作成
+        if (!fileManager.fileExistsAtPath(furnitureTemplatesPath)) {
+            fileManager.createDirectoryAtPath(
+                furnitureTemplatesPath,
                 withIntermediateDirectories = true,
                 attributes = null,
                 error = null
@@ -119,5 +136,73 @@ actual class FileStorage : IFileStorage {
 
     actual override fun isInitialized(): Boolean {
         return fileManager.fileExistsAtPath(projectsPath)
+    }
+
+    actual override suspend fun writeFurnitureTemplate(template: FurnitureTemplate, fileName: String) {
+        withContext(Dispatchers.IO) {
+            try {
+                val filePath = "$furnitureTemplatesPath/$fileName.json"
+                val jsonString = json.encodeToString(template)
+                val nsString = jsonString as NSString
+                nsString.writeToFile(
+                    filePath,
+                    atomically = true,
+                    encoding = NSUTF8StringEncoding,
+                    error = null
+                )
+            } catch (e: Exception) {
+                throw Exception("Failed to write furniture template: ${e.message}", e)
+            }
+        }
+    }
+
+    actual override suspend fun readFurnitureTemplate(fileName: String): FurnitureTemplate? {
+        return withContext(Dispatchers.IO) {
+            try {
+                val filePath = "$furnitureTemplatesPath/$fileName.json"
+                if (!fileManager.fileExistsAtPath(filePath)) {
+                    return@withContext null
+                }
+                val nsString = NSString.stringWithContentsOfFile(
+                    filePath,
+                    encoding = NSUTF8StringEncoding,
+                    error = null
+                ) ?: return@withContext null
+
+                json.decodeFromString<FurnitureTemplate>(nsString as String)
+            } catch (e: Exception) {
+                throw Exception("Failed to read furniture template: ${e.message}", e)
+            }
+        }
+    }
+
+    actual override suspend fun deleteFurnitureTemplate(fileName: String) {
+        withContext(Dispatchers.IO) {
+            try {
+                val filePath = "$furnitureTemplatesPath/$fileName.json"
+                if (fileManager.fileExistsAtPath(filePath)) {
+                    fileManager.removeItemAtPath(filePath, error = null)
+                }
+            } catch (e: Exception) {
+                throw Exception("Failed to delete furniture template: ${e.message}", e)
+            }
+        }
+    }
+
+    actual override suspend fun listFurnitureTemplates(): List<String> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val contents = fileManager.contentsOfDirectoryAtPath(furnitureTemplatesPath, error = null)
+                    as? List<*> ?: emptyList<Any>()
+
+                contents
+                    .filterIsInstance<String>()
+                    .filter { it.endsWith(".json") }
+                    .map { it.removeSuffix(".json") }
+                    .sorted()
+            } catch (e: Exception) {
+                throw Exception("Failed to list furniture templates: ${e.message}", e)
+            }
+        }
     }
 }
