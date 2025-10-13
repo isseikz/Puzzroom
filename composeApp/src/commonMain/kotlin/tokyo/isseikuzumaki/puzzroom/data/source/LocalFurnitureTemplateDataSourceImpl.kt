@@ -16,43 +16,40 @@ class LocalFurnitureTemplateDataSourceImpl(
     private val _templatesFlow = MutableStateFlow<List<FurnitureTemplate>>(emptyList())
 
     override suspend fun getAllTemplates(): List<FurnitureTemplate> {
-        return try {
+        return runCatching {
             val fileNames = fileStorage.listFurnitureTemplates()
             val templates = fileNames.mapNotNull { fileName ->
-                try {
+                runCatching {
                     fileStorage.readFurnitureTemplate(fileName)
-                } catch (e: Exception) {
-                    // ファイルの読み込みに失敗した場合はスキップ（破損ファイル対策）
-                    null
-                }
+                }.getOrNull() // ファイルの読み込みに失敗した場合はスキップ（破損ファイル対策）
             }
             _templatesFlow.value = templates
             templates
-        } catch (e: Exception) {
-            throw PersistenceError.IOError(e)
+        }.getOrElse { error ->
+            throw PersistenceError.IOError(error)
         }
     }
 
     override suspend fun getTemplateById(id: String): FurnitureTemplate? {
-        return try {
+        return runCatching {
             fileStorage.readFurnitureTemplate(id)
-        } catch (e: Exception) {
-            throw PersistenceError.IOError(e)
+        }.getOrElse { error ->
+            throw PersistenceError.IOError(error)
         }
     }
 
     override suspend fun insertTemplate(template: FurnitureTemplate) {
-        try {
+        runCatching {
             fileStorage.writeFurnitureTemplate(template, template.id)
             // テンプレートリストを更新
             _templatesFlow.value = getAllTemplates()
-        } catch (e: Exception) {
-            throw PersistenceError.IOError(e)
+        }.getOrElse { error ->
+            throw PersistenceError.IOError(error)
         }
     }
 
     override suspend fun updateTemplate(template: FurnitureTemplate) {
-        try {
+        runCatching {
             // 存在確認
             val existing = fileStorage.readFurnitureTemplate(template.id)
                 ?: throw PersistenceError.NotFoundError(template.id)
@@ -60,20 +57,21 @@ class LocalFurnitureTemplateDataSourceImpl(
             fileStorage.writeFurnitureTemplate(template, template.id)
             // テンプレートリストを更新
             _templatesFlow.value = getAllTemplates()
-        } catch (e: PersistenceError) {
-            throw e
-        } catch (e: Exception) {
-            throw PersistenceError.IOError(e)
+        }.getOrElse { error ->
+            when (error) {
+                is PersistenceError -> throw error
+                else -> throw PersistenceError.IOError(error)
+            }
         }
     }
 
     override suspend fun deleteTemplate(id: String) {
-        try {
+        runCatching {
             fileStorage.deleteFurnitureTemplate(id)
             // テンプレートリストを更新
             _templatesFlow.value = getAllTemplates()
-        } catch (e: Exception) {
-            throw PersistenceError.IOError(e)
+        }.getOrElse { error ->
+            throw PersistenceError.IOError(error)
         }
     }
 

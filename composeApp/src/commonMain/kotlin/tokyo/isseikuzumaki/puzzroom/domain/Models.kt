@@ -79,6 +79,12 @@ data class FurnitureTemplate(
     val width: Centimeter,
     val depth: Centimeter,
 ) {
+    init {
+        require(name.isNotBlank()) { "家具テンプレート名は必須です" }
+        require(width.value > 0) { "幅は0より大きい値を指定してください" }
+        require(depth.value > 0) { "奥行きは0より大きい値を指定してください" }
+    }
+
     /**
      * Create furniture from template (rectangle)
      */

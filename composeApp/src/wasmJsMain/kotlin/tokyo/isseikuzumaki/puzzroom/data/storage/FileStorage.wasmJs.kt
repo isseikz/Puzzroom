@@ -5,6 +5,13 @@ import kotlinx.serialization.json.Json
 import tokyo.isseikuzumaki.puzzroom.domain.FurnitureTemplate
 import tokyo.isseikuzumaki.puzzroom.domain.Project
 
+/**
+ * WebAssembly (Wasm) 実装のFileStorage
+ *
+ * ストレージ場所: Browser LocalStorage
+ * - Projects: puzzroom_project_*
+ * - Furniture Templates: puzzroom_furniture_template_*
+ */
 actual class FileStorage : IFileStorage {
     private val projectKeyPrefix = "puzzroom_project_"
     private val furnitureTemplateKeyPrefix = "puzzroom_furniture_template_"
