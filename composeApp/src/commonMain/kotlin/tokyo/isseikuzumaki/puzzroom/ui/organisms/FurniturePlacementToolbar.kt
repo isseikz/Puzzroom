@@ -1,18 +1,29 @@
 package tokyo.isseikuzumaki.puzzroom.ui.organisms
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import tokyo.isseikuzumaki.puzzroom.domain.Centimeter
-import tokyo.isseikuzumaki.puzzroom.ui.atoms.*
+import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppButton
+import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppCard
+import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppOutlinedButton
+import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppSlider
+import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppText
 
 /**
  * Furniture placement toolbar organism
@@ -149,7 +160,7 @@ private fun RotationControl(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.width(48.dp)
             )
-            Slider(
+            AppSlider(
                 value = rotation,
                 onValueChange = onRotationChange,
                 valueRange = 0f..359f,
