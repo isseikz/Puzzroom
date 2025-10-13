@@ -9,11 +9,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import tokyo.isseikuzumaki.puzzroom.domain.FurnitureCategory
 import tokyo.isseikuzumaki.puzzroom.domain.FurnitureTemplate
-import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppButton
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppCard
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppText
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.VerticalSpacer
-import tokyo.isseikuzumaki.puzzroom.ui.molecules.TitleWithSubtitle
 
 /**
  * Get category name in English
@@ -37,7 +35,6 @@ fun FurnitureLibraryPanel(
     templates: List<FurnitureTemplate>,
     selectedTemplate: FurnitureTemplate?,
     onTemplateSelected: (FurnitureTemplate) -> Unit,
-    onCreateCustom: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var selectedCategory by remember { mutableStateOf<FurnitureCategory?>(null) }
@@ -95,15 +92,6 @@ fun FurnitureLibraryPanel(
                 )
             }
         }
-
-        // Custom furniture creation button
-        AppButton(
-            text = "+ Create custom furniture",
-            onClick = onCreateCustom,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        )
     }
 }
 

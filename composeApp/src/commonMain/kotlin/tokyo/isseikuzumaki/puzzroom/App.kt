@@ -20,6 +20,8 @@ import androidx.navigation.compose.rememberNavController
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import tokyo.isseikuzumaki.puzzroom.ui.screen.FurnitureScreen
 import tokyo.isseikuzumaki.puzzroom.ui.screen.RoomScreen
+import tokyo.isseikuzumaki.puzzroom.ui.pages.FurnitureCreationPage
+import tokyo.isseikuzumaki.puzzroom.ui.pages.FurnitureManagementPage
 import tokyo.isseikuzumaki.puzzroom.ui.pages.ProjectListPage
 import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
 import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.rememberProjectViewModel
@@ -55,6 +57,25 @@ fun App(
                         onCreateNew = {
                             projectViewModel.createNewProject()
                             navController.navigate(AppScreen.Room.name)
+                        }
+                    )
+                }
+                composable(route = AppScreen.FurnitureManagement.name) {
+                    FurnitureManagementPage(
+                        appState = appState,
+                        onCreateNew = {
+                            navController.navigate(AppScreen.FurnitureCreation.name)
+                        }
+                    )
+                }
+                composable(route = AppScreen.FurnitureCreation.name) {
+                    FurnitureCreationPage(
+                        appState = appState,
+                        onFurnitureCreated = {
+                            navController.navigateUp()
+                        },
+                        onCancel = {
+                            navController.navigateUp()
                         }
                     )
                 }

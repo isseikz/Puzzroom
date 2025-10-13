@@ -170,9 +170,6 @@ fun FurnitureScreen(
                         onTemplateSelected = { template ->
                             appState.selectFurnitureTemplate(template)
                         },
-                        onCreateCustom = {
-                            // TODO: Custom furniture creation dialog
-                        },
                         modifier = Modifier
                             .width(300.dp)
                             .fillMaxHeight()
