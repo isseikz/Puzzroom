@@ -25,6 +25,7 @@ import tokyo.isseikuzumaki.puzzroom.ui.pages.FurnitureManagementPage
 import tokyo.isseikuzumaki.puzzroom.ui.pages.ProjectListPage
 import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
 import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.rememberProjectViewModel
+import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.rememberFurnitureTemplateViewModel
 
 @Composable
 @Preview
@@ -33,6 +34,7 @@ fun App(
 ) {
     val appState = remember { AppState() }
     val projectViewModel = rememberProjectViewModel()
+    val furnitureTemplateViewModel = rememberFurnitureTemplateViewModel()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination?.route
 
@@ -63,6 +65,7 @@ fun App(
                 composable(route = AppScreen.FurnitureManagement.name) {
                     FurnitureManagementPage(
                         appState = appState,
+                        furnitureTemplateViewModel = furnitureTemplateViewModel,
                         onCreateNew = {
                             navController.navigate(AppScreen.FurnitureCreation.name)
                         }
@@ -71,6 +74,7 @@ fun App(
                 composable(route = AppScreen.FurnitureCreation.name) {
                     FurnitureCreationPage(
                         appState = appState,
+                        furnitureTemplateViewModel = furnitureTemplateViewModel,
                         onFurnitureCreated = {
                             navController.navigateUp()
                         },
@@ -88,7 +92,8 @@ fun App(
                 composable(route = AppScreen.Furniture.name) {
                     FurnitureScreen(
                         appState = appState,
-                        viewModel = projectViewModel
+                        viewModel = projectViewModel,
+                        furnitureTemplateViewModel = furnitureTemplateViewModel
                     )
                 }
                 composable(route = AppScreen.File.name) {  }

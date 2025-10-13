@@ -19,6 +19,7 @@ import tokyo.isseikuzumaki.puzzroom.ui.molecules.ActionButtons
 import tokyo.isseikuzumaki.puzzroom.ui.molecules.CategorySelector
 import tokyo.isseikuzumaki.puzzroom.ui.molecules.DimensionInput
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.FurnitureTemplateCard
+import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.FurnitureTemplateViewModel
 import kotlin.math.roundToInt
 
 /**
@@ -36,6 +37,7 @@ enum class FurnitureCreationMode {
 @Composable
 fun FurnitureCreationPage(
     appState: AppState,
+    furnitureTemplateViewModel: FurnitureTemplateViewModel,
     onFurnitureCreated: () -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier
@@ -127,7 +129,7 @@ private fun PresetSelectionContent(
             onCancel = onCancel,
             onConfirm = {
                 selectedPreset?.let { preset ->
-                    appState.addCustomFurnitureTemplate(preset)
+                    furnitureTemplateViewModel.saveCustomTemplate(preset)
                     onFurnitureCreated()
                 }
             },
@@ -198,7 +200,7 @@ private fun SimpleEditorContent(
                         width = Centimeter(width),
                         depth = Centimeter(depth)
                     )
-                    appState.addCustomFurnitureTemplate(template)
+                    furnitureTemplateViewModel.saveCustomTemplate(template)
                     onFurnitureCreated()
                 }
             },
@@ -306,7 +308,7 @@ private fun DetailedEditorContent(
                         width = Centimeter(width),
                         depth = Centimeter(depth)
                     )
-                    appState.addCustomFurnitureTemplate(template)
+                    furnitureTemplateViewModel.saveCustomTemplate(template)
                     onFurnitureCreated()
                 }
             },
