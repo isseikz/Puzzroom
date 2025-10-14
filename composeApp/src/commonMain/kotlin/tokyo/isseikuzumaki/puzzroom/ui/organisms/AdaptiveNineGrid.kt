@@ -2,6 +2,7 @@ package tokyo.isseikuzumaki.puzzroom.ui.organisms
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -89,15 +90,15 @@ private enum class GridSlot {
 fun AdaptiveNineGrid(
     modifier: Modifier = Modifier,
     commonSize: Dp,
-    c1Content: @Composable () -> Unit,
-    c2Content: @Composable () -> Unit,
-    c3Content: @Composable () -> Unit,
-    c4Content: @Composable () -> Unit,
-    c5Content: @Composable () -> Unit, // 中央の基準となるスロット
-    c6Content: @Composable () -> Unit,
-    c7Content: @Composable () -> Unit,
-    c8Content: @Composable () -> Unit,
-    c9Content: @Composable () -> Unit,
+    c1Content: @Composable (BoxScope) -> Unit,
+    c2Content: @Composable (BoxScope) -> Unit,
+    c3Content: @Composable (BoxScope) -> Unit,
+    c4Content: @Composable (BoxScope) -> Unit,
+    c5Content: @Composable (BoxScope) -> Unit, // 中央の基準となるスロット
+    c6Content: @Composable (BoxScope) -> Unit,
+    c7Content: @Composable (BoxScope) -> Unit,
+    c8Content: @Composable (BoxScope) -> Unit,
+    c9Content: @Composable (BoxScope) -> Unit,
 ) {
     // Slot API を利用してコンテンツを定義
     val contentList = listOf(
