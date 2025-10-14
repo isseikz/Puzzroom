@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -23,7 +24,10 @@ import androidx.compose.ui.unit.isFinite
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import tokyo.isseikuzumaki.puzzroom.ui.PreviewTemplate
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppIcon
+import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppSlider
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppText
+import tokyo.isseikuzumaki.puzzroom.ui.atoms.SliderOrientation
+import tokyo.isseikuzumaki.puzzroom.ui.state.SliderState
 import kotlin.math.roundToInt
 
 /**
@@ -489,6 +493,109 @@ fun AdaptiveNineGridPreview_Dashboard() {
                 },
                 bottomRightContent = { 
                     ColoredCell(Color(0xFF4A90E2), "Settings") 
+                }
+            )
+        }
+    }
+}
+
+/**
+ * Preview: Vertical sliders in left and right panels
+ * プレビュー: 左右のパネルに垂直スライダーを配置
+ */
+@Preview
+@Composable
+fun AdaptiveNineGridPreview_VerticalSliders() {
+    PreviewTemplate {
+        Box(modifier = Modifier.size(450.dp).padding(16.dp)) {
+            val leftSliderState = remember { 
+                SliderState(
+                    initialValue = 0.7f,
+                    valueRange = 0f..1f
+                )
+            }
+            val rightSliderState = remember { 
+                SliderState(
+                    initialValue = 0.3f,
+                    valueRange = 0f..1f
+                )
+            }
+            
+            AdaptiveNineGrid(
+                commonSize = 56.dp,
+                topLeftContent = { 
+                    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primary),
+                        contentAlignment = Alignment.Center) {
+                        AppIcon(Icons.Default.Settings, "Settings", tint = Color.White)
+                    }
+                },
+                topContent = { 
+                    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.secondary),
+                        contentAlignment = Alignment.Center) {
+                        AppText("Control Panel", color = Color.White)
+                    }
+                },
+                topRightContent = { 
+                    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primary),
+                        contentAlignment = Alignment.Center) {
+                        AppIcon(Icons.Default.Info, "Info", tint = Color.White)
+                    }
+                },
+                leftContent = { 
+                    // Left vertical slider
+                    Box(
+                        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.tertiary)
+                            .padding(8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AppSlider(
+                            state = leftSliderState,
+                            orientation = SliderOrientation.Vertical,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                },
+                centerContent = { 
+                    Box(Modifier.fillMaxSize().background(Color(0xFFF5F5F5)),
+                        contentAlignment = Alignment.Center) {
+                        AppText(
+                            "Main Content\n\nLeft: ${(leftSliderState.value * 100).toInt()}%\nRight: ${(rightSliderState.value * 100).toInt()}%",
+                            color = Color.DarkGray,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                },
+                rightContent = { 
+                    // Right vertical slider
+                    Box(
+                        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.tertiary)
+                            .padding(8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AppSlider(
+                            state = rightSliderState,
+                            orientation = SliderOrientation.Vertical,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                },
+                bottomLeftContent = { 
+                    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primary),
+                        contentAlignment = Alignment.Center) {
+                        AppIcon(Icons.Default.Delete, "Delete", tint = Color.White)
+                    }
+                },
+                bottomContent = { 
+                    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.secondary),
+                        contentAlignment = Alignment.Center) {
+                        AppText("Footer", color = Color.White)
+                    }
+                },
+                bottomRightContent = { 
+                    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primary),
+                        contentAlignment = Alignment.Center) {
+                        AppIcon(Icons.Default.Favorite, "Favorite", tint = Color.White)
+                    }
                 }
             )
         }
