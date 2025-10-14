@@ -123,12 +123,15 @@ fun AdaptiveNineGrid(
 
         // Step A: C5を制約なし(Loose Constraints)で測定し、コンテンツの自然な幅と高さを取得する。
         // これにより、コンテンツが持つべきアスペクト比が判明する。
-        val c5Natural = c5Measurable.measure(Constraints())
+        val c5Natural = c5Measurable.measure(
+            Constraints(maxWidth = centerMaxW, maxHeight = centerMaxH)
+        )
         val naturalWidth = c5Natural.width.toFloat()
         val naturalHeight = c5Natural.height.toFloat()
 
         // デフォルトのアスペクト比を1.0f (1:1)として、0除算を避ける
-        val ratio = if (naturalHeight > 0 && naturalWidth.isFinite() && naturalHeight.isFinite()) {
+        val ratio = if (naturalHeight > 0 && naturalWidth > 0 && 
+                        naturalWidth.isFinite() && naturalHeight.isFinite()) {
             naturalWidth / naturalHeight
         } else {
             1.0f
@@ -205,19 +208,28 @@ fun AdaptiveNineGrid(
             val y3 = s + centerHeight
 
             // Row 1 (y1)
-            placeables[GridSlot.C1]!!.placeRelative(x1, y1)
-            placeables[GridSlot.C2]!!.placeRelative(x2, y1)
-            placeables[GridSlot.C3]!!.placeRelative(x3, y1)
+            placeables[GridSlot.C1]?.placeRelative(x1, y1) 
+                ?: error("Missing placeable for C1")
+            placeables[GridSlot.C2]?.placeRelative(x2, y1) 
+                ?: error("Missing placeable for C2")
+            placeables[GridSlot.C3]?.placeRelative(x3, y1) 
+                ?: error("Missing placeable for C3")
 
             // Row 2 (y2)
-            placeables[GridSlot.C4]!!.placeRelative(x1, y2)
-            placeables[GridSlot.C5]!!.placeRelative(x2, y2)
-            placeables[GridSlot.C6]!!.placeRelative(x3, y2)
+            placeables[GridSlot.C4]?.placeRelative(x1, y2) 
+                ?: error("Missing placeable for C4")
+            placeables[GridSlot.C5]?.placeRelative(x2, y2) 
+                ?: error("Missing placeable for C5")
+            placeables[GridSlot.C6]?.placeRelative(x3, y2) 
+                ?: error("Missing placeable for C6")
 
             // Row 3 (y3)
-            placeables[GridSlot.C7]!!.placeRelative(x1, y3)
-            placeables[GridSlot.C8]!!.placeRelative(x2, y3)
-            placeables[GridSlot.C9]!!.placeRelative(x3, y3)
+            placeables[GridSlot.C7]?.placeRelative(x1, y3) 
+                ?: error("Missing placeable for C7")
+            placeables[GridSlot.C8]?.placeRelative(x2, y3) 
+                ?: error("Missing placeable for C8")
+            placeables[GridSlot.C9]?.placeRelative(x3, y3) 
+                ?: error("Missing placeable for C9")
         }
     }
 }
