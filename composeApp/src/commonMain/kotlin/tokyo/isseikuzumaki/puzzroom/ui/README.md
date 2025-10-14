@@ -38,6 +38,7 @@ Small functional units combining atoms:
 
 ### Organisms
 Larger sections combining molecules and atoms:
+- `AdaptiveNineGrid` - 3x3 adaptive grid layout with center-based sizing
 - `ProjectCardItem` - Complete project card with image, title, and actions
 - `EmptyState` - Empty state display with message and action
 - `ErrorDisplay` - Error display with retry option
