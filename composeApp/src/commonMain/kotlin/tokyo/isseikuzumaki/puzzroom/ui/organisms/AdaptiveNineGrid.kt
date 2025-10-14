@@ -1,14 +1,28 @@
 package tokyo.isseikuzumaki.puzzroom.ui.organisms
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isFinite
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import tokyo.isseikuzumaki.puzzroom.ui.PreviewTemplate
+import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppIcon
+import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppText
 import kotlin.math.roundToInt
 
 /**
@@ -233,3 +247,255 @@ fun AdaptiveNineGrid(
         }
     }
 }
+
+// Preview Helper Composable
+@Composable
+private fun ColoredCell(
+    color: Color,
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(color),
+        contentAlignment = Alignment.Center
+    ) {
+        AppText(
+            text = text,
+            color = Color.White,
+            style = MaterialTheme.typography.bodySmall
+        )
+    }
+}
+
+/**
+ * Preview: Basic grid with icons in corners and text in sides
+ * コーナーにアイコン、サイドにテキストを配置した基本的なグリッド
+ */
+@Preview
+@Composable
+fun AdaptiveNineGridPreview_Basic() {
+    PreviewTemplate {
+        Box(modifier = Modifier.size(400.dp).padding(16.dp)) {
+            AdaptiveNineGrid(
+                commonSize = 48.dp,
+                c1Content = { 
+                    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primary), 
+                        contentAlignment = Alignment.Center) {
+                        AppIcon(Icons.Default.Menu, "Menu", tint = Color.White)
+                    }
+                },
+                c2Content = { ColoredCell(MaterialTheme.colorScheme.secondary, "Top") },
+                c3Content = { 
+                    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primary),
+                        contentAlignment = Alignment.Center) {
+                        AppIcon(Icons.Default.Search, "Search", tint = Color.White)
+                    }
+                },
+                c4Content = { ColoredCell(MaterialTheme.colorScheme.secondary, "Left") },
+                c5Content = { ColoredCell(MaterialTheme.colorScheme.tertiary, "Center\nMain Content") },
+                c6Content = { ColoredCell(MaterialTheme.colorScheme.secondary, "Right") },
+                c7Content = { 
+                    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primary),
+                        contentAlignment = Alignment.Center) {
+                        AppIcon(Icons.Default.Settings, "Settings", tint = Color.White)
+                    }
+                },
+                c8Content = { ColoredCell(MaterialTheme.colorScheme.secondary, "Bottom") },
+                c9Content = { 
+                    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primary),
+                        contentAlignment = Alignment.Center) {
+                        AppIcon(Icons.Default.MoreVert, "More", tint = Color.White)
+                    }
+                }
+            )
+        }
+    }
+}
+
+/**
+ * Preview: Small corner size - center content dominates
+ * コーナーサイズが小さく、中央のコンテンツが支配的なケース
+ */
+@Preview
+@Composable
+fun AdaptiveNineGridPreview_SmallCorners() {
+    PreviewTemplate {
+        Box(modifier = Modifier.size(400.dp).padding(16.dp)) {
+            AdaptiveNineGrid(
+                commonSize = 32.dp,
+                c1Content = { ColoredCell(Color(0xFF8B4513), "C1") },
+                c2Content = { ColoredCell(Color(0xFFDEB887), "C2") },
+                c3Content = { ColoredCell(Color(0xFF8B4513), "C3") },
+                c4Content = { ColoredCell(Color(0xFFDEB887), "C4") },
+                c5Content = { 
+                    ColoredCell(Color(0xFFD4856A), "Large\nCenter\nContent\nArea") 
+                },
+                c6Content = { ColoredCell(Color(0xFFDEB887), "C6") },
+                c7Content = { ColoredCell(Color(0xFF8B4513), "C7") },
+                c8Content = { ColoredCell(Color(0xFFDEB887), "C8") },
+                c9Content = { ColoredCell(Color(0xFF8B4513), "C9") }
+            )
+        }
+    }
+}
+
+/**
+ * Preview: Large corner size - narrow center
+ * コーナーサイズが大きく、中央が狭いケース
+ */
+@Preview
+@Composable
+fun AdaptiveNineGridPreview_LargeCorners() {
+    PreviewTemplate {
+        Box(modifier = Modifier.size(400.dp).padding(16.dp)) {
+            AdaptiveNineGrid(
+                commonSize = 80.dp,
+                c1Content = { ColoredCell(Color(0xFF6B5B95), "1") },
+                c2Content = { ColoredCell(Color(0xFF9B8AC4), "2") },
+                c3Content = { ColoredCell(Color(0xFF6B5B95), "3") },
+                c4Content = { ColoredCell(Color(0xFF9B8AC4), "4") },
+                c5Content = { ColoredCell(Color(0xFFE8B4A0), "Center") },
+                c6Content = { ColoredCell(Color(0xFF9B8AC4), "6") },
+                c7Content = { ColoredCell(Color(0xFF6B5B95), "7") },
+                c8Content = { ColoredCell(Color(0xFF9B8AC4), "8") },
+                c9Content = { ColoredCell(Color(0xFF6B5B95), "9") }
+            )
+        }
+    }
+}
+
+/**
+ * Preview: Image viewer layout with controls
+ * 画像ビューアレイアウト（コントロール付き）
+ */
+@Preview
+@Composable
+fun AdaptiveNineGridPreview_ImageViewer() {
+    PreviewTemplate {
+        Box(modifier = Modifier.size(450.dp).padding(16.dp)) {
+            AdaptiveNineGrid(
+                commonSize = 56.dp,
+                c1Content = { 
+                    Box(Modifier.fillMaxSize().background(Color(0xFF2C3E50)),
+                        contentAlignment = Alignment.Center) {
+                        AppIcon(Icons.Default.Close, "Close", tint = Color.White)
+                    }
+                },
+                c2Content = { 
+                    Box(Modifier.fillMaxSize().background(Color(0xFF34495E)),
+                        contentAlignment = Alignment.Center) {
+                        AppText("Image Viewer", color = Color.White)
+                    }
+                },
+                c3Content = { 
+                    Box(Modifier.fillMaxSize().background(Color(0xFF2C3E50)),
+                        contentAlignment = Alignment.Center) {
+                        AppIcon(Icons.Default.Share, "Share", tint = Color.White)
+                    }
+                },
+                c4Content = { 
+                    Box(Modifier.fillMaxSize().background(Color(0xFF34495E)),
+                        contentAlignment = Alignment.Center) {
+                        AppIcon(Icons.Default.KeyboardArrowLeft, "Previous", tint = Color.White)
+                    }
+                },
+                c5Content = { 
+                    Box(Modifier.fillMaxSize().background(Color.Black),
+                        contentAlignment = Alignment.Center) {
+                        AppText("📷\nImage\nContent", color = Color.White, 
+                            style = MaterialTheme.typography.headlineMedium)
+                    }
+                },
+                c6Content = { 
+                    Box(Modifier.fillMaxSize().background(Color(0xFF34495E)),
+                        contentAlignment = Alignment.Center) {
+                        AppIcon(Icons.Default.KeyboardArrowRight, "Next", tint = Color.White)
+                    }
+                },
+                c7Content = { 
+                    Box(Modifier.fillMaxSize().background(Color(0xFF2C3E50)),
+                        contentAlignment = Alignment.Center) {
+                        AppIcon(Icons.Default.Delete, "Delete", tint = Color.White)
+                    }
+                },
+                c8Content = { 
+                    Box(Modifier.fillMaxSize().background(Color(0xFF34495E)),
+                        contentAlignment = Alignment.Center) {
+                        AppText("1 / 10", color = Color.White)
+                    }
+                },
+                c9Content = { 
+                    Box(Modifier.fillMaxSize().background(Color(0xFF2C3E50)),
+                        contentAlignment = Alignment.Center) {
+                        AppIcon(Icons.Default.Edit, "Edit", tint = Color.White)
+                    }
+                }
+            )
+        }
+    }
+}
+
+/**
+ * Preview: Dashboard layout with center content focus
+ * ダッシュボードレイアウト（中央コンテンツにフォーカス）
+ */
+@Preview
+@Composable
+fun AdaptiveNineGridPreview_Dashboard() {
+    PreviewTemplate {
+        Box(modifier = Modifier.size(500.dp).padding(16.dp)) {
+            AdaptiveNineGrid(
+                commonSize = 64.dp,
+                c1Content = { 
+                    ColoredCell(Color(0xFF4A90E2), "Stats") 
+                },
+                c2Content = { 
+                    Box(Modifier.fillMaxSize().background(Color(0xFF5BA3F5)),
+                        contentAlignment = Alignment.Center) {
+                        AppText("Navigation Bar", color = Color.White)
+                    }
+                },
+                c3Content = { 
+                    ColoredCell(Color(0xFF4A90E2), "Profile") 
+                },
+                c4Content = { 
+                    Box(Modifier.fillMaxSize().background(Color(0xFF5BA3F5)),
+                        contentAlignment = Alignment.Center) {
+                        AppText("Menu", color = Color.White)
+                    }
+                },
+                c5Content = { 
+                    Box(Modifier.fillMaxSize().background(Color(0xFFF5F5F5)),
+                        contentAlignment = Alignment.Center) {
+                        AppText(
+                            "Main Dashboard\nContent Area\n\n📊 Charts\n📈 Data\n📋 Reports",
+                            color = Color.DarkGray,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                },
+                c6Content = { 
+                    Box(Modifier.fillMaxSize().background(Color(0xFF5BA3F5)),
+                        contentAlignment = Alignment.Center) {
+                        AppText("Tools", color = Color.White)
+                    }
+                },
+                c7Content = { 
+                    ColoredCell(Color(0xFF4A90E2), "Help") 
+                },
+                c8Content = { 
+                    Box(Modifier.fillMaxSize().background(Color(0xFF5BA3F5)),
+                        contentAlignment = Alignment.Center) {
+                        AppText("Status Bar", color = Color.White)
+                    }
+                },
+                c9Content = { 
+                    ColoredCell(Color(0xFF4A90E2), "Settings") 
+                }
+            )
+        }
+    }
+}
+
