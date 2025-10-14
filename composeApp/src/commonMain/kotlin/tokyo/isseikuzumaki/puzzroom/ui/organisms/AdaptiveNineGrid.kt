@@ -62,49 +62,49 @@ private enum class GridSlot {
  * ```kotlin
  * AdaptiveNineGrid(
  *     commonSize = 48.dp,
- *     c1Content = { Icon(...) },
- *     c2Content = { Text("Top") },
- *     c3Content = { Icon(...) },
- *     c4Content = { Text("Left") },
- *     c5Content = { Image(...) }, // Center content determines sizing
- *     c6Content = { Text("Right") },
- *     c7Content = { Icon(...) },
- *     c8Content = { Text("Bottom") },
- *     c9Content = { Icon(...) }
+ *     topLeftContent = { Icon(...) },
+ *     topContent = { Text("Top") },
+ *     topRightContent = { Icon(...) },
+ *     leftContent = { Text("Left") },
+ *     centerContent = { Image(...) }, // Center content determines sizing
+ *     rightContent = { Text("Right") },
+ *     bottomLeftContent = { Icon(...) },
+ *     bottomContent = { Text("Bottom") },
+ *     bottomRightContent = { Icon(...) }
  * )
  * ```
  *
  * @param modifier Modifier for the grid container
  * @param commonSize Common size for corner cells and side cell dimensions
- * @param c1Content Content for top-left corner (C1)
- * @param c2Content Content for top center (C2)
- * @param c3Content Content for top-right corner (C3)
- * @param c4Content Content for middle-left (C4)
- * @param c5Content Content for center cell (C5) - the reference cell
- * @param c6Content Content for middle-right (C6)
- * @param c7Content Content for bottom-left corner (C7)
- * @param c8Content Content for bottom center (C8)
- * @param c9Content Content for bottom-right corner (C9)
+ * @param topLeftContent Content for top-left corner
+ * @param topContent Content for top center
+ * @param topRightContent Content for top-right corner
+ * @param leftContent Content for middle-left
+ * @param centerContent Content for center cell - the reference cell
+ * @param rightContent Content for middle-right
+ * @param bottomLeftContent Content for bottom-left corner
+ * @param bottomContent Content for bottom center
+ * @param bottomRightContent Content for bottom-right corner
  */
 @Composable
 fun AdaptiveNineGrid(
     modifier: Modifier = Modifier,
     commonSize: Dp,
-    c1Content: @Composable (BoxScope) -> Unit,
-    c2Content: @Composable (BoxScope) -> Unit,
-    c3Content: @Composable (BoxScope) -> Unit,
-    c4Content: @Composable (BoxScope) -> Unit,
-    c5Content: @Composable (BoxScope) -> Unit, // 中央の基準となるスロット
-    c6Content: @Composable (BoxScope) -> Unit,
-    c7Content: @Composable (BoxScope) -> Unit,
-    c8Content: @Composable (BoxScope) -> Unit,
-    c9Content: @Composable (BoxScope) -> Unit,
+    topLeftContent: @Composable (BoxScope) -> Unit,
+    topContent: @Composable (BoxScope) -> Unit,
+    topRightContent: @Composable (BoxScope) -> Unit,
+    leftContent: @Composable (BoxScope) -> Unit,
+    centerContent: @Composable (BoxScope) -> Unit, // 中央の基準となるスロット
+    rightContent: @Composable (BoxScope) -> Unit,
+    bottomLeftContent: @Composable (BoxScope) -> Unit,
+    bottomContent: @Composable (BoxScope) -> Unit,
+    bottomRightContent: @Composable (BoxScope) -> Unit,
 ) {
     // Slot API を利用してコンテンツを定義
     val contentList = listOf(
-        c1Content, c2Content, c3Content,
-        c4Content, c5Content, c6Content,
-        c7Content, c8Content, c9Content
+        topLeftContent, topContent, topRightContent,
+        leftContent, centerContent, rightContent,
+        bottomLeftContent, bottomContent, bottomRightContent
     )
     val slotIds = GridSlot.entries
 
@@ -276,30 +276,30 @@ fun AdaptiveNineGridPreview_Basic() {
         Box(modifier = Modifier.size(400.dp).padding(16.dp)) {
             AdaptiveNineGrid(
                 commonSize = 48.dp,
-                c1Content = { 
+                topLeftContent = { 
                     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primary), 
                         contentAlignment = Alignment.Center) {
                         AppIcon(Icons.Default.Menu, "Menu", tint = Color.White)
                     }
                 },
-                c2Content = { ColoredCell(MaterialTheme.colorScheme.secondary, "Top") },
-                c3Content = { 
+                topContent = { ColoredCell(MaterialTheme.colorScheme.secondary, "Top") },
+                topRightContent = { 
                     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primary),
                         contentAlignment = Alignment.Center) {
                         AppIcon(Icons.Default.Search, "Search", tint = Color.White)
                     }
                 },
-                c4Content = { ColoredCell(MaterialTheme.colorScheme.secondary, "Left") },
-                c5Content = { ColoredCell(MaterialTheme.colorScheme.tertiary, "Center\nMain Content") },
-                c6Content = { ColoredCell(MaterialTheme.colorScheme.secondary, "Right") },
-                c7Content = { 
+                leftContent = { ColoredCell(MaterialTheme.colorScheme.secondary, "Left") },
+                centerContent = { ColoredCell(MaterialTheme.colorScheme.tertiary, "Center\nMain Content") },
+                rightContent = { ColoredCell(MaterialTheme.colorScheme.secondary, "Right") },
+                bottomLeftContent = { 
                     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primary),
                         contentAlignment = Alignment.Center) {
                         AppIcon(Icons.Default.Settings, "Settings", tint = Color.White)
                     }
                 },
-                c8Content = { ColoredCell(MaterialTheme.colorScheme.secondary, "Bottom") },
-                c9Content = { 
+                bottomContent = { ColoredCell(MaterialTheme.colorScheme.secondary, "Bottom") },
+                bottomRightContent = { 
                     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primary),
                         contentAlignment = Alignment.Center) {
                         AppIcon(Icons.Default.MoreVert, "More", tint = Color.White)
@@ -321,17 +321,17 @@ fun AdaptiveNineGridPreview_SmallCorners() {
         Box(modifier = Modifier.size(400.dp).padding(16.dp)) {
             AdaptiveNineGrid(
                 commonSize = 32.dp,
-                c1Content = { ColoredCell(Color(0xFF8B4513), "C1") },
-                c2Content = { ColoredCell(Color(0xFFDEB887), "C2") },
-                c3Content = { ColoredCell(Color(0xFF8B4513), "C3") },
-                c4Content = { ColoredCell(Color(0xFFDEB887), "C4") },
-                c5Content = { 
+                topLeftContent = { ColoredCell(Color(0xFF8B4513), "C1") },
+                topContent = { ColoredCell(Color(0xFFDEB887), "C2") },
+                topRightContent = { ColoredCell(Color(0xFF8B4513), "C3") },
+                leftContent = { ColoredCell(Color(0xFFDEB887), "C4") },
+                centerContent = { 
                     ColoredCell(Color(0xFFD4856A), "Large\nCenter\nContent\nArea") 
                 },
-                c6Content = { ColoredCell(Color(0xFFDEB887), "C6") },
-                c7Content = { ColoredCell(Color(0xFF8B4513), "C7") },
-                c8Content = { ColoredCell(Color(0xFFDEB887), "C8") },
-                c9Content = { ColoredCell(Color(0xFF8B4513), "C9") }
+                rightContent = { ColoredCell(Color(0xFFDEB887), "C6") },
+                bottomLeftContent = { ColoredCell(Color(0xFF8B4513), "C7") },
+                bottomContent = { ColoredCell(Color(0xFFDEB887), "C8") },
+                bottomRightContent = { ColoredCell(Color(0xFF8B4513), "C9") }
             )
         }
     }
@@ -348,15 +348,15 @@ fun AdaptiveNineGridPreview_LargeCorners() {
         Box(modifier = Modifier.size(400.dp).padding(16.dp)) {
             AdaptiveNineGrid(
                 commonSize = 80.dp,
-                c1Content = { ColoredCell(Color(0xFF6B5B95), "1") },
-                c2Content = { ColoredCell(Color(0xFF9B8AC4), "2") },
-                c3Content = { ColoredCell(Color(0xFF6B5B95), "3") },
-                c4Content = { ColoredCell(Color(0xFF9B8AC4), "4") },
-                c5Content = { ColoredCell(Color(0xFFE8B4A0), "Center") },
-                c6Content = { ColoredCell(Color(0xFF9B8AC4), "6") },
-                c7Content = { ColoredCell(Color(0xFF6B5B95), "7") },
-                c8Content = { ColoredCell(Color(0xFF9B8AC4), "8") },
-                c9Content = { ColoredCell(Color(0xFF6B5B95), "9") }
+                topLeftContent = { ColoredCell(Color(0xFF6B5B95), "1") },
+                topContent = { ColoredCell(Color(0xFF9B8AC4), "2") },
+                topRightContent = { ColoredCell(Color(0xFF6B5B95), "3") },
+                leftContent = { ColoredCell(Color(0xFF9B8AC4), "4") },
+                centerContent = { ColoredCell(Color(0xFFE8B4A0), "Center") },
+                rightContent = { ColoredCell(Color(0xFF9B8AC4), "6") },
+                bottomLeftContent = { ColoredCell(Color(0xFF6B5B95), "7") },
+                bottomContent = { ColoredCell(Color(0xFF9B8AC4), "8") },
+                bottomRightContent = { ColoredCell(Color(0xFF6B5B95), "9") }
             )
         }
     }
@@ -373,56 +373,56 @@ fun AdaptiveNineGridPreview_ImageViewer() {
         Box(modifier = Modifier.size(450.dp).padding(16.dp)) {
             AdaptiveNineGrid(
                 commonSize = 56.dp,
-                c1Content = { 
+                topLeftContent = { 
                     Box(Modifier.fillMaxSize().background(Color(0xFF2C3E50)),
                         contentAlignment = Alignment.Center) {
                         AppIcon(Icons.Default.Close, "Close", tint = Color.White)
                     }
                 },
-                c2Content = { 
+                topContent = { 
                     Box(Modifier.fillMaxSize().background(Color(0xFF34495E)),
                         contentAlignment = Alignment.Center) {
                         AppText("Image Viewer", color = Color.White)
                     }
                 },
-                c3Content = { 
+                topRightContent = { 
                     Box(Modifier.fillMaxSize().background(Color(0xFF2C3E50)),
                         contentAlignment = Alignment.Center) {
                         AppIcon(Icons.Default.Share, "Share", tint = Color.White)
                     }
                 },
-                c4Content = { 
+                leftContent = { 
                     Box(Modifier.fillMaxSize().background(Color(0xFF34495E)),
                         contentAlignment = Alignment.Center) {
                         AppIcon(Icons.Default.KeyboardArrowLeft, "Previous", tint = Color.White)
                     }
                 },
-                c5Content = { 
+                centerContent = { 
                     Box(Modifier.fillMaxSize().background(Color.Black),
                         contentAlignment = Alignment.Center) {
                         AppText("📷\nImage\nContent", color = Color.White, 
                             style = MaterialTheme.typography.headlineMedium)
                     }
                 },
-                c6Content = { 
+                rightContent = { 
                     Box(Modifier.fillMaxSize().background(Color(0xFF34495E)),
                         contentAlignment = Alignment.Center) {
                         AppIcon(Icons.Default.KeyboardArrowRight, "Next", tint = Color.White)
                     }
                 },
-                c7Content = { 
+                bottomLeftContent = { 
                     Box(Modifier.fillMaxSize().background(Color(0xFF2C3E50)),
                         contentAlignment = Alignment.Center) {
                         AppIcon(Icons.Default.Delete, "Delete", tint = Color.White)
                     }
                 },
-                c8Content = { 
+                bottomContent = { 
                     Box(Modifier.fillMaxSize().background(Color(0xFF34495E)),
                         contentAlignment = Alignment.Center) {
                         AppText("1 / 10", color = Color.White)
                     }
                 },
-                c9Content = { 
+                bottomRightContent = { 
                     Box(Modifier.fillMaxSize().background(Color(0xFF2C3E50)),
                         contentAlignment = Alignment.Center) {
                         AppIcon(Icons.Default.Edit, "Edit", tint = Color.White)
@@ -444,25 +444,25 @@ fun AdaptiveNineGridPreview_Dashboard() {
         Box(modifier = Modifier.size(500.dp).padding(16.dp)) {
             AdaptiveNineGrid(
                 commonSize = 64.dp,
-                c1Content = { 
+                topLeftContent = { 
                     ColoredCell(Color(0xFF4A90E2), "Stats") 
                 },
-                c2Content = { 
+                topContent = { 
                     Box(Modifier.fillMaxSize().background(Color(0xFF5BA3F5)),
                         contentAlignment = Alignment.Center) {
                         AppText("Navigation Bar", color = Color.White)
                     }
                 },
-                c3Content = { 
+                topRightContent = { 
                     ColoredCell(Color(0xFF4A90E2), "Profile") 
                 },
-                c4Content = { 
+                leftContent = { 
                     Box(Modifier.fillMaxSize().background(Color(0xFF5BA3F5)),
                         contentAlignment = Alignment.Center) {
                         AppText("Menu", color = Color.White)
                     }
                 },
-                c5Content = { 
+                centerContent = { 
                     Box(Modifier.fillMaxSize().background(Color(0xFFF5F5F5)),
                         contentAlignment = Alignment.Center) {
                         AppText(
@@ -472,22 +472,22 @@ fun AdaptiveNineGridPreview_Dashboard() {
                         )
                     }
                 },
-                c6Content = { 
+                rightContent = { 
                     Box(Modifier.fillMaxSize().background(Color(0xFF5BA3F5)),
                         contentAlignment = Alignment.Center) {
                         AppText("Tools", color = Color.White)
                     }
                 },
-                c7Content = { 
+                bottomLeftContent = { 
                     ColoredCell(Color(0xFF4A90E2), "Help") 
                 },
-                c8Content = { 
+                bottomContent = { 
                     Box(Modifier.fillMaxSize().background(Color(0xFF5BA3F5)),
                         contentAlignment = Alignment.Center) {
                         AppText("Status Bar", color = Color.White)
                     }
                 },
-                c9Content = { 
+                bottomRightContent = { 
                     ColoredCell(Color(0xFF4A90E2), "Settings") 
                 }
             )
