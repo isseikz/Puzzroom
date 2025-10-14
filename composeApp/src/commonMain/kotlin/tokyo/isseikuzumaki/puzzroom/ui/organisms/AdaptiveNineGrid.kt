@@ -138,11 +138,8 @@ fun AdaptiveNineGrid(
 
         // Step A: C5を制約なし(Loose Constraints)で測定し、コンテンツの自然な幅と高さを取得する。
         // これにより、コンテンツが持つべきアスペクト比が判明する。
-        val c5Natural = c5Measurable.measure(
-            Constraints(maxWidth = centerMaxW, maxHeight = centerMaxH)
-        )
-        val naturalWidth = c5Natural.width.toFloat()
-        val naturalHeight = c5Natural.height.toFloat()
+        val naturalWidth = c5Measurable.maxIntrinsicWidth(centerMaxW).toFloat()
+        val naturalHeight = c5Measurable.maxIntrinsicHeight(centerMaxH).toFloat()
 
         // デフォルトのアスペクト比を1.0f (1:1)として、0除算を避ける
         val ratio = if (naturalHeight > 0 && naturalWidth > 0 && 
