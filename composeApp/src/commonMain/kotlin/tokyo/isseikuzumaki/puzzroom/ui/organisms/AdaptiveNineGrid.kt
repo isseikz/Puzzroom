@@ -43,6 +43,22 @@ private enum class GridSlot {
  * When C5 content is wrap_content, it uses the available width (parent width - 2 * commonSize)
  * and maintains its intrinsic aspect ratio to determine the height.
  *
+ * Usage Example:
+ * ```kotlin
+ * AdaptiveNineGrid(
+ *     commonSize = 48.dp,
+ *     c1Content = { Icon(...) },
+ *     c2Content = { Text("Top") },
+ *     c3Content = { Icon(...) },
+ *     c4Content = { Text("Left") },
+ *     c5Content = { Image(...) }, // Center content determines sizing
+ *     c6Content = { Text("Right") },
+ *     c7Content = { Icon(...) },
+ *     c8Content = { Text("Bottom") },
+ *     c9Content = { Icon(...) }
+ * )
+ * ```
+ *
  * @param modifier Modifier for the grid container
  * @param commonSize Common size for corner cells and side cell dimensions
  * @param c1Content Content for top-left corner (C1)
