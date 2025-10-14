@@ -156,17 +156,15 @@ fun AdaptiveNineGrid(
         // 要件: C5の幅が wrap_content の場合でも、親の最大利用可能幅 (centerMaxW) を使用する。
         val c5FinalWidth = centerMaxW
 
-        var c5FinalHeight: Int
-
-        if (ratio > 0 && c5FinalWidth > 0) {
+        val c5FinalHeight = if (ratio > 0 && c5FinalWidth > 0) {
             // 計算された幅に基づいて、アスペクト比を維持した高さを算出
             val calculatedHeight = (c5FinalWidth / ratio).roundToInt()
 
             // 算出した高さを、利用可能な最大高さ (centerMaxH) で制限する
-            c5FinalHeight = calculatedHeight.coerceIn(0, centerMaxH)
+            calculatedHeight.coerceIn(0, centerMaxH)
         } else {
             // アスペクト比を計算できないか、幅がゼロの場合、利用可能な最大高さをそのまま使用
-            c5FinalHeight = centerMaxH
+            centerMaxH
         }
 
         // Step C: 最終決定されたサイズでC5を再測定する
