@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.requiredSizeIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -72,7 +73,7 @@ fun AppSlider(
             steps = steps,
             modifier = modifier,
             enabled = enabled,
-            colors = SliderDefaults.colors(
+            colors = colors(
                 thumbColor = thumbColor,
                 activeTrackColor = trackColor,
                 inactiveTrackColor = inactiveTrackColor
@@ -80,7 +81,7 @@ fun AppSlider(
         )
     } else {
         VerticalSlider(
-            modifier = modifier.width(thumbRadius.dp),
+            modifier = modifier,
             state = AppSliderState(
                 value = value,
                 valueRange = valueRange,
@@ -92,11 +93,21 @@ fun AppSlider(
             interactionSource = MutableInteractionSource(),
             thumb = {
                 VerticalThumb(
+                    colors = colors(
+                        thumbColor = thumbColor,
+                        activeTrackColor = trackColor,
+                        inactiveTrackColor = inactiveTrackColor
+                    ),
                     interactionSource =  remember { MutableInteractionSource() },
                 )
                     },
             track = {
                 SliderDefaults.Track(
+                    colors = colors(
+                        thumbColor = thumbColor,
+                        activeTrackColor = trackColor,
+                        inactiveTrackColor = inactiveTrackColor
+                    ),
                     sliderState = SliderState(
                         value = value,
                         valueRange = valueRange,
@@ -220,8 +231,8 @@ private fun VerticalSlider(
         {
             Box(
                 modifier =
-                    Modifier.layoutId(AppSliderId.THUMB).wrapContentWidth().onSizeChanged {
-                        state.updateThumbWidth(it.width.toFloat())
+                    Modifier.layoutId(AppSliderId.THUMB).wrapContentHeight().onSizeChanged {
+                        state.updateThumbWidth(it.height.toFloat())
                     }
             ) {
                 thumb(state)
@@ -255,8 +266,8 @@ private fun VerticalSlider(
         val thumbOffsetY = (sliderHeight - thumbPlaceable.height) / 2
 
         layout(sliderWidth, sliderHeight) {
-            trackPlaceable.placeRelative(trackOffsetX, trackOffsetY)
-            thumbPlaceable.placeRelative(thumbOffsetX, thumbOffsetY)
+            trackPlaceable.placeRelative(trackOffsetY, trackOffsetX)
+            thumbPlaceable.placeRelative(thumbOffsetY, thumbOffsetX)
         }
     }
 }
@@ -316,8 +327,7 @@ private fun VerticalThumb(
         modifier
             .size(size)
             .hoverable(interactionSource = interactionSource)
-            .background(color = Color.Blue)
-//            .background(colors.thumbColor(enabled), SliderTokens.HandleShape.value)
+            .background(colors.thumbColor)
     )
 }
 
