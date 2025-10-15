@@ -15,16 +15,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PointMode
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import tokyo.isseikuzumaki.puzzroom.domain.Centimeter
 import tokyo.isseikuzumaki.puzzroom.domain.Degree
 import tokyo.isseikuzumaki.puzzroom.domain.Degree.Companion.degree
 import tokyo.isseikuzumaki.puzzroom.domain.Furniture
-import tokyo.isseikuzumaki.puzzroom.domain.FurnitureTemplate
-import tokyo.isseikuzumaki.puzzroom.domain.LayoutEntry
 import tokyo.isseikuzumaki.puzzroom.domain.Point
 import tokyo.isseikuzumaki.puzzroom.domain.Polygon
 import tokyo.isseikuzumaki.puzzroom.domain.Room
+import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppSlider
+import tokyo.isseikuzumaki.puzzroom.ui.atoms.SliderOrientation
+import tokyo.isseikuzumaki.puzzroom.ui.organisms.AdaptiveNineGrid
+import tokyo.isseikuzumaki.puzzroom.ui.state.SliderState
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.roundToInt
@@ -178,6 +181,20 @@ fun FurnitureLayoutCanvas(
     var dragStartPosition by remember { mutableStateOf<Offset?>(null) }
     var draggedFurnitureOriginalPosition by remember { mutableStateOf<Point?>(null) }
 
+    val xSliderState = remember {
+        SliderState(
+            initialValue = 0.5f,
+            valueRange = 0f..1f
+        )
+    }
+
+    val ySliderState = remember {
+        SliderState(
+            initialValue = 0.5f,
+            valueRange = 0f..1f
+        )
+    }
+
     // 位置が更新されたら通知
     LaunchedEffect(furniturePosition) {
         if (!isDragging) {
@@ -194,103 +211,139 @@ fun FurnitureLayoutCanvas(
             )
         }
 
-        Canvas(
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(furnitureToPlace, selectedFurnitureIndex) {
-                    awaitPointerEventScope {
-                        while (true) {
-                            val event = awaitPointerEvent()
-                            val position = event.changes.first().position
+        AdaptiveNineGrid(
+            commonSize = 20.dp,
+            centerContent = {
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(furnitureToPlace, selectedFurnitureIndex) {
+                            awaitPointerEventScope {
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    val position = event.changes.first().position
 
-                            when (event.type) {
-                                PointerEventType.Press -> {
-                                    if (furnitureToPlace == null) {
-                                        // 配置済み家具の選択
-                                        val clickedPoint = position.toPoint()
-                                        val clickedIndex = placedFurnitures.indexOfLast { it.contains(clickedPoint) }
+                                    when (event.type) {
+                                        PointerEventType.Press -> {
+                                            if (furnitureToPlace == null) {
+                                                // 配置済み家具の選択
+                                                val clickedPoint = position.toPoint()
+                                                val clickedIndex = placedFurnitures.indexOfLast {
+                                                    it.contains(clickedPoint)
+                                                }
 
-                                        if (clickedIndex >= 0) {
-                                            onFurnitureSelected(clickedIndex)
-                                            isDragging = true
-                                            dragStartPosition = position
-                                            draggedFurnitureOriginalPosition = placedFurnitures[clickedIndex].position
-                                        } else {
-                                            onFurnitureSelected(null)
+                                                if (clickedIndex >= 0) {
+                                                    onFurnitureSelected(clickedIndex)
+                                                    isDragging = true
+                                                    dragStartPosition = position
+                                                    draggedFurnitureOriginalPosition =
+                                                        placedFurnitures[clickedIndex].position
+                                                } else {
+                                                    onFurnitureSelected(null)
+                                                }
+                                            }
                                         }
+
+                                        PointerEventType.Move -> {
+                                            if (furnitureToPlace != null) {
+                                                // 新規家具の配置プレビュー
+                                                furniturePosition = position
+                                            } else if (isDragging && selectedFurnitureIndex != null && dragStartPosition != null && draggedFurnitureOriginalPosition != null) {
+                                                // 選択した家具のドラッグ
+                                                val delta = position - dragStartPosition!!
+                                                val newPosition = Point(
+                                                    Centimeter(draggedFurnitureOriginalPosition!!.x.value + delta.x.roundToInt()),
+                                                    Centimeter(draggedFurnitureOriginalPosition!!.y.value + delta.y.roundToInt())
+                                                )
+                                                onFurnitureMoved(
+                                                    selectedFurnitureIndex,
+                                                    newPosition
+                                                )
+                                            }
+                                        }
+
+                                        PointerEventType.Release -> {
+                                            isDragging = false
+                                            dragStartPosition = null
+                                            draggedFurnitureOriginalPosition = null
+                                        }
+
+                                        PointerEventType.Enter -> {
+                                            if (furnitureToPlace != null) {
+                                                furniturePosition = position
+                                            }
+                                        }
+
+                                        PointerEventType.Exit -> {
+                                            if (furnitureToPlace != null) {
+                                                furniturePosition = null
+                                            }
+                                        }
+
+                                        else -> {}
                                     }
                                 }
-                                PointerEventType.Move -> {
-                                    if (furnitureToPlace != null) {
-                                        // 新規家具の配置プレビュー
-                                        furniturePosition = position
-                                    } else if (isDragging && selectedFurnitureIndex != null && dragStartPosition != null && draggedFurnitureOriginalPosition != null) {
-                                        // 選択した家具のドラッグ
-                                        val delta = position - dragStartPosition!!
-                                        val newPosition = Point(
-                                            Centimeter(draggedFurnitureOriginalPosition!!.x.value + delta.x.roundToInt()),
-                                            Centimeter(draggedFurnitureOriginalPosition!!.y.value + delta.y.roundToInt())
-                                        )
-                                        onFurnitureMoved(selectedFurnitureIndex, newPosition)
-                                    }
-                                }
-                                PointerEventType.Release -> {
-                                    isDragging = false
-                                    dragStartPosition = null
-                                    draggedFurnitureOriginalPosition = null
-                                }
-                                PointerEventType.Enter -> {
-                                    if (furnitureToPlace != null) {
-                                        furniturePosition = position
-                                    }
-                                }
-                                PointerEventType.Exit -> {
-                                    if (furnitureToPlace != null) {
-                                        furniturePosition = null
-                                    }
-                                }
-                                else -> {}
                             }
                         }
+                ) {
+                    // 部屋のポリゴンを描画
+                    drawPoints(
+                        points = room.shape.points.map { it.toCanvasOffset() } + room.shape.points.first()
+                            .toCanvasOffset(),
+                        pointMode = PointMode.Polygon,
+                        color = Color.Gray,
+                        strokeWidth = 3f
+                    )
+
+                    // 配置済みの家具を描画
+                    placedFurnitures.forEachIndexed { index, placed ->
+                        val rotatedPoints = placed.furniture.shape.rotateAroundCenter(
+                            placed.position,
+                            placed.rotation
+                        )
+                        val isSelected = index == selectedFurnitureIndex
+                        drawPoints(
+                            points = rotatedPoints + rotatedPoints.first(),
+                            pointMode = PointMode.Polygon,
+                            color = if (isSelected) Color.Blue else Color.Green,
+                            strokeWidth = if (isSelected) 5f else 3f
+                        )
+                    }
+
+                    // 配置中の家具をプレビュー表示
+                    if (furnitureToPlace != null && furniturePosition != null) {
+                        val rotatedPoints = furnitureToPlace.shape.rotateAroundCenter(
+                            furniturePosition!!.toPoint(),
+                            furnitureRotation.degree()
+                        )
+                        drawPoints(
+                            points = rotatedPoints + rotatedPoints.first(),
+                            pointMode = PointMode.Polygon,
+                            color = Color.Cyan,
+                            strokeWidth = 5f
+                        )
                     }
                 }
-        ) {
-            // 部屋のポリゴンを描画
-            drawPoints(
-                points = room.shape.points.map { it.toCanvasOffset() } + room.shape.points.first().toCanvasOffset(),
-                pointMode = PointMode.Polygon,
-                color = Color.Gray,
-                strokeWidth = 3f
-            )
-
-            // 配置済みの家具を描画
-            placedFurnitures.forEachIndexed { index, placed ->
-                val rotatedPoints = placed.furniture.shape.rotateAroundCenter(
-                    placed.position,
-                    placed.rotation
+            },
+            modifier = Modifier,
+            topContent = { AppSlider(state = xSliderState) },
+            bottomContent = { AppSlider(state = xSliderState) },
+            leftContent = {
+                AppSlider(
+                    state = ySliderState,
+                    orientation = SliderOrientation.Vertical
                 )
-                val isSelected = index == selectedFurnitureIndex
-                drawPoints(
-                    points = rotatedPoints + rotatedPoints.first(),
-                    pointMode = PointMode.Polygon,
-                    color = if (isSelected) Color.Blue else Color.Green,
-                    strokeWidth = if (isSelected) 5f else 3f
+            },
+            rightContent = {
+                AppSlider(
+                    state = ySliderState,
+                    orientation = SliderOrientation.Vertical
                 )
-            }
-
-            // 配置中の家具をプレビュー表示
-            if (furnitureToPlace != null && furniturePosition != null) {
-                val rotatedPoints = furnitureToPlace.shape.rotateAroundCenter(
-                    furniturePosition!!.toPoint(),
-                    furnitureRotation.degree()
-                )
-                drawPoints(
-                    points = rotatedPoints + rotatedPoints.first(),
-                    pointMode = PointMode.Polygon,
-                    color = Color.Cyan,
-                    strokeWidth = 5f
-                )
-            }
-        }
+            },
+            topLeftContent = {},
+            topRightContent = {},
+            bottomLeftContent = {},
+            bottomRightContent = {}
+        )
     }
 }
