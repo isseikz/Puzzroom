@@ -19,7 +19,11 @@ composeApp/src/commonMain/kotlin/tokyo/isseikuzumaki/puzzroom/ui/atoms/AppSlider
 ```
 - 380行のコード
 - 水平・垂直両対応
-- 4つのプレビュー関数
+- 4つのプレビュー関数（AppSlider.kt内に実装）
+  - AppSliderPreview_Horizontal
+  - AppSliderPreview_Vertical
+  - AppSliderPreview_CustomHorizontal
+  - AppSliderPreview_CustomVertical
 
 ### 3. AdaptiveNineGrid拡張
 ```
@@ -256,10 +260,13 @@ AppSlider(
 
 以下のプレビューが実装されています:
 
+**AppSlider.kt 内:**
 1. **AppSliderPreview_Horizontal** - 水平スライダーの基本プレビュー
 2. **AppSliderPreview_Vertical** - 垂直スライダーの基本プレビュー
 3. **AppSliderPreview_CustomHorizontal** - カスタムスタイルの水平スライダー
 4. **AppSliderPreview_CustomVertical** - カスタムスタイルの垂直スライダー
+
+**AdaptiveNineGrid.kt 内:**
 5. **AdaptiveNineGridPreview_VerticalSliders** - AdaptiveNineGridの左右パネルに垂直スライダーを配置したプレビュー
 
 ## Atomic Designへの準拠
