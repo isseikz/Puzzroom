@@ -64,12 +64,12 @@ fun FurnitureShapeEditForm(
             verticalAlignment = Alignment.CenterVertically
         ) {
             AppText(
-                text = "図形を編集",
+                text = "Edit Shape",
                 style = MaterialTheme.typography.titleLarge
             )
             AppIconButton(
                 imageVector = Icons.Default.Close,
-                contentDescription = "閉じる",
+                contentDescription = "Close",
                 onClick = onDismiss
             )
         }
@@ -80,7 +80,7 @@ fun FurnitureShapeEditForm(
         AppTextField(
             value = formData.name,
             onValueChange = { formData = formData.copy(name = it) },
-            label = "図形の名前",
+            label = "Shape Name",
             modifier = Modifier.fillMaxWidth()
         )
         
@@ -120,7 +120,7 @@ fun FurnitureShapeEditForm(
                     onSave(formData)
                 }
             },
-            confirmText = "保存",
+            confirmText = "Save",
             confirmEnabled = isFormValid
         )
     }

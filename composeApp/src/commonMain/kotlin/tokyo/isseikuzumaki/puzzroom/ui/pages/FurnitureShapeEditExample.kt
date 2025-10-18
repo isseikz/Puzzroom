@@ -39,7 +39,7 @@ fun FurnitureShapeEditExample(
     var currentData by remember {
         mutableStateOf(
             FurnitureShapeFormData(
-                name = "サンプル家具",
+                name = "Sample Furniture",
                 width = "100.0",
                 height = "50.0"
             )
@@ -56,17 +56,17 @@ fun FurnitureShapeEditExample(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             AppText(
-                text = "図形編集モーダルボトムシートのデモ",
+                text = "Shape Edit Modal Bottom Sheet Demo",
                 style = MaterialTheme.typography.titleLarge
             )
             
             AppText(
-                text = "現在のデータ: ${currentData.name} (${currentData.width}cm × ${currentData.height}cm)",
+                text = "Current Data: ${currentData.name} (${currentData.width}cm × ${currentData.height}cm)",
                 style = MaterialTheme.typography.bodyMedium
             )
             
             AppButton(
-                text = "図形を編集",
+                text = "Edit Shape",
                 onClick = { showBottomSheet = true }
             )
         }
@@ -115,7 +115,7 @@ fun FurnitureShapeEditIntegrationExample(
         derivedStateOf {
             // TODO: Load from ViewModel/Repository
             FurnitureShapeFormData(
-                name = "家具 #$furnitureId",
+                name = "Furniture #$furnitureId",
                 width = "120.0",
                 height = "80.0"
             )
@@ -125,7 +125,7 @@ fun FurnitureShapeEditIntegrationExample(
     Column(modifier = modifier) {
         // Main content goes here
         AppButton(
-            text = "編集",
+            text = "Edit",
             onClick = { showEditSheet = true }
         )
         

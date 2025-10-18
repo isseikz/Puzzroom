@@ -22,10 +22,10 @@ enum class ShapeTemplate {
     CUSTOM;
 
     fun displayName(): String = when (this) {
-        RECTANGLE -> "長方形"
-        CIRCLE -> "円形"
-        L_SHAPE -> "L字型"
-        CUSTOM -> "カスタム"
+        RECTANGLE -> "Rectangle"
+        CIRCLE -> "Circle"
+        L_SHAPE -> "L-Shape"
+        CUSTOM -> "Custom"
     }
 }
 
@@ -40,7 +40,7 @@ fun ShapeSelector(
 ) {
     Column(modifier = modifier) {
         AppText(
-            text = "形状を選択",
+            text = "Select Shape",
             style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.padding(bottom = 8.dp)
         )

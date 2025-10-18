@@ -29,14 +29,14 @@ fun DecimalDimensionInput(
         AppTextField(
             value = widthValue,
             onValueChange = onWidthChange,
-            label = "幅 (cm)",
+            label = "Width (cm)",
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.weight(1f)
         )
         AppTextField(
             value = heightValue,
             onValueChange = onHeightChange,
-            label = "高さ (cm)",
+            label = "Height (cm)",
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.weight(1f)
         )

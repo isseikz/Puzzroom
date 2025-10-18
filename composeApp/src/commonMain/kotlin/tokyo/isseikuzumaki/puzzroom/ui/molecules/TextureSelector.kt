@@ -24,12 +24,12 @@ enum class TextureOption {
     GLASS;
 
     fun displayName(): String = when (this) {
-        NONE -> "なし"
-        WOOD_LIGHT -> "明るい木"
-        WOOD_DARK -> "暗い木"
-        METAL -> "金属"
-        FABRIC -> "布"
-        GLASS -> "ガラス"
+        NONE -> "None"
+        WOOD_LIGHT -> "Light Wood"
+        WOOD_DARK -> "Dark Wood"
+        METAL -> "Metal"
+        FABRIC -> "Fabric"
+        GLASS -> "Glass"
     }
 }
 
@@ -44,7 +44,7 @@ fun TextureSelector(
 ) {
     Column(modifier = modifier) {
         AppText(
-            text = "テクスチャを選択",
+            text = "Select Texture",
             style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.padding(bottom = 8.dp)
         )
