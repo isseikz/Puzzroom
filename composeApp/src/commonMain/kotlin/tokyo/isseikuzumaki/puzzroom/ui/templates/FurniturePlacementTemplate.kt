@@ -27,7 +27,7 @@ import tokyo.isseikuzumaki.puzzroom.domain.Room
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.ButtonToCreate
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.FurnitureLayoutCanvas
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.FurnitureSelector
-import tokyo.isseikuzumaki.puzzroom.ui.organisms.FurnitureShapeEditForm
+import tokyo.isseikuzumaki.puzzroom.ui.organisms.FurnitureCreationForm
 import tokyo.isseikuzumaki.puzzroom.ui.state.PlacedFurniture
 import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
 
@@ -92,7 +92,7 @@ fun FurniturePlacementTemplate(
                 },
                 sheetState = bottomSheetState
             ) {
-                FurnitureShapeEditForm(
+                FurnitureCreationForm(
                     onDismiss = {
                         // User cancelled the form
                         onCancelBottomSheet()
@@ -112,8 +112,6 @@ fun FurniturePlacementTemplate(
 @Preview()
 @Composable
 private fun FurniturePlacementTemplatePreview() {
-    var showBottomSheet by remember { mutableStateOf(false) }
-
     PuzzroomTheme {
         FurniturePlacementTemplate(
             room = Room(

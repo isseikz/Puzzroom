@@ -37,7 +37,7 @@ data class FurnitureShapeFormData(
  * @param modifier Modifier for the form container
  */
 @Composable
-fun FurnitureShapeEditForm(
+fun FurnitureCreationForm(
     initialData: FurnitureShapeFormData = FurnitureShapeFormData(),
     onDismiss: () -> Unit,
     onSave: (FurnitureShapeFormData) -> Unit,
@@ -66,7 +66,7 @@ fun FurnitureShapeEditForm(
             verticalAlignment = Alignment.CenterVertically
         ) {
             AppText(
-                text = "Edit Shape",
+                text = "Add Item",
                 style = MaterialTheme.typography.titleLarge
             )
             AppIconButton(
@@ -130,8 +130,8 @@ fun FurnitureShapeEditForm(
 
 @Preview
 @Composable
-private fun FurnitureShapeEditFormPreview() {
-    FurnitureShapeEditForm(
+private fun PreviewStaticForm() {
+    FurnitureCreationForm(
         onDismiss = {},
         onSave = {}
     )
@@ -144,7 +144,7 @@ private fun FurnitureShapeEditFormPreview() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Preview
 @Composable
-fun FurnitureShapeEditExample(
+private fun PreviewState(
     modifier: Modifier = Modifier
 ) {
     // State for showing/hiding the bottom sheet
@@ -201,7 +201,7 @@ fun FurnitureShapeEditExample(
             },
             sheetState = sheetState
         ) {
-            FurnitureShapeEditForm(
+            FurnitureCreationForm(
                 initialData = currentData,
                 onDismiss = {
                     // User clicked close button or cancel

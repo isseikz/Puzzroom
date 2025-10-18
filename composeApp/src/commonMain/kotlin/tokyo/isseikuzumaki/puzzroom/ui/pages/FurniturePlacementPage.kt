@@ -9,17 +9,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import tokyo.isseikuzumaki.puzzroom.AppState
 import tokyo.isseikuzumaki.puzzroom.domain.*
-import tokyo.isseikuzumaki.puzzroom.domain.Degree.Companion.degree
 import tokyo.isseikuzumaki.puzzroom.ui.molecules.SaveStateIndicator
-import tokyo.isseikuzumaki.puzzroom.ui.organisms.FurnitureLayoutCanvas
-import tokyo.isseikuzumaki.puzzroom.ui.organisms.FurnitureLibraryPanel
-import tokyo.isseikuzumaki.puzzroom.ui.organisms.FurniturePlacementToolbar
 import tokyo.isseikuzumaki.puzzroom.ui.state.PlacedFurniture
 import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.FurnitureTemplateViewModel
 import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.ProjectViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FurnitureLayoutPage(
+fun FurniturePlacementPage(
     appState: AppState,
     viewModel: ProjectViewModel,
     furnitureTemplateViewModel: FurnitureTemplateViewModel
@@ -85,7 +82,7 @@ fun FurnitureLayoutPage(
                 }
             }
         } else {
-            // Furniture placement
+            // Furniture placement - using FurniturePlacementTemplate
             var furnitureWidth by remember { mutableStateOf(Centimeter(100)) }
             var furnitureDepth by remember { mutableStateOf(Centimeter(100)) }
             var furnitureRotation by remember { mutableStateOf(0f) }
@@ -98,7 +95,7 @@ fun FurnitureLayoutPage(
             LaunchedEffect(selectedRoom, currentFloorPlan?.layouts) {
                 selectedRoom?.let { room ->
                     placedFurnitures = currentFloorPlan?.layouts
-                        ?.filter { it.room.id == room.id }  // Only furniture in the selected room
+                        ?.filter { it.room.id == room.id }
                         ?.map { layout ->
                             PlacedFurniture(
                                 furniture = layout.furniture,
@@ -115,7 +112,7 @@ fun FurnitureLayoutPage(
                     furnitureWidth = template.width
                     furnitureDepth = template.depth
                     furnitureRotation = 0f
-                    selectedFurnitureIndex = null  // Clear selection
+                    selectedFurnitureIndex = null
                     currentFurniture = Furniture(
                         name = template.name,
                         shape = Polygon(
@@ -147,7 +144,25 @@ fun FurnitureLayoutPage(
                 }
             }
 
+            // Convert furniture templates to placeable items (Furniture objects)
+            val placeableItems = remember(furnitureTemplates) {
+                furnitureTemplates.map { template ->
+                    Furniture(
+                        name = template.name,
+                        shape = Polygon(
+                            points = listOf(
+                                Point(Centimeter(0), Centimeter(0)),
+                                Point(template.width, Centimeter(0)),
+                                Point(template.width, template.depth),
+                                Point(Centimeter(0), template.depth)
+                            )
+                        )
+                    )
+                }
+            }
+
             Column(modifier = Modifier.fillMaxSize()) {
+                // Room header with back button
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -165,124 +180,57 @@ fun FurnitureLayoutPage(
                     }
                 }
 
-                Row(modifier = Modifier.weight(1f)) {
-                    // Furniture library panel
-                    FurnitureLibraryPanel(
-                        templates = furnitureTemplates,
-                        selectedTemplate = appState.selectedFurnitureTemplate,
-                        onTemplateSelected = { template ->
-                            appState.selectFurnitureTemplate(template)
-                        },
-                        modifier = Modifier
-                            .width(300.dp)
-                            .fillMaxHeight()
-                    )
-
-                    // Furniture placement canvas
-                    FurnitureLayoutCanvas(
-                        room = selectedRoom!!,
-                        backgroundImageUrl = project?.layoutUrl,
-                        furnitureToPlace = currentFurniture,
-                        furnitureRotation = furnitureRotation,
-                        placedFurnitures = placedFurnitures,
-                        selectedFurnitureIndex = selectedFurnitureIndex,
-                        onPositionUpdate = { position ->
-                            currentPosition = position
-                        },
-                        onFurnitureSelected = { index ->
-                            selectedFurnitureIndex = index
-                            if (index != null) {
-                                // Deselect placement mode when furniture is selected
-                                appState.selectFurnitureTemplate(null)
-                            }
-                        },
-                        onFurnitureMoved = { index, newPosition ->
-                            placedFurnitures = placedFurnitures.mapIndexed { i, furniture ->
-                                if (i == index) {
-                                    furniture.copy(position = newPosition)
-                                } else {
-                                    furniture
-                                }
-                            }
-                            // Update ViewModel
-                            project?.let { currentProject ->
-                                currentFloorPlan?.let { floorPlan ->
-                                    val updatedLayoutEntry = floorPlan.layouts.getOrNull(index)?.copy(position = newPosition)
-                                    if (updatedLayoutEntry != null) {
-                                        val updatedFloorPlan = floorPlan.copy(
-                                            layouts = floorPlan.layouts.mapIndexed { i, layout ->
-                                                if (i == index) updatedLayoutEntry else layout
-                                            }
-                                        )
-                                        val updatedProject = currentProject.copy(
-                                            floorPlans = listOf(updatedFloorPlan)
-                                        )
-                                        // Auto-save trigger
-                                        viewModel.updateProject(updatedProject)
-                                    }
-                                }
-                            }
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                // Toolbar (only displayed when furniture is selected)
-                if (appState.selectedFurnitureTemplate != null && currentFurniture != null) {
-                    FurniturePlacementToolbar(
-                        furnitureName = appState.selectedFurnitureTemplate!!.name,
-                        width = furnitureWidth,
-                        depth = furnitureDepth,
-                        rotation = furnitureRotation,
-                        onWidthChange = { furnitureWidth = it },
-                        onDepthChange = { furnitureDepth = it },
-                        onRotationChange = { furnitureRotation = it },
-                        onConfirm = {
-                            currentPosition?.let { position ->
-                                project?.let { currentProject ->
-                                    currentFloorPlan?.let { floorPlan ->
-                                        currentFurniture?.let { furniture ->
-                                            selectedRoom?.let { room ->
-                                                val layoutEntry = LayoutEntry(
-                                                    room = room,
-                                                    furniture = furniture,
-                                                    position = position,
-                                                    rotation = furnitureRotation.degree()
-                                                )
-                                                placedFurnitures = placedFurnitures + PlacedFurniture(
-                                                    furniture = furniture,
-                                                    position = position,
-                                                    rotation = furnitureRotation.degree()
-                                                )
-
-                                                // Update Project
-                                                val updatedFloorPlan = floorPlan.copy(
-                                                    layouts = floorPlan.layouts + layoutEntry,
-                                                    furnitures = floorPlan.furnitures + furniture
-                                                )
-                                                val updatedProject = currentProject.copy(
-                                                    floorPlans = listOf(updatedFloorPlan)
-                                                )
-
-                                                appState.selectFurnitureTemplate(null)
-                                                currentPosition = null
-
-                                                // Auto-save trigger
-                                                viewModel.updateProject(updatedProject)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        onCancel = {
+                // Use FurniturePlacementTemplate
+                FurniturePlacementTemplate(
+                    room = selectedRoom!!,
+                    backgroundImageUrl = project?.layoutUrl,
+                    furnitureToPlace = currentFurniture,
+                    furnitureRotation = furnitureRotation,
+                    placeableItems = placeableItems,
+                    placedItems = placedFurnitures,
+                    selectedFurnitureIndex = selectedFurnitureIndex,
+                    onPositionUpdate = { position ->
+                        currentPosition = position
+                    },
+                    onFurnitureSelected = { index ->
+                        selectedFurnitureIndex = index
+                        if (index != null) {
                             appState.selectFurnitureTemplate(null)
-                            currentPosition = null
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+                        }
+                    },
+                    onFurnitureMoved = { index, newPosition ->
+                        placedFurnitures = placedFurnitures.mapIndexed { i, furniture ->
+                            if (i == index) {
+                                furniture.copy(position = newPosition)
+                            } else {
+                                furniture
+                            }
+                        }
+                        // Update ViewModel
+                        project?.let { currentProject ->
+                            currentFloorPlan?.let { floorPlan ->
+                                val updatedLayoutEntry = floorPlan.layouts.getOrNull(index)?.copy(position = newPosition)
+                                if (updatedLayoutEntry != null) {
+                                    val updatedFloorPlan = floorPlan.copy(
+                                        layouts = floorPlan.layouts.mapIndexed { i, layout ->
+                                            if (i == index) updatedLayoutEntry else layout
+                                        }
+                                    )
+                                    val updatedProject = currentProject.copy(
+                                        floorPlans = listOf(updatedFloorPlan)
+                                    )
+                                    viewModel.updateProject(updatedProject)
+                                }
+                            }
+                        }
+                    },
+                    onCancelBottomSheet = {
+                        // Handle bottom sheet cancellation if needed
+                    },
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
 }
+
