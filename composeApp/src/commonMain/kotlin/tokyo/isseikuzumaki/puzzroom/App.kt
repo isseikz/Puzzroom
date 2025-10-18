@@ -3,29 +3,26 @@ package tokyo.isseikuzumaki.puzzroom
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import tokyo.isseikuzumaki.puzzroom.ui.screen.FurnitureScreen
-import tokyo.isseikuzumaki.puzzroom.ui.screen.RoomScreen
 import tokyo.isseikuzumaki.puzzroom.ui.pages.FurnitureCreationPage
 import tokyo.isseikuzumaki.puzzroom.ui.pages.FurnitureManagementPage
+import tokyo.isseikuzumaki.puzzroom.ui.pages.FurniturePlacementPage
 import tokyo.isseikuzumaki.puzzroom.ui.pages.ProjectListPage
+import tokyo.isseikuzumaki.puzzroom.ui.screen.RoomScreen
 import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
-import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.rememberProjectViewModel
 import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.rememberFurnitureTemplateViewModel
+import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.rememberProjectViewModel
 
 @Composable
 @Preview
@@ -90,7 +87,7 @@ fun App(
                     )
                 }
                 composable(route = AppScreen.Furniture.name) {
-                    FurnitureScreen(
+                    FurniturePlacementPage(
                         appState = appState,
                         viewModel = projectViewModel,
                         furnitureTemplateViewModel = furnitureTemplateViewModel

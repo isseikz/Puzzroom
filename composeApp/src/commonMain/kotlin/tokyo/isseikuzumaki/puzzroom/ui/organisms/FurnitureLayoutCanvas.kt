@@ -1,4 +1,4 @@
-package tokyo.isseikuzumaki.puzzroom.ui.component
+package tokyo.isseikuzumaki.puzzroom.ui.organisms
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
@@ -16,153 +16,24 @@ import androidx.compose.ui.graphics.PointMode
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import tokyo.isseikuzumaki.puzzroom.domain.Centimeter
-import tokyo.isseikuzumaki.puzzroom.domain.Degree
 import tokyo.isseikuzumaki.puzzroom.domain.Degree.Companion.degree
 import tokyo.isseikuzumaki.puzzroom.domain.Furniture
 import tokyo.isseikuzumaki.puzzroom.domain.Point
-import tokyo.isseikuzumaki.puzzroom.domain.Polygon
 import tokyo.isseikuzumaki.puzzroom.domain.Room
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppSlider
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.SliderOrientation
-import tokyo.isseikuzumaki.puzzroom.ui.organisms.AdaptiveNineGrid
+import tokyo.isseikuzumaki.puzzroom.ui.state.PlacedFurniture
 import tokyo.isseikuzumaki.puzzroom.ui.state.SliderState
-import kotlin.math.PI
-import kotlin.math.cos
+import tokyo.isseikuzumaki.puzzroom.ui.state.toCanvasOffset
+import tokyo.isseikuzumaki.puzzroom.ui.state.toPoint
+import tokyo.isseikuzumaki.puzzroom.ui.state.rotateAroundCenterOffsets
+import tokyo.isseikuzumaki.puzzroom.ui.molecules.FloorPlanBackgroundImage
 import kotlin.math.roundToInt
-import kotlin.math.sin
 
 /**
- * 配置された家具の状態
+ * 家具配置用のキャンバス（Organism）
  */
-data class PlacedFurniture(
-    val furniture: Furniture,
-    val position: Point,
-    val rotation: Degree
-) {
-    /**
-     * 指定された点が家具の内部にあるかチェック
-     */
-    fun contains(point: Point): Boolean {
-        val rotatedPoints = furniture.shape.rotateAroundCenterToPoints(position, rotation)
-        return pointInPolygon(point, rotatedPoints)
-    }
-}
-
-/**
- * Polygon を指定位置に配置し、幾何中心を軸に回転させた結果をPointのリストで返す
- */
-private fun Polygon.rotateAroundCenterToPoints(position: Point, rotation: Degree): List<Point> {
-    val positionOffset = position.toCanvasOffset()
-    val shapeCenter = getCenter()
-
-    return points.map { point ->
-        val pointOffset = point.toCanvasOffset()
-        val relativeOffset = Offset(
-            pointOffset.x - shapeCenter.x,
-            pointOffset.y - shapeCenter.y
-        )
-        val rotated = relativeOffset.rotate(Offset.Zero, rotation.value)
-        Offset(
-            positionOffset.x + rotated.x,
-            positionOffset.y + rotated.y
-        ).toPoint()
-    }
-}
-
-/**
- * 点がポリゴン内にあるかチェック（Ray Casting Algorithm）
- */
-private fun pointInPolygon(point: Point, polygon: List<Point>): Boolean {
-    var inside = false
-    var j = polygon.size - 1
-
-    for (i in polygon.indices) {
-        val pi = polygon[i]
-        val pj = polygon[j]
-
-        if ((pi.y.value > point.y.value) != (pj.y.value > point.y.value)) {
-            val intersectX = (pj.x.value - pi.x.value).toLong() *
-                    (point.y.value - pi.y.value).toLong() /
-                    (pj.y.value - pi.y.value).toLong() +
-                    pi.x.value.toLong()
-
-            if (point.x.value < intersectX) {
-                inside = !inside
-            }
-        }
-        j = i
-    }
-
-    return inside
-}
-
-private fun Point.toCanvasOffset(): Offset {
-    return Offset(x.value.toFloat(), y.value.toFloat())
-}
-
-private fun Offset.toPoint(): Point {
-    return Point(Centimeter(x.roundToInt()), Centimeter(y.roundToInt()))
-}
-
-/**
- * 点を回転させる
- */
-private fun Offset.rotate(center: Offset, degrees: Float): Offset {
-    val radians = degrees / 180f * PI
-    val cos = cos(radians).toFloat()
-    val sin = sin(radians).toFloat()
-    val dx = x - center.x
-    val dy = y - center.y
-    return Offset(
-        center.x + dx * cos - dy * sin,
-        center.y + dx * sin + dy * cos
-    )
-}
-
-/**
- * Polygon の幾何中心を計算
- */
-private fun Polygon.getCenter(): Offset {
-    val sumX = points.sumOf { it.x.value.toDouble() }
-    val sumY = points.sumOf { it.y.value.toDouble() }
-    return Offset(
-        (sumX / points.size).toFloat(),
-        (sumY / points.size).toFloat()
-    )
-}
-
-/**
- * Polygon を指定位置に配置し、幾何中心を軸に回転させる
- */
-private fun Polygon.rotateAroundCenter(position: Point, rotation: Degree): List<Offset> {
-    val positionOffset = position.toCanvasOffset()
-    val shapeCenter = getCenter()
-
-    return points.map { point ->
-        val pointOffset = point.toCanvasOffset()
-        // 図形の中心を原点とした相対座標
-        val relativeOffset = Offset(
-            pointOffset.x - shapeCenter.x,
-            pointOffset.y - shapeCenter.y
-        )
-        // 回転
-        val rotated = relativeOffset.rotate(Offset.Zero, rotation.value)
-        // 配置位置に移動
-        Offset(
-            positionOffset.x + rotated.x,
-            positionOffset.y + rotated.y
-        )
-    }
-}
-
-enum class CanvasMode {
-    SELECT_FROM_LIBRARY,  // ライブラリから選択中
-    CREATE_FURNITURE,  // 家具を作成中
-    PLACE_FURNITURE,   // 家具を配置中
-}
-
 @Composable
 fun FurnitureLayoutCanvas(
     room: Room,
@@ -203,13 +74,10 @@ fun FurnitureLayoutCanvas(
     }
 
     Box(modifier = modifier) {
-        backgroundImageUrl?.let {
-            AsyncImage(
-                model = it,
-                contentDescription = "Background Image",
-                modifier = Modifier.fillMaxSize()
-            )
-        }
+        FloorPlanBackgroundImage(
+            imageUrl = backgroundImageUrl,
+            modifier = Modifier.fillMaxSize()
+        )
 
         AdaptiveNineGrid(
             commonSize = 20.dp,
@@ -297,7 +165,7 @@ fun FurnitureLayoutCanvas(
 
                     // 配置済みの家具を描画
                     placedFurnitures.forEachIndexed { index, placed ->
-                        val rotatedPoints = placed.furniture.shape.rotateAroundCenter(
+                        val rotatedPoints = placed.furniture.shape.rotateAroundCenterOffsets(
                             placed.position,
                             placed.rotation
                         )
@@ -312,7 +180,7 @@ fun FurnitureLayoutCanvas(
 
                     // 配置中の家具をプレビュー表示
                     if (furnitureToPlace != null && furniturePosition != null) {
-                        val rotatedPoints = furnitureToPlace.shape.rotateAroundCenter(
+                        val rotatedPoints = furnitureToPlace.shape.rotateAroundCenterOffsets(
                             furniturePosition!!.toPoint(),
                             furnitureRotation.degree()
                         )
@@ -347,3 +215,4 @@ fun FurnitureLayoutCanvas(
         )
     }
 }
+
