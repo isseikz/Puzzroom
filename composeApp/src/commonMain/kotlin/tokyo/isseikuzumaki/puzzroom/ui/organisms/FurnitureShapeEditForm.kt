@@ -8,6 +8,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppButton
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppIconButton
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppText
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppTextField
@@ -123,5 +125,94 @@ fun FurnitureShapeEditForm(
             confirmText = "Save",
             confirmEnabled = isFormValid
         )
+    }
+}
+
+@Preview
+@Composable
+private fun FurnitureShapeEditFormPreview() {
+    FurnitureShapeEditForm(
+        onDismiss = {},
+        onSave = {}
+    )
+}
+
+
+/**
+ * Integration example showing how to use in existing furniture management screens
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview
+@Composable
+fun FurnitureShapeEditExample(
+    modifier: Modifier = Modifier
+) {
+    // State for showing/hiding the bottom sheet
+    var showBottomSheet by remember { mutableStateOf(false) }
+
+    // Sheet state for managing expand/collapse
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = false
+    )
+
+    // Sample data to edit
+    var currentData by remember {
+        mutableStateOf(
+            FurnitureShapeFormData(
+                name = "Sample Furniture",
+                width = "100.0",
+                height = "50.0"
+            )
+        )
+    }
+
+    // Main content
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            AppText(
+                text = "Shape Edit Modal Bottom Sheet Demo",
+                style = MaterialTheme.typography.titleLarge
+            )
+
+            AppText(
+                text = "Current Data: ${currentData.name} (${currentData.width}cm × ${currentData.height}cm)",
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            AppButton(
+                text = "Edit Shape",
+                onClick = { showBottomSheet = true }
+            )
+        }
+    }
+
+    // Modal Bottom Sheet
+    if (showBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                // User dismissed by swipe down or tapping scrim
+                showBottomSheet = false
+            },
+            sheetState = sheetState
+        ) {
+            FurnitureShapeEditForm(
+                initialData = currentData,
+                onDismiss = {
+                    // User clicked close button or cancel
+                    showBottomSheet = false
+                },
+                onSave = { formData ->
+                    // User saved the form
+                    currentData = formData
+                    showBottomSheet = false
+                }
+            )
+        }
     }
 }

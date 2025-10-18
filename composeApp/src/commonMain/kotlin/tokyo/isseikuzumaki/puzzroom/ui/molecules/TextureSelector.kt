@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppCard
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppText
 
@@ -119,4 +120,13 @@ private fun TextureOptionCard(
             }
         }
     }
+}
+
+@Preview
+@Composable
+private fun TextureSelectorPreview() {
+    TextureSelector(
+        selectedTexture = TextureOption.WOOD_LIGHT,
+        onTextureSelected = {}
+    )
 }

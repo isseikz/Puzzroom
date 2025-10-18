@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppTextField
 
 /**
@@ -41,4 +42,15 @@ fun DecimalDimensionInput(
             modifier = Modifier.weight(1f)
         )
     }
+}
+
+@Preview
+@Composable
+fun DecimalDimensionInputPreview() {
+    DecimalDimensionInput(
+        widthValue = "120.5",
+        heightValue = "85.0",
+        onWidthChange = {},
+        onHeightChange = {}
+    )
 }

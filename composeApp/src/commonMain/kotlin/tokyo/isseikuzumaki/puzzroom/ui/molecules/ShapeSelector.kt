@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppCard
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppText
 
@@ -114,4 +115,13 @@ private fun ShapeTemplateCard(
             }
         }
     }
+}
+
+@Preview
+@Composable
+private fun ShapeSelectorPreview() {
+    ShapeSelector(
+        selectedShape = ShapeTemplate.RECTANGLE,
+        onShapeSelected = {}
+    )
 }
