@@ -1,4 +1,4 @@
-package tokyo.isseikuzumaki.puzzroom.ui.screen
+package tokyo.isseikuzumaki.puzzroom.ui.pages
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,7 +19,7 @@ import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.FurnitureTemplateViewModel
 import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.ProjectViewModel
 
 @Composable
-fun FurnitureScreen(
+fun FurnitureLayoutPage(
     appState: AppState,
     viewModel: ProjectViewModel,
     furnitureTemplateViewModel: FurnitureTemplateViewModel
