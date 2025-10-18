@@ -1,7 +1,5 @@
 package tokyo.isseikuzumaki.puzzroom.ui.molecules
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -76,21 +74,12 @@ private fun TextureOptionCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val borderModifier = if (isSelected) {
-        Modifier.border(
-            BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
-            shape = MaterialTheme.shapes.medium
-        )
-    } else {
-        Modifier
-    }
-    
     AppCard(
         onClick = onClick,
         modifier = modifier
             .width(80.dp)
             .height(80.dp)
-            .then(borderModifier),
+            .selectionBorder(isSelected),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
                 MaterialTheme.colorScheme.primaryContainer
