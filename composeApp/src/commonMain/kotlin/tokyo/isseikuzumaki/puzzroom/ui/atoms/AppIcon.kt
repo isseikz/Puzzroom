@@ -50,3 +50,36 @@ fun AppIconButton(
         )
     }
 }
+
+/**
+ * Icon checkbox atom that toggles between checked and unchecked states
+ * 
+ * @param imageVector The icon to display
+ * @param contentDescription Accessibility description
+ * @param checked Whether the checkbox is checked
+ * @param onCheckedChange Callback when the checked state changes
+ * @param modifier Modifier for the component
+ * @param enabled Whether the checkbox is enabled
+ * @param checkedTint Color when checked (defaults to primary color)
+ * @param uncheckedTint Color when unchecked (defaults to light gray)
+ */
+@Composable
+fun AppIconCheckbox(
+    imageVector: ImageVector,
+    contentDescription: String?,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    checkedTint: Color = MaterialTheme.colorScheme.primary,
+    uncheckedTint: Color = Color.LightGray
+) {
+    AppIconButton(
+        imageVector = imageVector,
+        contentDescription = contentDescription,
+        onClick = { onCheckedChange(!checked) },
+        modifier = modifier,
+        enabled = enabled,
+        tint = if (checked) checkedTint else uncheckedTint
+    )
+}
