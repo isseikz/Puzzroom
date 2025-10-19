@@ -93,13 +93,18 @@ onVertexMove: (polygonIndex: Int, vertexIndex: Int, newPosition: Point) -> Unit
 `EdgeDimensionSheet`が辺を選択した際に表示されます。初回の辺の長さ指定時は、相似変換を適用します。
 
 ```kotlin
+// Determine if this is the first dimension edit for this polygon
+// First edit: apply similarity transformation (scale entire shape proportionally)
+// Subsequent edits: adjust only the selected edge (individual adjustment)
 val useSimilarity = !editState.hasAppliedSimilarity
 
 val updatedPolygon = if (useSimilarity) {
+    // First edit: scale entire polygon proportionally
     PolygonGeometry.applySimilarityTransformation(
         polygon, edgeIndex, newLength
     )
 } else {
+    // Subsequent edits: adjust only the selected edge
     PolygonGeometry.adjustEdgeLength(
         polygon, edgeIndex, newLength
     )
@@ -143,6 +148,11 @@ Button(onClick = {
 ```kotlin
 fun isFullyConstrained(vertexCount: Int): Boolean {
     val edgeCount = vertexCount
+    // A polygon is fully constrained when:
+    // 1. All edges are locked, OR
+    // 2. n-1 edges and n-3 angles are locked
+    //    (because the sum of interior angles in an n-sided polygon is (n-2)×180°,
+    //     and the last edge is determined by the first and last vertices meeting)
     return lockedEdges.size == edgeCount || 
            (lockedEdges.size >= edgeCount - 1 && 
             lockedAngles.size >= vertexCount - 3)

@@ -468,6 +468,27 @@ fun RoomScreen(
                     }
                 }
             },
+            onAutoClose = {
+                // Close polygon automatically
+                selectedPolygonIndex?.let { polyIndex ->
+                    project?.let { currentProject ->
+                        val currentFloorPlan = currentProject.floorPlans.firstOrNull()
+                        if (currentFloorPlan != null && polyIndex in currentFloorPlan.rooms.indices) {
+                            val room = currentFloorPlan.rooms[polyIndex]
+                            val closedPolygon = PolygonGeometry.autoClosePolygon(room.shape)
+                            val updatedRoom = room.copy(shape = closedPolygon)
+                            val updatedRooms = currentFloorPlan.rooms.mapIndexed { index, r ->
+                                if (index == polyIndex) updatedRoom else r
+                            }
+                            val updatedFloorPlan = currentFloorPlan.copy(rooms = updatedRooms)
+                            val updatedProject = currentProject.copy(
+                                floorPlans = listOf(updatedFloorPlan)
+                            )
+                            viewModel.updateProject(updatedProject)
+                        }
+                    }
+                }
+            },
             onDismiss = {
                 selectedVertexIndex = null
             }

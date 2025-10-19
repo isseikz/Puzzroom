@@ -29,6 +29,7 @@ fun AngleEditSheet(
     onAngleChange: (vertexIndex: Int, newAngleDegrees: Double) -> Unit,
     onToggleLock: (vertexIndex: Int) -> Unit,
     onLockTo90: (vertexIndex: Int) -> Unit,
+    onAutoClose: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -47,6 +48,7 @@ fun AngleEditSheet(
                 onAngleChange = onAngleChange,
                 onToggleLock = onToggleLock,
                 onLockTo90 = onLockTo90,
+                onAutoClose = onAutoClose,
                 onClose = onDismiss
             )
         }
@@ -61,6 +63,7 @@ private fun AngleEditContent(
     onAngleChange: (vertexIndex: Int, newAngleDegrees: Double) -> Unit,
     onToggleLock: (vertexIndex: Int) -> Unit,
     onLockTo90: (vertexIndex: Int) -> Unit,
+    onAutoClose: () -> Unit,
     onClose: () -> Unit
 ) {
     val interiorAngles = remember(polygon) {
@@ -186,26 +189,60 @@ private fun AngleEditContent(
 
         Divider()
 
-        // Warning about opening polygon
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.tertiaryContainer
-            )
-        ) {
-            Column(
-                modifier = Modifier.padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+        // Warning about opening polygon and auto-close button
+        val isClosed = PolygonGeometry.isPolygonClosed(polygon, tolerance = 1.0)
+        if (!isClosed) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                )
             ) {
-                Text(
-                    text = "⚠️ 注意",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "⚠️ ポリゴンが開いています",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                    Text(
+                        text = "ギャップ: ${PolygonGeometry.calculateGapDistance(polygon).roundToInt()} cm",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                    Button(
+                        onClick = onAutoClose,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("自動で閉じる")
+                    }
+                }
+            }
+        } else {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
                 )
-                Text(
-                    text = "角度を調整すると、多角形が開く可能性があります。開いた場合は、角度編集パネルから自動閉鎖できます。",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer
-                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "⚠️ 注意",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                    Text(
+                        text = "角度を調整すると、多角形が開く可能性があります。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                }
             }
         }
 
