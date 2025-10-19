@@ -475,16 +475,19 @@ fun RoomScreen(
                         val currentFloorPlan = currentProject.floorPlans.firstOrNull()
                         if (currentFloorPlan != null && polyIndex in currentFloorPlan.rooms.indices) {
                             val room = currentFloorPlan.rooms[polyIndex]
-                            val closedPolygon = PolygonGeometry.autoClosePolygon(room.shape)
-                            val updatedRoom = room.copy(shape = closedPolygon)
-                            val updatedRooms = currentFloorPlan.rooms.mapIndexed { index, r ->
-                                if (index == polyIndex) updatedRoom else r
+                            // Only auto-close if polygon has at least 3 vertices
+                            if (room.shape.points.size >= 3) {
+                                val closedPolygon = PolygonGeometry.autoClosePolygon(room.shape)
+                                val updatedRoom = room.copy(shape = closedPolygon)
+                                val updatedRooms = currentFloorPlan.rooms.mapIndexed { index, r ->
+                                    if (index == polyIndex) updatedRoom else r
+                                }
+                                val updatedFloorPlan = currentFloorPlan.copy(rooms = updatedRooms)
+                                val updatedProject = currentProject.copy(
+                                    floorPlans = listOf(updatedFloorPlan)
+                                )
+                                viewModel.updateProject(updatedProject)
                             }
-                            val updatedFloorPlan = currentFloorPlan.copy(rooms = updatedRooms)
-                            val updatedProject = currentProject.copy(
-                                floorPlans = listOf(updatedFloorPlan)
-                            )
-                            viewModel.updateProject(updatedProject)
                         }
                     }
                 }

@@ -190,7 +190,13 @@ private fun AngleEditContent(
         Divider()
 
         // Warning about opening polygon and auto-close button
-        val isClosed = PolygonGeometry.isPolygonClosed(polygon, tolerance = 1.0)
+        val isClosed = remember(polygon) {
+            PolygonGeometry.isPolygonClosed(polygon, tolerance = 1.0)
+        }
+        val gapDistance = remember(polygon) {
+            if (!isClosed) PolygonGeometry.calculateGapDistance(polygon) else 0.0
+        }
+        
         if (!isClosed) {
             Card(
                 colors = CardDefaults.cardColors(
@@ -207,7 +213,7 @@ private fun AngleEditContent(
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )
                     Text(
-                        text = "ギャップ: ${PolygonGeometry.calculateGapDistance(polygon).roundToInt()} cm",
+                        text = "ギャップ: ${gapDistance.roundToInt()} cm",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )
