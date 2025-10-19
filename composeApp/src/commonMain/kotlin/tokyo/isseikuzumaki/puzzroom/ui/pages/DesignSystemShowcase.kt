@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
@@ -159,7 +160,7 @@ private fun AtomsShowcase() {
                 onCheckedChange = { checked2 = it }
             )
             AppIconCheckbox(
-                imageVector = Icons.Default.Delete,
+                imageVector = Icons.Default.Lock,
                 contentDescription = "Delete",
                 checked = checked3,
                 onCheckedChange = { checked3 = it }
