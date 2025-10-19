@@ -301,4 +301,118 @@ object PolygonGeometry {
 
         return calculateDistance(first, last)
     }
+
+    /**
+     * 相似変換: 1つの辺の長さを基準にポリゴン全体をスケーリング
+     *
+     * 初回の辺の長さ指定時に、他の辺も比例して調整します。
+     * 画面上の位置関係（形状）は維持されます。
+     *
+     * @param polygon 元のポリゴン
+     * @param referenceEdgeIndex 基準とする辺のインデックス
+     * @param newLength 新しい長さ（Centimeter単位）
+     * @return スケーリングされたポリゴン
+     */
+    fun applySimilarityTransformation(
+        polygon: Polygon,
+        referenceEdgeIndex: Int,
+        newLength: Int
+    ): Polygon {
+        require(referenceEdgeIndex in polygon.points.indices) {
+            "Reference edge index out of bounds"
+        }
+        require(newLength > 0) {
+            "Edge length must be positive"
+        }
+
+        val p1 = polygon.points[referenceEdgeIndex]
+        val p2 = polygon.points[(referenceEdgeIndex + 1) % polygon.points.size]
+
+        // 基準辺の現在の長さ
+        val currentLength = calculateDistance(p1, p2)
+        
+        if (currentLength == 0.0) {
+            return polygon
+        }
+
+        // スケール係数
+        val scale = newLength / currentLength
+
+        // 最初の頂点を原点として、すべての頂点をスケーリング
+        val origin = polygon.points.first()
+        val scaledPoints = polygon.points.map { point ->
+            val relativeX = point.x.value - origin.x.value
+            val relativeY = point.y.value - origin.y.value
+            Point(
+                Centimeter((origin.x.value + relativeX * scale).roundToInt()),
+                Centimeter((origin.y.value + relativeY * scale).roundToInt())
+            )
+        }
+
+        return Polygon(points = scaledPoints)
+    }
+
+    /**
+     * 指定された辺近くの位置を見つける
+     *
+     * @param position 検索位置
+     * @param polygon ポリゴン
+     * @param threshold 閾値（この距離以内の辺のみ検出）
+     * @return 辺のインデックス（見つからない場合はnull）
+     */
+    fun findNearestEdge(
+        position: Point,
+        polygon: Polygon,
+        threshold: Double = 20.0
+    ): Int? {
+        var nearestIndex: Int? = null
+        var minDistance = threshold
+
+        polygon.points.indices.forEach { index ->
+            val p1 = polygon.points[index]
+            val p2 = polygon.points[(index + 1) % polygon.points.size]
+            
+            // 点から辺への最短距離を計算
+            val distance = distanceFromPointToSegment(position, p1, p2)
+            if (distance < minDistance) {
+                minDistance = distance
+                nearestIndex = index
+            }
+        }
+
+        return nearestIndex
+    }
+
+    /**
+     * 点から線分への最短距離を計算
+     */
+    private fun distanceFromPointToSegment(point: Point, segStart: Point, segEnd: Point): Double {
+        val px = point.x.value.toDouble()
+        val py = point.y.value.toDouble()
+        val x1 = segStart.x.value.toDouble()
+        val y1 = segStart.y.value.toDouble()
+        val x2 = segEnd.x.value.toDouble()
+        val y2 = segEnd.y.value.toDouble()
+
+        val dx = x2 - x1
+        val dy = y2 - y1
+        
+        if (dx == 0.0 && dy == 0.0) {
+            // 線分が点の場合
+            return calculateDistance(point, segStart)
+        }
+
+        // パラメータ t を計算（0 <= t <= 1 の範囲に制限）
+        val t = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)
+        val clampedT = t.coerceIn(0.0, 1.0)
+
+        // 線分上の最近点
+        val nearestX = x1 + clampedT * dx
+        val nearestY = y1 + clampedT * dy
+
+        // 点から最近点への距離
+        val distX = px - nearestX
+        val distY = py - nearestY
+        return sqrt(distX * distX + distY * distY)
+    }
 }

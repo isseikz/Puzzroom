@@ -16,6 +16,7 @@ import tokyo.isseikuzumaki.puzzroom.domain.Centimeter
 import tokyo.isseikuzumaki.puzzroom.domain.Point
 import tokyo.isseikuzumaki.puzzroom.domain.Polygon
 import tokyo.isseikuzumaki.puzzroom.domain.PolygonGeometry
+import tokyo.isseikuzumaki.puzzroom.ui.state.PolygonEditState
 import kotlin.math.roundToInt
 
 /**
@@ -31,6 +32,16 @@ sealed interface EditMode {
      * 編集モード - 頂点をドラッグで移動
      */
     data class Editing(val polygonIndex: Int) : EditMode
+    
+    /**
+     * 寸法編集モード - 辺を選択して長さを編集
+     */
+    data class DimensionEditing(val polygonIndex: Int) : EditMode
+    
+    /**
+     * 角度編集モード - 頂点を選択して角度を編集
+     */
+    data class AngleEditing(val polygonIndex: Int) : EditMode
 }
 
 /**
@@ -44,9 +55,12 @@ fun EditablePolygonCanvas(
     selectedPolygonIndex: Int?,
     backgroundImageUrl: String?,
     editMode: EditMode,
+    editState: PolygonEditState? = null,
     onNewVertex: (Offset) -> Unit,
     onCompletePolygon: (Polygon) -> Unit,
     onVertexMove: (polygonIndex: Int, vertexIndex: Int, newPosition: Point) -> Unit,
+    onEdgeSelect: (polygonIndex: Int, edgeIndex: Int) -> Unit = { _, _ -> },
+    onVertexSelect: (polygonIndex: Int, vertexIndex: Int) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     var creationVertices by remember { mutableStateOf(listOf<Offset>()) }
@@ -112,6 +126,36 @@ fun EditablePolygonCanvas(
                                                 }
                                             }
                                         }
+                                        
+                                        is EditMode.DimensionEditing -> {
+                                            // 寸法編集モード: 辺を選択
+                                            val idx = editMode.polygonIndex
+                                            if (idx in polygons.indices) {
+                                                val edgeIndex = PolygonGeometry.findNearestEdge(
+                                                    position.toPoint(),
+                                                    polygons[idx],
+                                                    threshold = 30.0
+                                                )
+                                                if (edgeIndex != null) {
+                                                    onEdgeSelect(idx, edgeIndex)
+                                                }
+                                            }
+                                        }
+                                        
+                                        is EditMode.AngleEditing -> {
+                                            // 角度編集モード: 頂点を選択
+                                            val idx = editMode.polygonIndex
+                                            if (idx in polygons.indices) {
+                                                val vertexIndex = PolygonGeometry.findNearestVertex(
+                                                    position.toPoint(),
+                                                    polygons[idx],
+                                                    threshold = 30.0
+                                                )
+                                                if (vertexIndex != null) {
+                                                    onVertexSelect(idx, vertexIndex)
+                                                }
+                                            }
+                                        }
                                     }
                                 }
 
@@ -146,46 +190,79 @@ fun EditablePolygonCanvas(
 
                 // Draw edges
                 val points = polygon.points.map { it.toCanvasOffset() }
-                if (isClosed) {
-                    // 閉じたポリゴン: 通常描画
-                    drawPoints(
-                        points = points + points.first(),
-                        pointMode = PointMode.Polygon,
-                        color = color,
-                        strokeWidth = strokeWidth
-                    )
-                } else {
-                    // 開いたポリゴン: 実線で辺を描画
-                    drawPoints(
-                        points = points,
-                        pointMode = PointMode.Polygon,
-                        color = color,
-                        strokeWidth = strokeWidth
-                    )
-
-                    // 最初と最後の頂点を赤い点線で結ぶ
-                    drawLine(
-                        color = Color.Red,
-                        start = points.last(),
-                        end = points.first(),
-                        strokeWidth = strokeWidth,
-                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
-                    )
+                
+                // 辺を個別に描画（ロック状態を反映）
+                polygon.points.indices.forEach { edgeIndex ->
+                    val p1 = points[edgeIndex]
+                    val p2 = points[(edgeIndex + 1) % points.size]
+                    
+                    // ロック状態に応じて色と太さを変更
+                    val isLocked = editState?.isEdgeLocked(edgeIndex) ?: false
+                    val edgeColor = if (isLocked) Color(0xFFFFD700) else color // Gold for locked
+                    val edgeWidth = if (isLocked) strokeWidth + 2f else strokeWidth
+                    
+                    // 最後の辺で開いている場合は点線
+                    if (!isClosed && edgeIndex == polygon.points.size - 1) {
+                        drawLine(
+                            color = Color.Red,
+                            start = p1,
+                            end = p2,
+                            strokeWidth = edgeWidth,
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                        )
+                    } else {
+                        drawLine(
+                            color = edgeColor,
+                            start = p1,
+                            end = p2,
+                            strokeWidth = edgeWidth
+                        )
+                    }
                 }
 
                 // Draw vertices (if selected)
-                if (isSelected && editMode is EditMode.Editing) {
-                    polygon.points.forEachIndexed { vertexIndex, point ->
-                        val vertexColor = if (draggingVertex?.vertexIndex == vertexIndex) {
-                            Color.Green
-                        } else {
-                            Color.Blue
+                if (isSelected) {
+                    when (editMode) {
+                        is EditMode.Editing -> {
+                            polygon.points.forEachIndexed { vertexIndex, point ->
+                                val vertexColor = if (draggingVertex?.vertexIndex == vertexIndex) {
+                                    Color.Green
+                                } else {
+                                    Color.Blue
+                                }
+                                drawCircle(
+                                    color = vertexColor,
+                                    radius = 10f,
+                                    center = point.toCanvasOffset()
+                                )
+                            }
                         }
-                        drawCircle(
-                            color = vertexColor,
-                            radius = 10f,
-                            center = point.toCanvasOffset()
-                        )
+                        is EditMode.DimensionEditing -> {
+                            // 寸法編集モード: 辺の中点を表示
+                            polygon.points.indices.forEach { edgeIndex ->
+                                val p1 = points[edgeIndex]
+                                val p2 = points[(edgeIndex + 1) % points.size]
+                                val midPoint = Offset((p1.x + p2.x) / 2, (p1.y + p2.y) / 2)
+                                val isLocked = editState?.isEdgeLocked(edgeIndex) ?: false
+                                drawCircle(
+                                    color = if (isLocked) Color(0xFFFFD700) else Color.Blue,
+                                    radius = 8f,
+                                    center = midPoint
+                                )
+                            }
+                        }
+                        is EditMode.AngleEditing -> {
+                            // 角度編集モード: 頂点を表示（ロック状態を反映）
+                            polygon.points.forEachIndexed { vertexIndex, point ->
+                                val isLocked = editState?.isAngleLocked(vertexIndex) ?: false
+                                drawCircle(
+                                    color = if (isLocked) Color(0xFFFFD700) else Color.Blue,
+                                    radius = 10f,
+                                    center = point.toCanvasOffset()
+                                )
+                            }
+                        }
+                        else -> {}
                     }
                 }
             }
