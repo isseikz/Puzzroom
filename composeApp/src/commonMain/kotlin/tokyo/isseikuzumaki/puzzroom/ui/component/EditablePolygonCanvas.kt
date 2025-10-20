@@ -3,7 +3,11 @@ package tokyo.isseikuzumaki.puzzroom.ui.component
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -12,7 +16,7 @@ import androidx.compose.ui.graphics.PointMode
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import coil3.compose.AsyncImage
-import tokyo.isseikuzumaki.puzzroom.domain.Centimeter
+import tokyo.isseikuzumaki.puzzroom.domain.Centimeter.Companion.cm
 import tokyo.isseikuzumaki.puzzroom.domain.Point
 import tokyo.isseikuzumaki.puzzroom.domain.Polygon
 import tokyo.isseikuzumaki.puzzroom.domain.PolygonGeometry
@@ -309,5 +313,5 @@ private fun Point.toCanvasOffset(): Offset {
  * Canvas Offset to Point conversion
  */
 private fun Offset.toPoint(): Point {
-    return Point(Centimeter(x.roundToInt()), Centimeter(y.roundToInt()))
+    return Point(x.roundToInt().cm, y.roundToInt().cm)
 }

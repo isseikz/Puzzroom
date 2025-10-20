@@ -3,13 +3,15 @@ package tokyo.isseikuzumaki.puzzroom.domain
 import kotlinx.serialization.Serializable
 import kotlin.jvm.JvmInline
 
-
 @Serializable
 @JvmInline
-value class Centimeter(val value: Int) {
+value class Centimeter(val value: Int): Comparable<Centimeter> {
     init {
-        require(value >= 0) { "Centimeter must be greater than 0" }
         require(value < Int.MAX_VALUE) { "Out of range " }
+    }
+
+    fun toLong(): Long {
+        return value.toLong()
     }
 
     operator fun plus(other: Centimeter): Centimeter {
@@ -20,16 +22,53 @@ value class Centimeter(val value: Int) {
         return Centimeter(this.value - other.value)
     }
 
-    operator fun compareTo(other: Centimeter): Int {
+    override operator fun compareTo(other: Centimeter): Int {
         return this.value - other.value
+    }
+
+    operator fun compareTo(other: Length): Int {
+        return this.value - other.cm.value
+    }
+
+
+    operator fun compareTo(other: Int): Int {
+        return this.value - other
     }
 
     override fun toString(): String {
         return "${value}cm"
     }
 
-    companion object {
+    companion object Companion {
         fun Int.cm() = Centimeter(this)
+        val Int.cm get() = Centimeter(this)
+    }
+}
+
+@Serializable
+@JvmInline
+value class Length(val cm: Centimeter) {
+    init {
+        require(cm >= 0) { "Centimeter must be greater than 0" }
+        require(cm < Int.MAX_VALUE) { "Out of range " }
+    }
+
+    constructor(cm: Int) : this(Centimeter(cm))
+
+    operator fun plus(other: Length): Length {
+        return Length(this.cm + other.cm)
+    }
+
+    operator fun minus(other: Length): Length {
+        return Length(this.cm - other.cm)
+    }
+
+    operator fun compareTo(other: Length): Int {
+        return (this - other).cm.value
+    }
+
+    override fun toString(): String {
+        return "${cm}cm"
     }
 }
 

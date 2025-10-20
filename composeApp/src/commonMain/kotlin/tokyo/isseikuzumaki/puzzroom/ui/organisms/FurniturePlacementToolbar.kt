@@ -2,16 +2,14 @@ package tokyo.isseikuzumaki.puzzroom.ui.organisms
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import tokyo.isseikuzumaki.puzzroom.domain.Centimeter
+import tokyo.isseikuzumaki.puzzroom.domain.Centimeter.Companion.cm
+import tokyo.isseikuzumaki.puzzroom.domain.Length
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.*
 
 /**
@@ -21,11 +19,11 @@ import tokyo.isseikuzumaki.puzzroom.ui.atoms.*
 @Composable
 fun FurniturePlacementToolbar(
     furnitureName: String,
-    width: Centimeter,
-    depth: Centimeter,
+    width: Length,
+    depth: Length,
     rotation: Float,
-    onWidthChange: (Centimeter) -> Unit,
-    onDepthChange: (Centimeter) -> Unit,
+    onWidthChange: (Length) -> Unit,
+    onDepthChange: (Length) -> Unit,
     onRotationChange: (Float) -> Unit,
     onConfirm: () -> Unit,
     onCancel: () -> Unit,
@@ -54,14 +52,14 @@ fun FurniturePlacementToolbar(
             ) {
                 SizeInputField(
                     label = "Width (cm)",
-                    value = width.value,
-                    onValueChange = { onWidthChange(Centimeter(it)) },
+                    value = width.cm.value,
+                    onValueChange = { onWidthChange(Length(it.cm)) },
                     modifier = Modifier.weight(1f)
                 )
                 SizeInputField(
                     label = "Depth (cm)",
-                    value = depth.value,
-                    onValueChange = { onDepthChange(Centimeter(it)) },
+                    value = depth.cm.value,
+                    onValueChange = { onDepthChange(Length(it.cm)) },
                     modifier = Modifier.weight(1f)
                 )
             }

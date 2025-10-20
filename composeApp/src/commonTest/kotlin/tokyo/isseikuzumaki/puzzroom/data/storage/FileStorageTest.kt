@@ -1,7 +1,8 @@
 package tokyo.isseikuzumaki.puzzroom.data.storage
 
 import kotlinx.coroutines.test.runTest
-import tokyo.isseikuzumaki.puzzroom.domain.Centimeter
+import tokyo.isseikuzumaki.puzzroom.domain.Centimeter.Companion.cm
+import tokyo.isseikuzumaki.puzzroom.domain.Length
 import tokyo.isseikuzumaki.puzzroom.domain.FurnitureCategory
 import tokyo.isseikuzumaki.puzzroom.domain.FurnitureTemplate
 import tokyo.isseikuzumaki.puzzroom.domain.Project
@@ -104,8 +105,8 @@ class FileStorageTest {
             id = "test-id",
             name = "Test Sofa",
             category = FurnitureCategory.LIVING,
-            width = Centimeter(200),
-            depth = Centimeter(90)
+            width = Length(200),
+            depth = Length(90)
         )
 
         // When
@@ -137,22 +138,22 @@ class FileStorageTest {
             id = "1",
             name = "Template 1",
             category = FurnitureCategory.LIVING,
-            width = Centimeter(100),
-            depth = Centimeter(50)
+            width = Length(100),
+            depth = Length(50)
         )
         val template2 = FurnitureTemplate(
             id = "2",
             name = "Template 2",
             category = FurnitureCategory.BEDROOM,
-            width = Centimeter(120),
-            depth = Centimeter(60)
+            width = Length(120),
+            depth = Length(60)
         )
         val template3 = FurnitureTemplate(
             id = "3",
             name = "Template 3",
             category = FurnitureCategory.KITCHEN,
-            width = Centimeter(80),
-            depth = Centimeter(40)
+            width = Length(80),
+            depth = Length(40)
         )
 
         storage.writeFurnitureTemplate(template1, "template-1")
@@ -176,8 +177,8 @@ class FileStorageTest {
             id = "test-id",
             name = "Test",
             category = FurnitureCategory.CUSTOM,
-            width = Centimeter(100),
-            depth = Centimeter(50)
+            width = Length(100),
+            depth = Length(50)
         )
         storage.writeFurnitureTemplate(template, "test")
 
@@ -196,15 +197,15 @@ class FileStorageTest {
             id = "test-id",
             name = "Original Name",
             category = FurnitureCategory.CUSTOM,
-            width = Centimeter(100),
-            depth = Centimeter(50)
+            width = Length(100),
+            depth = Length(50)
         )
         val template2 = FurnitureTemplate(
             id = "test-id",
             name = "Updated Name",
             category = FurnitureCategory.CUSTOM,
-            width = Centimeter(120),
-            depth = Centimeter(60)
+            width = Length(120),
+            depth = Length(60)
         )
 
         // When
@@ -215,8 +216,8 @@ class FileStorageTest {
         // Then
         assertNotNull(retrieved)
         assertEquals("Updated Name", retrieved.name)
-        assertEquals(Centimeter(120), retrieved.width)
-        assertEquals(Centimeter(60), retrieved.depth)
+        assertEquals(Length(120), retrieved.width)
+        assertEquals(Length(60), retrieved.depth)
     }
 
     @Test
@@ -227,8 +228,8 @@ class FileStorageTest {
             id = "template-id",
             name = "Test Template",
             category = FurnitureCategory.CUSTOM,
-            width = Centimeter(100),
-            depth = Centimeter(50)
+            width = Length(100),
+            depth = Length(50)
         )
 
         // When
@@ -256,8 +257,8 @@ class FileStorageTest {
             FurnitureTemplate(
                 name = "",
                 category = FurnitureCategory.CUSTOM,
-                width = Centimeter(100),
-                depth = Centimeter(50)
+                width = Length(100),
+                depth = Length(50)
             )
         }
     }
@@ -269,8 +270,8 @@ class FileStorageTest {
             FurnitureTemplate(
                 name = "Test",
                 category = FurnitureCategory.CUSTOM,
-                width = Centimeter(0),
-                depth = Centimeter(50)
+                width = Length(0),
+                depth = Length(50)
             )
         }
     }
@@ -282,8 +283,8 @@ class FileStorageTest {
             FurnitureTemplate(
                 name = "Test",
                 category = FurnitureCategory.CUSTOM,
-                width = Centimeter(100),
-                depth = Centimeter(-10)
+                width = Length(100),
+                depth = Length(-10)
             )
         }
     }

@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import tokyo.isseikuzumaki.puzzroom.AppState
 import tokyo.isseikuzumaki.puzzroom.domain.*
+import tokyo.isseikuzumaki.puzzroom.domain.Centimeter.Companion.cm
 import tokyo.isseikuzumaki.puzzroom.ui.molecules.SaveStateIndicator
 import tokyo.isseikuzumaki.puzzroom.ui.state.PlacedFurniture
 import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.FurnitureTemplateViewModel
@@ -83,8 +84,8 @@ fun FurniturePlacementPage(
             }
         } else {
             // Furniture placement - using FurniturePlacementTemplate
-            var furnitureWidth by remember { mutableStateOf(Centimeter(100)) }
-            var furnitureDepth by remember { mutableStateOf(Centimeter(100)) }
+            var furnitureWidth by remember { mutableStateOf(Length(100.cm)) }
+            var furnitureDepth by remember { mutableStateOf(Length(100.cm)) }
             var furnitureRotation by remember { mutableStateOf(0f) }
             var currentFurniture by remember { mutableStateOf<Furniture?>(null) }
             var placedFurnitures by remember { mutableStateOf<List<PlacedFurniture>>(emptyList()) }
@@ -117,10 +118,11 @@ fun FurniturePlacementPage(
                         name = template.name,
                         shape = Polygon(
                             points = listOf(
-                                Point(Centimeter(0), Centimeter(0)),
-                                Point(furnitureWidth, Centimeter(0)),
-                                Point(furnitureWidth, furnitureDepth),
-                                Point(Centimeter(0), furnitureDepth)
+                                Point(0.cm, 0.cm),
+                                Point(furnitureWidth.cm, 0.cm),
+                                Point(furnitureWidth.cm, furnitureDepth.cm),
+                                Point(0.cm, furnitureDepth.cm
+                                )
                             )
                         )
                     )
@@ -134,10 +136,10 @@ fun FurniturePlacementPage(
                         name = appState.selectedFurnitureTemplate!!.name,
                         shape = Polygon(
                             points = listOf(
-                                Point(Centimeter(0), Centimeter(0)),
-                                Point(furnitureWidth, Centimeter(0)),
-                                Point(furnitureWidth, furnitureDepth),
-                                Point(Centimeter(0), furnitureDepth)
+                                Point(0.cm, 0.cm),
+                                Point(furnitureWidth.cm, 0.cm),
+                                Point(furnitureWidth.cm, furnitureDepth.cm),
+                                Point(0.cm, furnitureDepth.cm)
                             )
                         )
                     )
@@ -151,10 +153,10 @@ fun FurniturePlacementPage(
                         name = template.name,
                         shape = Polygon(
                             points = listOf(
-                                Point(Centimeter(0), Centimeter(0)),
-                                Point(template.width, Centimeter(0)),
-                                Point(template.width, template.depth),
-                                Point(Centimeter(0), template.depth)
+                                Point(0.cm, 0.cm),
+                                Point(template.width.cm, 0.cm),
+                                Point(template.width.cm, template.depth.cm),
+                                Point(0.cm, template.depth.cm)
                             )
                         )
                     )

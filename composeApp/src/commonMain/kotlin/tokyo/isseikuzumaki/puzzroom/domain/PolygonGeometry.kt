@@ -1,5 +1,6 @@
 package tokyo.isseikuzumaki.puzzroom.domain
 
+import tokyo.isseikuzumaki.puzzroom.domain.Centimeter.Companion.cm
 import kotlin.math.*
 
 /**
@@ -235,7 +236,7 @@ object PolygonGeometry {
         // 新しい次の頂点の位置を計算
         val newNextX = current.x.value + (nextEdgeLength * cos(nextEdgeAngle)).roundToInt()
         val newNextY = current.y.value + (nextEdgeLength * sin(nextEdgeAngle)).roundToInt()
-        val newNext = Point(Centimeter(newNextX), Centimeter(newNextY))
+        val newNext = Point(newNextX.cm, newNextY.cm)
 
         // ポリゴンを更新
         val newPoints = polygon.points.mapIndexed { index, point ->
@@ -344,8 +345,8 @@ object PolygonGeometry {
             val relativeX = point.x.value - origin.x.value
             val relativeY = point.y.value - origin.y.value
             Point(
-                Centimeter((origin.x.value + relativeX * scale).roundToInt()),
-                Centimeter((origin.y.value + relativeY * scale).roundToInt())
+                (origin.x.value + relativeX * scale).roundToInt().cm,
+                (origin.y.value + relativeY * scale).roundToInt().cm
             )
         }
 

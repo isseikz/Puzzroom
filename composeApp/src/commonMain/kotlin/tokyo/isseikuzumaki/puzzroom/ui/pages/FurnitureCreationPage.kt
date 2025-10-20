@@ -6,13 +6,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.dp
 import tokyo.isseikuzumaki.puzzroom.AppState
 import tokyo.isseikuzumaki.puzzroom.domain.*
+import tokyo.isseikuzumaki.puzzroom.domain.Centimeter.Companion.cm
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppText
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppTextField
-import tokyo.isseikuzumaki.puzzroom.ui.atoms.VerticalSpacer
 import tokyo.isseikuzumaki.puzzroom.ui.component.EditMode
 import tokyo.isseikuzumaki.puzzroom.ui.component.EditablePolygonCanvas
 import tokyo.isseikuzumaki.puzzroom.ui.molecules.ActionButtons
@@ -20,7 +19,6 @@ import tokyo.isseikuzumaki.puzzroom.ui.molecules.CategorySelector
 import tokyo.isseikuzumaki.puzzroom.ui.molecules.DimensionInput
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.FurnitureTemplateCard
 import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.FurnitureTemplateViewModel
-import kotlin.math.roundToInt
 
 /**
  * Creation mode for furniture
@@ -202,8 +200,8 @@ private fun SimpleEditorContent(
                     val template = FurnitureTemplate(
                         name = name,
                         category = selectedCategory,
-                        width = Centimeter(width),
-                        depth = Centimeter(depth)
+                        width = Length(width.cm),
+                        depth = Length(depth.cm)
                     )
                     furnitureTemplateViewModel.saveCustomTemplate(template)
                     onFurnitureCreated()
@@ -311,8 +309,8 @@ private fun DetailedEditorContent(
                     val template = FurnitureTemplate(
                         name = name,
                         category = selectedCategory,
-                        width = Centimeter(width),
-                        depth = Centimeter(depth)
+                        width = Length(width.cm),
+                        depth = Length(depth.cm)
                     )
                     furnitureTemplateViewModel.saveCustomTemplate(template)
                     onFurnitureCreated()

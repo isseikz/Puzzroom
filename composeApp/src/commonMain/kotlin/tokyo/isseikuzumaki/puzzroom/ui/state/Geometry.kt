@@ -1,7 +1,7 @@
 package tokyo.isseikuzumaki.puzzroom.ui.state
 
 import androidx.compose.ui.geometry.Offset
-import tokyo.isseikuzumaki.puzzroom.domain.Centimeter
+import tokyo.isseikuzumaki.puzzroom.domain.Centimeter.Companion.cm
 import tokyo.isseikuzumaki.puzzroom.domain.Degree
 import tokyo.isseikuzumaki.puzzroom.domain.Point
 import tokyo.isseikuzumaki.puzzroom.domain.Polygon
@@ -37,7 +37,7 @@ internal fun pointInPolygon(point: Point, polygon: List<Point>): Boolean {
 
 internal fun Point.toCanvasOffset(): Offset = Offset(x.value.toFloat(), y.value.toFloat())
 
-internal fun Offset.toPoint(): Point = Point(Centimeter(x.roundToInt()), Centimeter(y.roundToInt()))
+internal fun Offset.toPoint(): Point = Point(x.roundToInt().cm, y.roundToInt().cm)
 
 /** 点を回転させる */
 internal fun Offset.rotate(center: Offset, degrees: Float): Offset {

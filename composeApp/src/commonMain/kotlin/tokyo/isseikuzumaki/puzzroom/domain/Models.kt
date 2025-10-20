@@ -1,6 +1,7 @@
 package tokyo.isseikuzumaki.puzzroom.domain
 
 import kotlinx.serialization.Serializable
+import tokyo.isseikuzumaki.puzzroom.domain.Centimeter.Companion.cm
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -76,13 +77,13 @@ data class FurnitureTemplate(
     val id: String = Uuid.random().toString(),
     val name: String,
     val category: FurnitureCategory,
-    val width: Centimeter,
-    val depth: Centimeter,
+    val width: Length,
+    val depth: Length,
 ) {
     init {
         require(name.isNotBlank()) { "家具テンプレート名は必須です" }
-        require(width.value > 0) { "幅は0より大きい値を指定してください" }
-        require(depth.value > 0) { "奥行きは0より大きい値を指定してください" }
+        require(width.cm > 0) { "幅は0より大きい値を指定してください" }
+        require(depth.cm > 0) { "奥行きは0より大きい値を指定してください" }
     }
 
     /**
@@ -92,9 +93,9 @@ data class FurnitureTemplate(
         val polygon = Polygon(
             points = listOf(
                 Point(Centimeter(0), Centimeter(0)),
-                Point(width, Centimeter(0)),
-                Point(width, depth),
-                Point(Centimeter(0), depth)
+                Point(width.cm, Centimeter(0)),
+                Point(width.cm, depth.cm),
+                Point(Centimeter(0), depth.cm)
             )
         )
         return Furniture(name = name, shape = polygon)
@@ -107,106 +108,106 @@ data class FurnitureTemplate(
             FurnitureTemplate(
                 name = "Sofa (2-seater)",
                 category = FurnitureCategory.LIVING,
-                width = Centimeter(150),
-                depth = Centimeter(80)
+                width = Length(150.cm),
+                depth = Length(80.cm)
             ),
             FurnitureTemplate(
                 name = "Sofa (3-seater)",
                 category = FurnitureCategory.LIVING,
-                width = Centimeter(200),
-                depth = Centimeter(90)
+                width = Length(200.cm),
+                depth = Length(90.cm)
             ),
             FurnitureTemplate(
                 name = "Center table",
                 category = FurnitureCategory.LIVING,
-                width = Centimeter(120),
-                depth = Centimeter(60)
+                width = Length(120.cm),
+                depth = Length(60.cm)
             ),
             FurnitureTemplate(
                 name = "TV stand",
                 category = FurnitureCategory.LIVING,
-                width = Centimeter(180),
-                depth = Centimeter(40)
+                width = Length(180.cm),
+                depth = Length(40.cm)
             ),
 
             // Bedroom
             FurnitureTemplate(
                 name = "Single bed",
                 category = FurnitureCategory.BEDROOM,
-                width = Centimeter(100),
-                depth = Centimeter(200)
+                width = Length(100.cm),
+                depth = Length(200.cm)
             ),
             FurnitureTemplate(
                 name = "Semi-double bed",
                 category = FurnitureCategory.BEDROOM,
-                width = Centimeter(120),
-                depth = Centimeter(200)
+                width = Length(120.cm),
+                depth = Length(200.cm)
             ),
             FurnitureTemplate(
                 name = "Double bed",
                 category = FurnitureCategory.BEDROOM,
-                width = Centimeter(140),
-                depth = Centimeter(200)
+                width = Length(140.cm),
+                depth = Length(200.cm)
             ),
             FurnitureTemplate(
                 name = "Wardrobe",
                 category = FurnitureCategory.BEDROOM,
-                width = Centimeter(120),
-                depth = Centimeter(60)
+                width = Length(120.cm),
+                depth = Length(60.cm)
             ),
 
             // Dining
             FurnitureTemplate(
                 name = "Dining table (4 people)",
                 category = FurnitureCategory.DINING,
-                width = Centimeter(150),
-                depth = Centimeter(85)
+                width = Length(150.cm),
+                depth = Length(85.cm)
             ),
             FurnitureTemplate(
                 name = "Dining table (6 people)",
                 category = FurnitureCategory.DINING,
-                width = Centimeter(180),
-                depth = Centimeter(90)
+                width = Length(180.cm),
+                depth = Length(90.cm)
             ),
             FurnitureTemplate(
                 name = "Dining chair",
                 category = FurnitureCategory.DINING,
-                width = Centimeter(45),
-                depth = Centimeter(50)
+                width = Length(45.cm),
+                depth = Length(50.cm)
             ),
 
             // Kitchen
             FurnitureTemplate(
                 name = "Refrigerator",
                 category = FurnitureCategory.KITCHEN,
-                width = Centimeter(60),
-                depth = Centimeter(70)
+                width = Length(60.cm),
+                depth = Length(70.cm)
             ),
             FurnitureTemplate(
                 name = "Cupboard",
                 category = FurnitureCategory.KITCHEN,
-                width = Centimeter(90),
-                depth = Centimeter(45)
+                width = Length(90.cm),
+                depth = Length(45.cm)
             ),
 
             // Office
             FurnitureTemplate(
                 name = "Desk",
                 category = FurnitureCategory.OFFICE,
-                width = Centimeter(120),
-                depth = Centimeter(60)
+                width = Length(120.cm),
+                depth = Length(60.cm)
             ),
             FurnitureTemplate(
                 name = "Office chair",
                 category = FurnitureCategory.OFFICE,
-                width = Centimeter(60),
-                depth = Centimeter(60)
+                width = Length(60.cm),
+                depth = Length(60.cm)
             ),
             FurnitureTemplate(
                 name = "Bookshelf",
                 category = FurnitureCategory.OFFICE,
-                width = Centimeter(90),
-                depth = Centimeter(30)
+                width = Length(90.cm),
+                depth = Length(30.cm)
             )
         )
     }

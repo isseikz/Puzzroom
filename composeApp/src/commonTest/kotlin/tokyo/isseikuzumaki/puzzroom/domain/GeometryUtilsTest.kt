@@ -2,7 +2,6 @@ package tokyo.isseikuzumaki.puzzroom.domain
 
 import tokyo.isseikuzumaki.puzzroom.domain.Centimeter.Companion.cm
 import kotlin.test.Test
-import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 

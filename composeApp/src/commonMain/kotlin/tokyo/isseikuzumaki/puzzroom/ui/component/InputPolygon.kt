@@ -14,7 +14,7 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import coil3.compose.AsyncImage
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import tokyo.isseikuzumaki.puzzroom.domain.Centimeter
+import tokyo.isseikuzumaki.puzzroom.domain.Centimeter.Companion.cm
 import tokyo.isseikuzumaki.puzzroom.domain.Point
 import tokyo.isseikuzumaki.puzzroom.domain.Polygon
 import kotlin.math.roundToInt
@@ -24,7 +24,7 @@ private fun Point.toCanvasOffset(): Offset {
 }
 
 private fun Offset.toPoint(): Point {
-    return Point(Centimeter(x.roundToInt()), Centimeter(y.roundToInt()))
+    return Point(x.roundToInt().cm, y.roundToInt().cm)
 }
 
 @Composable

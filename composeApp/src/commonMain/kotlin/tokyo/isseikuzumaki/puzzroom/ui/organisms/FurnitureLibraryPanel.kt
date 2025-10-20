@@ -137,7 +137,7 @@ fun FurnitureTemplateCard(
             }
             VerticalSpacer(height = 4.dp)
             AppText(
-                "Size: ${template.width.value}cm × ${template.depth.value}cm",
+                "Size: ${template.width.cm}cm × ${template.depth.cm}cm",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

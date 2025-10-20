@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import tokyo.isseikuzumaki.puzzroom.data.PersistenceError
 import tokyo.isseikuzumaki.puzzroom.data.storage.FakeFileStorage
-import tokyo.isseikuzumaki.puzzroom.domain.Centimeter
+import tokyo.isseikuzumaki.puzzroom.domain.Length
 import tokyo.isseikuzumaki.puzzroom.domain.FurnitureCategory
 import tokyo.isseikuzumaki.puzzroom.domain.FurnitureTemplate
 import kotlin.test.*
@@ -40,8 +40,8 @@ class LocalFurnitureTemplateDataSourceTest {
             id = "test-id",
             name = "Test Sofa",
             category = FurnitureCategory.LIVING,
-            width = Centimeter(200),
-            depth = Centimeter(90)
+            width = Length(200),
+            depth = Length(90)
         )
 
         // When
@@ -61,15 +61,15 @@ class LocalFurnitureTemplateDataSourceTest {
             id = "1",
             name = "Sofa",
             category = FurnitureCategory.LIVING,
-            width = Centimeter(200),
-            depth = Centimeter(90)
+            width = Length(200),
+            depth = Length(90)
         )
         val template2 = FurnitureTemplate(
             id = "2",
             name = "Bed",
             category = FurnitureCategory.BEDROOM,
-            width = Centimeter(140),
-            depth = Centimeter(200)
+            width = Length(140),
+            depth = Length(200)
         )
 
         // When
@@ -90,8 +90,8 @@ class LocalFurnitureTemplateDataSourceTest {
             id = "test-id",
             name = "Original",
             category = FurnitureCategory.CUSTOM,
-            width = Centimeter(100),
-            depth = Centimeter(50)
+            width = Length(100),
+            depth = Length(50)
         )
         dataSource.insertTemplate(originalTemplate)
 
@@ -99,8 +99,8 @@ class LocalFurnitureTemplateDataSourceTest {
             id = "test-id",
             name = "Updated",
             category = FurnitureCategory.CUSTOM,
-            width = Centimeter(120),
-            depth = Centimeter(60)
+            width = Length(120),
+            depth = Length(60)
         )
 
         // When
@@ -110,7 +110,7 @@ class LocalFurnitureTemplateDataSourceTest {
         // Then
         assertNotNull(retrieved)
         assertEquals("Updated", retrieved.name)
-        assertEquals(Centimeter(120), retrieved.width)
+        assertEquals(Length(120), retrieved.width)
     }
 
     @Test
@@ -120,8 +120,8 @@ class LocalFurnitureTemplateDataSourceTest {
             id = "non-existent",
             name = "Test",
             category = FurnitureCategory.CUSTOM,
-            width = Centimeter(100),
-            depth = Centimeter(50)
+            width = Length(100),
+            depth = Length(50)
         )
 
         // When & Then
@@ -137,8 +137,8 @@ class LocalFurnitureTemplateDataSourceTest {
             id = "test-id",
             name = "Test",
             category = FurnitureCategory.CUSTOM,
-            width = Centimeter(100),
-            depth = Centimeter(50)
+            width = Length(100),
+            depth = Length(50)
         )
         dataSource.insertTemplate(template)
 
@@ -163,8 +163,8 @@ class LocalFurnitureTemplateDataSourceTest {
             id = "test-id",
             name = "Test",
             category = FurnitureCategory.CUSTOM,
-            width = Centimeter(100),
-            depth = Centimeter(50)
+            width = Length(100),
+            depth = Length(50)
         )
         dataSource.insertTemplate(template)
 
@@ -181,8 +181,8 @@ class LocalFurnitureTemplateDataSourceTest {
             id = "test-id",
             name = "Original",
             category = FurnitureCategory.CUSTOM,
-            width = Centimeter(100),
-            depth = Centimeter(50)
+            width = Length(100),
+            depth = Length(50)
         )
         dataSource.insertTemplate(template)
         

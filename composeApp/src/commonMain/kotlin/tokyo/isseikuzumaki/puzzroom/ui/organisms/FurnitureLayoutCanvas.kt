@@ -16,19 +16,19 @@ import androidx.compose.ui.graphics.PointMode
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import tokyo.isseikuzumaki.puzzroom.domain.Centimeter
+import tokyo.isseikuzumaki.puzzroom.domain.Centimeter.Companion.cm
 import tokyo.isseikuzumaki.puzzroom.domain.Degree.Companion.degree
 import tokyo.isseikuzumaki.puzzroom.domain.Furniture
 import tokyo.isseikuzumaki.puzzroom.domain.Point
 import tokyo.isseikuzumaki.puzzroom.domain.Room
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppSlider
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.SliderOrientation
+import tokyo.isseikuzumaki.puzzroom.ui.molecules.FloorPlanBackgroundImage
 import tokyo.isseikuzumaki.puzzroom.ui.state.PlacedFurniture
 import tokyo.isseikuzumaki.puzzroom.ui.state.SliderState
+import tokyo.isseikuzumaki.puzzroom.ui.state.rotateAroundCenterOffsets
 import tokyo.isseikuzumaki.puzzroom.ui.state.toCanvasOffset
 import tokyo.isseikuzumaki.puzzroom.ui.state.toPoint
-import tokyo.isseikuzumaki.puzzroom.ui.state.rotateAroundCenterOffsets
-import tokyo.isseikuzumaki.puzzroom.ui.molecules.FloorPlanBackgroundImage
 import kotlin.math.roundToInt
 
 /**
@@ -120,8 +120,8 @@ fun FurnitureLayoutCanvas(
                                                 // 選択した家具のドラッグ
                                                 val delta = position - dragStartPosition!!
                                                 val newPosition = Point(
-                                                    Centimeter(draggedFurnitureOriginalPosition!!.x.value + delta.x.roundToInt()),
-                                                    Centimeter(draggedFurnitureOriginalPosition!!.y.value + delta.y.roundToInt())
+                                                    draggedFurnitureOriginalPosition!!.x + delta.x.roundToInt().cm,
+                                                    draggedFurnitureOriginalPosition!!.y + delta.y.roundToInt().cm
                                                 )
                                                 onFurnitureMoved(
                                                     selectedFurnitureIndex,
