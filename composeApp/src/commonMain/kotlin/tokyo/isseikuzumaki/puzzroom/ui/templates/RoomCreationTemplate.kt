@@ -62,7 +62,7 @@ fun RoomCreationTemplate(
     ) {
         ShapeLayoutCanvas(
             backgroundImageUrl = backgroundImageUrl,
-            shapeToPlace = null, // TODO: Create shape from shapeTypeToPlace
+            shapeToPlace = null, // Shape creation is handled in the Page component
             shapeRotation = shapeRotation,
             placedShapes = placedShapes,
             selectedShapeIndex = selectedShapeIndex,
