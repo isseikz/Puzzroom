@@ -17,10 +17,10 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import tokyo.isseikuzumaki.puzzroom.domain.Centimeter
+import tokyo.isseikuzumaki.puzzroom.domain.Degree
 import tokyo.isseikuzumaki.puzzroom.domain.Degree.Companion.degree
 import tokyo.isseikuzumaki.puzzroom.domain.Point
 import tokyo.isseikuzumaki.puzzroom.domain.Polygon
-import tokyo.isseikuzumaki.puzzroom.domain.Shape
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppSlider
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.SliderOrientation
 import tokyo.isseikuzumaki.puzzroom.ui.state.SliderState
@@ -28,6 +28,8 @@ import tokyo.isseikuzumaki.puzzroom.ui.state.toCanvasOffset
 import tokyo.isseikuzumaki.puzzroom.ui.state.toPoint
 import tokyo.isseikuzumaki.puzzroom.ui.state.rotateAroundCenterOffsets
 import tokyo.isseikuzumaki.puzzroom.ui.molecules.FloorPlanBackgroundImage
+import tokyo.isseikuzumaki.puzzroom.domain.Centimeter.Companion.cm
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.math.roundToInt
 
 /**
@@ -239,4 +241,35 @@ fun ShapeLayoutCanvas(
             bottomRightContent = {}
         )
     }
+}
+
+@Preview
+@Composable
+private fun ShapeLayoutCanvasPreview() {
+    ShapeLayoutCanvas(
+        backgroundShape = Polygon(
+            points = listOf(
+                Point(0.cm(), 0.cm()),
+                Point(500.cm(), 0.cm()),
+                Point(500.cm(), 400.cm()),
+                Point(0.cm(), 400.cm())
+            )
+        ),
+        placedShapes = listOf(
+            PlacedShape(
+                shape = Polygon(
+                    points = listOf(
+                        Point(0.cm(), 0.cm()),
+                        Point(120.cm(), 0.cm()),
+                        Point(120.cm(), 80.cm()),
+                        Point(0.cm(), 80.cm())
+                    )
+                ),
+                position = Point(100.cm(), 100.cm()),
+                rotation = 0f.degree(),
+                color = Color.Green,
+                name = "Rectangle"
+            )
+        )
+    )
 }
