@@ -34,7 +34,7 @@ import kotlin.math.roundToInt
  * Placed shape with position and rotation
  */
 data class PlacedShape(
-    val shape: Shape,
+    val shape: Polygon,
     val position: Point,
     val rotation: Degree = Degree(0f),
     val color: Color = Color.Green,
@@ -44,17 +44,12 @@ data class PlacedShape(
      * Check if a point is inside the shape
      */
     fun contains(point: Point): Boolean {
-        return when (shape) {
-            is Polygon -> {
-                // Transform point to shape's local coordinates
-                val relativePoint = Point(
-                    Centimeter(point.x.value - position.x.value),
-                    Centimeter(point.y.value - position.y.value)
-                )
-                shape.contains(relativePoint)
-            }
-            else -> false
-        }
+        // Transform point to shape's local coordinates
+        val relativePoint = Point(
+            Centimeter(point.x.value - position.x.value),
+            Centimeter(point.y.value - position.y.value)
+        )
+        return shape.contains(relativePoint)
     }
 }
 
@@ -66,7 +61,7 @@ data class PlacedShape(
 fun ShapeLayoutCanvas(
     backgroundShape: Polygon? = null,
     backgroundImageUrl: String? = null,
-    shapeToPlace: Shape? = null,
+    shapeToPlace: Polygon? = null,
     shapeRotation: Float = 0f,
     placedShapes: List<PlacedShape> = emptyList(),
     selectedShapeIndex: Int? = null,
@@ -195,45 +190,31 @@ fun ShapeLayoutCanvas(
 
                     // 配置済みの図形を描画
                     placedShapes.forEachIndexed { index, placed ->
-                        when (val shape = placed.shape) {
-                            is Polygon -> {
-                                val rotatedPoints = shape.rotateAroundCenterOffsets(
-                                    placed.position,
-                                    placed.rotation
-                                )
-                                val isSelected = index == selectedShapeIndex
-                                drawPoints(
-                                    points = rotatedPoints + rotatedPoints.first(),
-                                    pointMode = PointMode.Polygon,
-                                    color = if (isSelected) Color.Blue else placed.color,
-                                    strokeWidth = if (isSelected) 5f else 3f
-                                )
-                            }
-                            else -> {
-                                // 他の図形タイプの描画（将来的な拡張）
-                            }
-                        }
+                        val rotatedPoints = placed.shape.rotateAroundCenterOffsets(
+                            placed.position,
+                            placed.rotation
+                        )
+                        val isSelected = index == selectedShapeIndex
+                        drawPoints(
+                            points = rotatedPoints + rotatedPoints.first(),
+                            pointMode = PointMode.Polygon,
+                            color = if (isSelected) Color.Blue else placed.color,
+                            strokeWidth = if (isSelected) 5f else 3f
+                        )
                     }
 
                     // 配置中の図形をプレビュー表示
                     if (shapeToPlace != null && shapePosition != null) {
-                        when (shapeToPlace) {
-                            is Polygon -> {
-                                val rotatedPoints = shapeToPlace.rotateAroundCenterOffsets(
-                                    shapePosition!!.toPoint(),
-                                    shapeRotation.degree()
-                                )
-                                drawPoints(
-                                    points = rotatedPoints + rotatedPoints.first(),
-                                    pointMode = PointMode.Polygon,
-                                    color = Color.Cyan,
-                                    strokeWidth = 5f
-                                )
-                            }
-                            else -> {
-                                // 他の図形タイプの描画（将来的な拡張）
-                            }
-                        }
+                        val rotatedPoints = shapeToPlace.rotateAroundCenterOffsets(
+                            shapePosition!!.toPoint(),
+                            shapeRotation.degree()
+                        )
+                        drawPoints(
+                            points = rotatedPoints + rotatedPoints.first(),
+                            pointMode = PointMode.Polygon,
+                            color = Color.Cyan,
+                            strokeWidth = 5f
+                        )
                     }
                 }
             },
