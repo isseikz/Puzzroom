@@ -55,7 +55,7 @@ data class Polygon(
     override val points: List<Point>,
 ) : Shape {
     init {
-        require(points.size >= 3) { "Polygon must have at least 3 points" }
+        require(points.size >= 2) { "Polygon must have at least 3 points" }
     }
 
     /**
