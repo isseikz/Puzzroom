@@ -58,6 +58,22 @@ data class PlacedShape(
 /**
  * 汎化された図形配置用キャンバス（Organism）
  * 家具や部屋の要素を配置するための汎用キャンバス
+ * 
+ * @param backgroundShape Canvas背景として表示するポリゴン（例：部屋の形状）
+ * @param backgroundImageUrl Canvas背景として表示する画像のURL
+ * @param shapeToPlace 配置予定の図形。null以外の場合、マウスカーソル位置でプレビュー表示される
+ * @param shapeRotation 配置予定図形の回転角度（度数法）
+ * @param placedShapes すでに配置済みの図形リスト
+ * @param selectedShapeIndex 現在選択中の図形のインデックス（placedShapes内）
+ * @param onPositionUpdate 配置予定図形のプレビュー位置が更新された時のコールバック。
+ *                         shapeToPlaceがnullでない時、マウスカーソルの移動に応じて呼ばれる。
+ *                         新しい図形を配置する際の位置トラッキングに使用。
+ * @param onShapeSelected 図形が選択/選択解除された時のコールバック。
+ *                        クリックで配置済み図形を選択、空白をクリックで選択解除。
+ * @param onShapeMoved 配置済み図形がドラッグで移動された時のコールバック。
+ *                     selectedShapeIndexで指定された図形をドラッグ中、連続的に呼ばれる。
+ *                     既存図形の位置更新に使用。
+ * @param modifier Canvas全体に適用されるModifier
  */
 @Composable
 fun ShapeLayoutCanvas(
