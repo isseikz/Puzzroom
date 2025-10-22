@@ -93,18 +93,74 @@ fun ShapeLayoutCanvas(
     var dragStartPosition by remember { mutableStateOf<Offset?>(null) }
     var draggedShapeOriginalPosition by remember { mutableStateOf<Point?>(null) }
 
-    val xSliderState = remember {
+    // Calculate canvas bounds from backgroundShape or use defaults
+    val (canvasWidth, canvasHeight) = remember(backgroundShape) {
+        if (backgroundShape != null) {
+            val xs = backgroundShape.points.map { it.x.value }
+            val ys = backgroundShape.points.map { it.y.value }
+            val width = (xs.maxOrNull() ?: 500) - (xs.minOrNull() ?: 0)
+            val height = (ys.maxOrNull() ?: 500) - (ys.minOrNull() ?: 0)
+            Pair(width, height)
+        } else {
+            Pair(500, 500) // Default canvas size
+        }
+    }
+
+    val xSliderState = remember(canvasWidth) {
         SliderState(
             initialValue = 0.5f,
-            valueRange = 0f..1f
+            valueRange = 0f..1f,
+            onValueChange = { fraction ->
+                // Update selected shape position when slider moves
+                selectedShapeIndex?.let { index ->
+                    if (index >= 0 && index < placedShapes.size) {
+                        val currentShape = placedShapes[index]
+                        val newX = (fraction * canvasWidth).roundToInt()
+                        val newPosition = Point(
+                            Centimeter(newX),
+                            currentShape.position.y
+                        )
+                        onShapeMoved(index, newPosition)
+                    }
+                }
+            }
         )
     }
 
-    val ySliderState = remember {
+    val ySliderState = remember(canvasHeight) {
         SliderState(
             initialValue = 0.5f,
-            valueRange = 0f..1f
+            valueRange = 0f..1f,
+            onValueChange = { fraction ->
+                // Update selected shape position when slider moves
+                selectedShapeIndex?.let { index ->
+                    if (index >= 0 && index < placedShapes.size) {
+                        val currentShape = placedShapes[index]
+                        val newY = (fraction * canvasHeight).roundToInt()
+                        val newPosition = Point(
+                            currentShape.position.x,
+                            Centimeter(newY)
+                        )
+                        onShapeMoved(index, newPosition)
+                    }
+                }
+            }
         )
+    }
+
+    // Update slider values when a shape is selected
+    LaunchedEffect(selectedShapeIndex, placedShapes) {
+        selectedShapeIndex?.let { index ->
+            if (index >= 0 && index < placedShapes.size) {
+                val selectedShape = placedShapes[index]
+                xSliderState.updateValueFromFraction(
+                    selectedShape.position.x.value.toFloat() / canvasWidth
+                )
+                ySliderState.updateValueFromFraction(
+                    selectedShape.position.y.value.toFloat() / canvasHeight
+                )
+            }
+        }
     }
 
     // 位置が更新されたら通知
