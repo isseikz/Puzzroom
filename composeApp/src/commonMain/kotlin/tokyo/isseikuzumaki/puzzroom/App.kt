@@ -19,7 +19,7 @@ import tokyo.isseikuzumaki.puzzroom.ui.pages.FurnitureCreationPage
 import tokyo.isseikuzumaki.puzzroom.ui.pages.FurnitureManagementPage
 import tokyo.isseikuzumaki.puzzroom.ui.pages.FurniturePlacementPage
 import tokyo.isseikuzumaki.puzzroom.ui.pages.ProjectListPage
-import tokyo.isseikuzumaki.puzzroom.ui.screen.RoomScreen
+import tokyo.isseikuzumaki.puzzroom.ui.pages.RoomCreationPage
 import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
 import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.rememberFurnitureTemplateViewModel
 import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.rememberProjectViewModel
@@ -81,10 +81,7 @@ fun App(
                     )
                 }
                 composable(route = AppScreen.Room.name) {
-                    RoomScreen(
-                        appState = appState,
-                        viewModel = projectViewModel
-                    )
+                    RoomCreationPage()
                 }
                 composable(route = AppScreen.Furniture.name) {
                     FurniturePlacementPage(

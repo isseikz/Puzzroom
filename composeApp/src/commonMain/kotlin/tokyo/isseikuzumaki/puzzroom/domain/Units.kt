@@ -8,7 +8,6 @@ import kotlin.jvm.JvmInline
 @JvmInline
 value class Centimeter(val value: Int) {
     init {
-        require(value >= 0) { "Centimeter must be greater than 0" }
         require(value < Int.MAX_VALUE) { "Out of range " }
     }
 
