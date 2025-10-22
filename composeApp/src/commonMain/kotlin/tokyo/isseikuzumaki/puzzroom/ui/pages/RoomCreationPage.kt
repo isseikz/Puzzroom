@@ -51,64 +51,6 @@ fun RoomCreationPage(
         selectedShapeIndex = selectedShapeIndex,
         onPositionUpdate = { position ->
             currentPosition = position
-            // Auto-place shape when position is updated
-            if (position != null && selectedShapeType != null) {
-                val newShape = when (selectedShapeType!!) {
-                    RoomShapeType.WALL -> {
-                        // Create a simple wall as a line
-                        PlacedShape(
-                            shape = Polygon(
-                                points = listOf(
-                                    Point(0.cm(), 0.cm()),
-                                    Point(200.cm(), 0.cm())
-                                )
-                            ),
-                            position = position,
-                            rotation = shapeRotation.degree(),
-                            color = Color.Gray,
-                            name = "Wall ${placedShapes.size + 1}"
-                        )
-                    }
-                    RoomShapeType.DOOR -> {
-                        // Create a door shape
-                        PlacedShape(
-                            shape = Polygon(
-                                points = listOf(
-                                    Point(0.cm(), 0.cm()),
-                                    Point(80.cm(), 0.cm()),
-                                    Point(80.cm(), 20.cm()),
-                                    Point(0.cm(), 20.cm())
-                                )
-                            ),
-                            position = position,
-                            rotation = shapeRotation.degree(),
-                            color = Color.Red,
-                            name = "Door ${placedShapes.size + 1}"
-                        )
-                    }
-                    RoomShapeType.WINDOW -> {
-                        // Create a window shape
-                        PlacedShape(
-                            shape = Polygon(
-                                points = listOf(
-                                    Point(0.cm(), 0.cm()),
-                                    Point(60.cm(), 0.cm()),
-                                    Point(60.cm(), 10.cm()),
-                                    Point(0.cm(), 10.cm())
-                                )
-                            ),
-                            position = position,
-                            rotation = shapeRotation.degree(),
-                            color = Color.Blue,
-                            name = "Window ${placedShapes.size + 1}"
-                        )
-                    }
-                }
-                // Only add if not already present at this position
-                if (!placedShapes.any { it.position == position }) {
-                    placedShapes = placedShapes + newShape
-                }
-            }
         },
         onShapeSelected = { index ->
             selectedShapeIndex = index
@@ -125,6 +67,58 @@ fun RoomCreationPage(
         onShapeTypeSelected = { shapeType ->
             selectedShapeType = shapeType
             selectedShapeIndex = null
+            
+            // Add shape at canvas center when type is selected
+            val centerPosition = Point(250.cm(), 200.cm())
+            val newShape = when (shapeType) {
+                RoomShapeType.WALL -> {
+                    PlacedShape(
+                        shape = Polygon(
+                            points = listOf(
+                                Point(0.cm(), 0.cm()),
+                                Point(200.cm(), 0.cm())
+                            )
+                        ),
+                        position = centerPosition,
+                        rotation = 0f.degree(),
+                        color = Color.Gray,
+                        name = "Wall ${placedShapes.size + 1}"
+                    )
+                }
+                RoomShapeType.DOOR -> {
+                    PlacedShape(
+                        shape = Polygon(
+                            points = listOf(
+                                Point(0.cm(), 0.cm()),
+                                Point(80.cm(), 0.cm()),
+                                Point(80.cm(), 20.cm()),
+                                Point(0.cm(), 20.cm())
+                            )
+                        ),
+                        position = centerPosition,
+                        rotation = 0f.degree(),
+                        color = Color.Red,
+                        name = "Door ${placedShapes.size + 1}"
+                    )
+                }
+                RoomShapeType.WINDOW -> {
+                    PlacedShape(
+                        shape = Polygon(
+                            points = listOf(
+                                Point(0.cm(), 0.cm()),
+                                Point(60.cm(), 0.cm()),
+                                Point(60.cm(), 10.cm()),
+                                Point(0.cm(), 10.cm())
+                            )
+                        ),
+                        position = centerPosition,
+                        rotation = 0f.degree(),
+                        color = Color.Blue,
+                        name = "Window ${placedShapes.size + 1}"
+                    )
+                }
+            }
+            placedShapes = placedShapes + newShape
         },
         bottomSheetState = bottomSheetState,
         onCancelBottomSheet = {
