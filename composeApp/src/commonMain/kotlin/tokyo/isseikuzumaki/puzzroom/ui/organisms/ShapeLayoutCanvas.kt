@@ -15,6 +15,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PointMode
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import tokyo.isseikuzumaki.puzzroom.domain.Centimeter
 import tokyo.isseikuzumaki.puzzroom.domain.Degree
@@ -93,18 +95,10 @@ fun ShapeLayoutCanvas(
     var dragStartPosition by remember { mutableStateOf<Offset?>(null) }
     var draggedShapeOriginalPosition by remember { mutableStateOf<Point?>(null) }
 
-    // Calculate canvas bounds from backgroundShape or use defaults
-    val (canvasWidth, canvasHeight) = remember(backgroundShape) {
-        if (backgroundShape != null) {
-            val xs = backgroundShape.points.map { it.x.value }
-            val ys = backgroundShape.points.map { it.y.value }
-            val width = (xs.maxOrNull() ?: 500) - (xs.minOrNull() ?: 0)
-            val height = (ys.maxOrNull() ?: 500) - (ys.minOrNull() ?: 0)
-            Pair(width, height)
-        } else {
-            Pair(500, 500) // Default canvas size
-        }
-    }
+    // Track actual canvas size using onSizeChanged
+    var canvasSize by remember { mutableStateOf(IntSize(500, 500)) }
+    val canvasWidth = canvasSize.width
+    val canvasHeight = canvasSize.height
 
     val xSliderState = remember(canvasWidth) {
         SliderState(
@@ -148,17 +142,24 @@ fun ShapeLayoutCanvas(
         )
     }
 
-    // Update slider values when a shape is selected
+    // Track if we're currently updating sliders to prevent infinite loop
+    var isUpdatingSliders by remember { mutableStateOf(false) }
+
+    // Update slider values when a shape is selected, but prevent loop
     LaunchedEffect(selectedShapeIndex, placedShapes) {
-        selectedShapeIndex?.let { index ->
-            if (index >= 0 && index < placedShapes.size) {
-                val selectedShape = placedShapes[index]
-                xSliderState.updateValueFromFraction(
-                    selectedShape.position.x.value.toFloat() / canvasWidth
-                )
-                ySliderState.updateValueFromFraction(
-                    selectedShape.position.y.value.toFloat() / canvasHeight
-                )
+        if (!isUpdatingSliders) {
+            selectedShapeIndex?.let { index ->
+                if (index >= 0 && index < placedShapes.size) {
+                    val selectedShape = placedShapes[index]
+                    isUpdatingSliders = true
+                    xSliderState.updateValueFromFraction(
+                        selectedShape.position.x.value.toFloat() / canvasWidth
+                    )
+                    ySliderState.updateValueFromFraction(
+                        selectedShape.position.y.value.toFloat() / canvasHeight
+                    )
+                    isUpdatingSliders = false
+                }
             }
         }
     }
@@ -182,6 +183,9 @@ fun ShapeLayoutCanvas(
                 Canvas(
                     modifier = Modifier
                         .fillMaxSize()
+                        .onSizeChanged { size ->
+                            canvasSize = size
+                        }
                         .pointerInput(shapeToPlace, selectedShapeIndex) {
                             awaitPointerEventScope {
                                 while (true) {

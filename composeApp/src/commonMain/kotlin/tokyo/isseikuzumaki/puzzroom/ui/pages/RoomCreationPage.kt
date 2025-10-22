@@ -66,7 +66,6 @@ fun RoomCreationPage(
         },
         onShapeTypeSelected = { shapeType ->
             selectedShapeType = shapeType
-            selectedShapeIndex = null
             
             // Add shape at canvas center when type is selected
             val centerPosition = Point(250.cm(), 200.cm())
@@ -119,6 +118,8 @@ fun RoomCreationPage(
                 }
             }
             placedShapes = placedShapes + newShape
+            // Select the newly added shape so it can be immediately moved
+            selectedShapeIndex = placedShapes.size
         },
         bottomSheetState = bottomSheetState,
         onCancelBottomSheet = {
