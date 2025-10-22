@@ -25,11 +25,13 @@ import tokyo.isseikuzumaki.puzzroom.domain.Point
 import tokyo.isseikuzumaki.puzzroom.domain.Polygon
 import tokyo.isseikuzumaki.puzzroom.domain.Room
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.ButtonToCreate
-import tokyo.isseikuzumaki.puzzroom.ui.organisms.FurnitureLayoutCanvas
+import tokyo.isseikuzumaki.puzzroom.ui.organisms.ShapeLayoutCanvas
+import tokyo.isseikuzumaki.puzzroom.ui.organisms.PlacedShape
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.FurnitureSelector
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.FurnitureCreationForm
 import tokyo.isseikuzumaki.puzzroom.ui.state.PlacedFurniture
 import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
+import androidx.compose.ui.graphics.Color
 
 /**
  * 家具配置ページ（Page）
@@ -55,19 +57,35 @@ fun FurniturePlacementTemplate(
 ) {
     var showBottomSheet by remember { mutableStateOf(false) }
 
+    // Convert PlacedFurniture to PlacedShape for the generalized canvas
+    val placedShapes = remember(placedItems) {
+        placedItems.map { placedFurniture ->
+            PlacedShape(
+                shape = placedFurniture.furniture.shape,
+                position = placedFurniture.position,
+                rotation = placedFurniture.rotation,
+                color = Color.Green,
+                name = placedFurniture.furniture.name
+            )
+        }
+    }
+
+    // Convert Furniture to Polygon for the generalized canvas
+    val shapeToPlace = furnitureToPlace?.shape
+
     Column(
         verticalArrangement = Arrangement.Bottom
     ) {
-        FurnitureLayoutCanvas(
-            room = room,
+        ShapeLayoutCanvas(
+            backgroundShape = room.shape,
             backgroundImageUrl = backgroundImageUrl,
-            furnitureToPlace = furnitureToPlace,
-            furnitureRotation = furnitureRotation,
-            placedFurnitures = placedItems,
-            selectedFurnitureIndex = selectedFurnitureIndex,
+            shapeToPlace = shapeToPlace,
+            shapeRotation = furnitureRotation,
+            placedShapes = placedShapes,
+            selectedShapeIndex = selectedFurnitureIndex,
             onPositionUpdate = onPositionUpdate,
-            onFurnitureSelected = onFurnitureSelected,
-            onFurnitureMoved = onFurnitureMoved,
+            onShapeSelected = onFurnitureSelected,
+            onShapeMoved = onFurnitureMoved,
             modifier = modifier.weight(1f)
         )
 
