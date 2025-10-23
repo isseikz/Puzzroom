@@ -13,29 +13,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PointMode
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import tokyo.isseikuzumaki.puzzroom.domain.Centimeter
-import tokyo.isseikuzumaki.puzzroom.domain.Degree
-import tokyo.isseikuzumaki.puzzroom.domain.Degree.Companion.degree
-import tokyo.isseikuzumaki.puzzroom.domain.Point
-import tokyo.isseikuzumaki.puzzroom.domain.Polygon
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppSlider
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.SliderOrientation
 import tokyo.isseikuzumaki.puzzroom.ui.state.SliderState
-import tokyo.isseikuzumaki.puzzroom.ui.state.toCanvasOffset
-import tokyo.isseikuzumaki.puzzroom.ui.state.toPoint
-import tokyo.isseikuzumaki.puzzroom.ui.state.rotateAroundCenterOffsets
 import tokyo.isseikuzumaki.puzzroom.ui.molecules.FloorPlanBackgroundImage
-import tokyo.isseikuzumaki.puzzroom.domain.Centimeter.Companion.cm
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import kotlin.math.roundToInt
+import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
+
+// === Compatibility layer for domain-specific types ===
+
+import tokyo.isseikuzumaki.puzzroom.domain.Centimeter
+import tokyo.isseikuzumaki.puzzroom.domain.Degree
+import tokyo.isseikuzumaki.puzzroom.domain.Point
+import tokyo.isseikuzumaki.puzzroom.domain.Polygon
 
 /**
- * Placed shape with position and rotation
+ * Placed shape with position and rotation (domain-specific types)
+ * 互換性のための旧形式データクラス
  */
 data class PlacedShape(
     val shape: Polygon,
@@ -43,99 +40,145 @@ data class PlacedShape(
     val rotation: Degree = Degree(0f),
     val color: Color = Color.Green,
     val name: String = ""
-) {
-    /**
-     * Check if a point is inside the shape
-     */
-    fun contains(point: Point): Boolean {
-        // Transform point to shape's local coordinates
-        val relativePoint = Point(
-            Centimeter(point.x.value - position.x.value),
-            Centimeter(point.y.value - position.y.value)
-        )
-        return shape.contains(relativePoint)
-    }
+)
+
+/**
+ * Convert domain-specific PlacedShape to normalized format
+ * ドメイン固有の PlacedShape を無次元形式に変換
+ */
+fun PlacedShape.toNormalized(canvasWidth: Int, canvasHeight: Int): NormalizedPlacedShape {
+    return NormalizedPlacedShape(
+        shape = NormalizedShape(
+            points = shape.points.map { point ->
+                NormalizedPoint(
+                    x = point.x.value / canvasWidth.toFloat(),
+                    y = point.y.value / canvasHeight.toFloat()
+                )
+            },
+            color = color
+        ),
+        position = NormalizedPoint(
+            x = position.x.value / canvasWidth.toFloat(),
+            y = position.y.value / canvasHeight.toFloat()
+        ),
+        rotation = rotation.value,
+        color = color,
+        name = name
+    )
 }
 
 /**
- * 汎化された図形配置用キャンバス（Organism）
- * 家具や部屋の要素を配置するための汎用キャンバス
+ * Convert normalized PlacedShape to domain-specific format
+ * 無次元形式を ドメイン固有の PlacedShape に変換
+ */
+fun NormalizedPlacedShape.toDomain(canvasWidth: Int, canvasHeight: Int): PlacedShape {
+    return PlacedShape(
+        shape = Polygon(
+            points = shape.points.map { point ->
+                Point(
+                    Centimeter(point.x * canvasWidth),
+                    Centimeter(point.y * canvasHeight)
+                )
+            }
+        ),
+        position = Point(
+            Centimeter(position.x * canvasWidth),
+            Centimeter(position.y * canvasHeight)
+        ),
+        rotation = Degree(rotation),
+        color = color,
+        name = name
+    )
+}
+
+/**
+ * Normalized point with dimensionless coordinates (0.0 - 1.0)
+ * 無次元化された座標点（0.0 - 1.0）
+ */
+data class NormalizedPoint(
+    val x: Float,  // 0.0 - 1.0
+    val y: Float   // 0.0 - 1.0
+)
+
+/**
+ * Normalized shape - generic shape representation with dimensionless coordinates
+ * 無次元化された図形 - 汎用的な図形表現
+ */
+data class NormalizedShape(
+    val points: List<NormalizedPoint>,  // Normalized vertices (0.0 - 1.0)
+    val color: Color = Color.Green,
+    val strokeWidth: Float = 3f
+)
+
+/**
+ * Placed shape with normalized position
+ * 配置された図形（無次元座標）
+ */
+data class NormalizedPlacedShape(
+    val shape: NormalizedShape,
+    val position: NormalizedPoint,  // Normalized position (0.0 - 1.0)
+    val rotation: Float = 0f,       // Rotation in degrees
+    val color: Color = Color.Green,
+    val name: String = ""
+)
+
+/**
+ * シンプル化された図形配置用キャンバス（Organism）
+ * UI ライブラリとして分離可能な汎用コンポーネント
  * 
- * @param backgroundShape Canvas背景として表示するポリゴン（例：部屋の形状）
  * @param backgroundImageUrl Canvas背景として表示する画像のURL
- * @param shapeToPlace 配置予定の図形。null以外の場合、マウスカーソル位置でプレビュー表示される
- * @param shapeRotation 配置予定図形の回転角度（度数法）
- * @param placedShapes すでに配置済みの図形リスト
- * @param selectedShapeIndex 現在選択中の図形のインデックス（placedShapes内）
- * @param onPositionUpdate 配置予定図形のプレビュー位置が更新された時のコールバック。
- *                         shapeToPlaceがnullでない時、マウスカーソルの移動に応じて呼ばれる。
- *                         新しい図形を配置する際の位置トラッキングに使用。
- * @param onShapeSelected 図形が選択/選択解除された時のコールバック。
- *                        クリックで配置済み図形を選択、空白をクリックで選択解除。
- * @param onShapeMoved 配置済み図形がドラッグで移動された時のコールバック。
- *                     selectedShapeIndexで指定された図形をドラッグ中、連続的に呼ばれる。
- *                     既存図形の位置更新に使用。
+ * @param backgroundShape 背景図形（無次元座標）
+ * @param shapes 配置済みの図形リスト（無次元座標）
+ * @param selectedShapeIndex 現在選択中の図形のインデックス
+ * @param onShapePositionChanged スライダーによる図形位置変更時のコールバック
  * @param modifier Canvas全体に適用されるModifier
  */
 @Composable
 fun ShapeLayoutCanvas(
-    backgroundShape: Polygon? = null,
     backgroundImageUrl: String? = null,
-    shapeToPlace: Polygon? = null,
-    shapeRotation: Float = 0f,
-    placedShapes: List<PlacedShape> = emptyList(),
+    backgroundShape: NormalizedShape? = null,
+    shapes: List<NormalizedPlacedShape> = emptyList(),
     selectedShapeIndex: Int? = null,
-    onPositionUpdate: (position: Point?) -> Unit = { _ -> },
-    onShapeSelected: (index: Int?) -> Unit = { _ -> },
-    onShapeMoved: (index: Int, newPosition: Point) -> Unit = { _, _ -> },
+    onShapePositionChanged: (index: Int, newPosition: NormalizedPoint) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
-    var shapePosition by remember { mutableStateOf<Offset?>(null) }
-    var isDragging by remember { mutableStateOf(false) }
-    var dragStartPosition by remember { mutableStateOf<Offset?>(null) }
-    var draggedShapeOriginalPosition by remember { mutableStateOf<Point?>(null) }
-
     // Track actual canvas size using onSizeChanged
     var canvasSize by remember { mutableStateOf(IntSize(500, 500)) }
-    val canvasWidth = canvasSize.width
-    val canvasHeight = canvasSize.height
 
-    val xSliderState = remember(canvasWidth) {
+    val xSliderState = remember {
         SliderState(
             initialValue = 0.5f,
             valueRange = 0f..1f,
             onValueChange = { fraction ->
                 // Update selected shape position when slider moves
                 selectedShapeIndex?.let { index ->
-                    if (index >= 0 && index < placedShapes.size) {
-                        val currentShape = placedShapes[index]
-                        val newX = (fraction * canvasWidth).roundToInt()
-                        val newPosition = Point(
-                            Centimeter(newX),
-                            currentShape.position.y
+                    if (index >= 0 && index < shapes.size) {
+                        val currentShape = shapes[index]
+                        val newPosition = NormalizedPoint(
+                            x = fraction,
+                            y = currentShape.position.y
                         )
-                        onShapeMoved(index, newPosition)
+                        onShapePositionChanged(index, newPosition)
                     }
                 }
             }
         )
     }
 
-    val ySliderState = remember(canvasHeight) {
+    val ySliderState = remember {
         SliderState(
             initialValue = 0.5f,
             valueRange = 0f..1f,
             onValueChange = { fraction ->
                 // Update selected shape position when slider moves
                 selectedShapeIndex?.let { index ->
-                    if (index >= 0 && index < placedShapes.size) {
-                        val currentShape = placedShapes[index]
-                        val newY = (fraction * canvasHeight).roundToInt()
-                        val newPosition = Point(
-                            currentShape.position.x,
-                            Centimeter(newY)
+                    if (index >= 0 && index < shapes.size) {
+                        val currentShape = shapes[index]
+                        val newPosition = NormalizedPoint(
+                            x = currentShape.position.x,
+                            y = fraction
                         )
-                        onShapeMoved(index, newPosition)
+                        onShapePositionChanged(index, newPosition)
                     }
                 }
             }
@@ -143,25 +186,13 @@ fun ShapeLayoutCanvas(
     }
 
     // Update slider values when a shape is selected
-    // Only responds to selection changes, not position changes, avoiding infinite loop
     LaunchedEffect(selectedShapeIndex) {
         selectedShapeIndex?.let { index ->
-            if (index >= 0 && index < placedShapes.size) {
-                val selectedShape = placedShapes[index]
-                xSliderState.updateValueFromFraction(
-                    selectedShape.position.x.value.toFloat() / canvasWidth
-                )
-                ySliderState.updateValueFromFraction(
-                    selectedShape.position.y.value.toFloat() / canvasHeight
-                )
+            if (index >= 0 && index < shapes.size) {
+                val selectedShape = shapes[index]
+                xSliderState.updateValueFromFraction(selectedShape.position.x)
+                ySliderState.updateValueFromFraction(selectedShape.position.y)
             }
-        }
-    }
-
-    // 位置が更新されたら通知
-    LaunchedEffect(shapePosition) {
-        if (!isDragging) {
-            onPositionUpdate(shapePosition?.toPoint())
         }
     }
 
@@ -180,74 +211,133 @@ fun ShapeLayoutCanvas(
                         .onSizeChanged { size ->
                             canvasSize = size
                         }
-                        .pointerInput(shapeToPlace, selectedShapeIndex) {
-                            awaitPointerEventScope {
-                                while (true) {
-                                    val event = awaitPointerEvent()
-                                    val position = event.changes.first().position
+                ) {
+                    val width = size.width
+                    val height = size.height
 
-                                    when (event.type) {
-                                        PointerEventType.Press -> {
-                                            if (shapeToPlace == null) {
-                                                // 配置済み図形の選択
-                                                val clickedPoint = position.toPoint()
-                                                val clickedIndex = placedShapes.indexOfLast {
-                                                    it.contains(clickedPoint)
-                                                }
+                    // Draw background shape
+                    backgroundShape?.let { bgShape ->
+                        val bgOffsets = bgShape.points.map { point ->
+                            Offset(point.x * width, point.y * height)
+                        }
+                        if (bgOffsets.isNotEmpty()) {
+                            drawPoints(
+                                points = bgOffsets + bgOffsets.first(),
+                                pointMode = PointMode.Polygon,
+                                color = bgShape.color,
+                                strokeWidth = bgShape.strokeWidth
+                            )
+                        }
+                    }
 
-                                                if (clickedIndex >= 0) {
-                                                    onShapeSelected(clickedIndex)
-                                                    isDragging = true
-                                                    dragStartPosition = position
-                                                    draggedShapeOriginalPosition =
-                                                        placedShapes[clickedIndex].position
-                                                } else {
-                                                    onShapeSelected(null)
-                                                }
-                                            }
-                                        }
-
-                                        PointerEventType.Move -> {
-                                            if (shapeToPlace != null) {
-                                                // 新規図形の配置プレビュー
-                                                shapePosition = position
-                                            } else if (isDragging && selectedShapeIndex != null && dragStartPosition != null && draggedShapeOriginalPosition != null) {
-                                                // 選択した図形のドラッグ
-                                                val delta = position - dragStartPosition!!
-                                                val newPosition = Point(
-                                                    Centimeter(draggedShapeOriginalPosition!!.x.value + delta.x.roundToInt()),
-                                                    Centimeter(draggedShapeOriginalPosition!!.y.value + delta.y.roundToInt())
-                                                )
-                                                onShapeMoved(
-                                                    selectedShapeIndex,
-                                                    newPosition
-                                                )
-                                            }
-                                        }
-
-                                        PointerEventType.Release -> {
-                                            isDragging = false
-                                            dragStartPosition = null
-                                            draggedShapeOriginalPosition = null
-                                        }
-
-                                        PointerEventType.Enter -> {
-                                            if (shapeToPlace != null) {
-                                                shapePosition = position
-                                            }
-                                        }
-
-                                        PointerEventType.Exit -> {
-                                            if (shapeToPlace != null) {
-                                                shapePosition = null
-                                            }
-                                        }
-
-                                        else -> {}
-                                    }
-                                }
+                    // Draw all placed shapes
+                    shapes.forEachIndexed { index, placedShape ->
+                        val isSelected = index == selectedShapeIndex
+                        val shapeOffsets = placedShape.shape.points.map { point ->
+                            val centerX = placedShape.position.x * width
+                            val centerY = placedShape.position.y * height
+                            
+                            // Apply rotation if needed
+                            val x = point.x * width
+                            val y = point.y * height
+                            
+                            if (placedShape.rotation != 0f) {
+                                val angle = Math.toRadians(placedShape.rotation.toDouble())
+                                val cos = kotlin.math.cos(angle).toFloat()
+                                val sin = kotlin.math.sin(angle).toFloat()
+                                val rotatedX = centerX + (x * cos - y * sin)
+                                val rotatedY = centerY + (x * sin + y * cos)
+                                Offset(rotatedX, rotatedY)
+                            } else {
+                                Offset(centerX + x, centerY + y)
                             }
                         }
+                        
+                        if (shapeOffsets.isNotEmpty()) {
+                            drawPoints(
+                                points = shapeOffsets + shapeOffsets.first(),
+                                pointMode = PointMode.Polygon,
+                                color = if (isSelected) Color.Blue else placedShape.color,
+                                strokeWidth = if (isSelected) 5f else placedShape.shape.strokeWidth
+                            )
+                        }
+                    }
+                }
+            },
+            modifier = Modifier,
+            topContent = { AppSlider(state = xSliderState) },
+            bottomContent = { AppSlider(state = xSliderState) },
+            leftContent = {
+                AppSlider(
+                    state = ySliderState,
+                    orientation = SliderOrientation.Vertical
+                )
+            },
+            rightContent = {
+                AppSlider(
+                    state = ySliderState,
+                    orientation = SliderOrientation.Vertical
+                )
+            },
+            topLeftContent = {},
+            topRightContent = {},
+            bottomLeftContent = {},
+            bottomRightContent = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun ShapeLayoutCanvasPreview() {
+    PuzzroomTheme {
+        val shapes = listOf(
+            NormalizedPlacedShape(
+                shape = NormalizedShape(
+                    points = listOf(
+                        NormalizedPoint(0f, 0f),
+                        NormalizedPoint(0.2f, 0f),
+                        NormalizedPoint(0.2f, 0.15f),
+                        NormalizedPoint(0f, 0.15f)
+                    ),
+                    color = Color.Green
+                ),
+                position = NormalizedPoint(0.3f, 0.3f),
+                color = Color.Green,
+                name = "Shape 1"
+            ),
+            NormalizedPlacedShape(
+                shape = NormalizedShape(
+                    points = listOf(
+                        NormalizedPoint(0f, 0f),
+                        NormalizedPoint(0.15f, 0f),
+                        NormalizedPoint(0.15f, 0.15f),
+                        NormalizedPoint(0f, 0.15f)
+                    ),
+                    color = Color.Red
+                ),
+                position = NormalizedPoint(0.6f, 0.5f),
+                color = Color.Red,
+                name = "Shape 2"
+            )
+        )
+        
+        ShapeLayoutCanvas(
+            shapes = shapes,
+            selectedShapeIndex = 0,
+            backgroundShape = NormalizedShape(
+                points = listOf(
+                    NormalizedPoint(0.1f, 0.1f),
+                    NormalizedPoint(0.9f, 0.1f),
+                    NormalizedPoint(0.9f, 0.9f),
+                    NormalizedPoint(0.1f, 0.9f)
+                ),
+                color = Color.Gray,
+                strokeWidth = 2f
+            )
+        )
+    }
+}
                 ) {
                     // 背景図形（部屋の形状など）を描画
                     backgroundShape?.let { polygon ->
