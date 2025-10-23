@@ -115,10 +115,12 @@ fun ShapeLayoutCanvas(
             valueRange = 0f..1f,
             onValueChange = { fraction ->
                 // Update selected shape position when slider moves
+                // Invert Y: slider top (0) = shape top (0), slider bottom (1) = shape bottom (1)
+                // Since vertical sliders typically increase upward, we invert to match Canvas Y (increases downward)
                 selectedShape?.let { shape ->
                     val newPosition = NormalizedPoint(
                         x = shape.position.x,
-                        y = fraction
+                        y = 1f - fraction  // Invert Y to match Canvas coordinate system
                     )
                     onSelectedShapePositionChanged(newPosition)
                 }
@@ -130,7 +132,8 @@ fun ShapeLayoutCanvas(
     LaunchedEffect(selectedShape) {
         selectedShape?.let { shape ->
             xSliderState.updateValueFromFraction(shape.position.x)
-            ySliderState.updateValueFromFraction(shape.position.y)
+            // Invert Y for slider: shape Y=0 (top) → slider=1 (top), shape Y=1 (bottom) → slider=0 (bottom)
+            ySliderState.updateValueFromFraction(1f - shape.position.y)
         }
     }
 
