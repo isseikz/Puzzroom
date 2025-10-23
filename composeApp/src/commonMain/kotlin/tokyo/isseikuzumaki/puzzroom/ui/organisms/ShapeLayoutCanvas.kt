@@ -22,10 +22,6 @@ import tokyo.isseikuzumaki.puzzroom.ui.state.SliderState
 import tokyo.isseikuzumaki.puzzroom.ui.molecules.FloorPlanBackgroundImage
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
-
-// === Compatibility layer for domain-specific types ===
-
-import tokyo.isseikuzumaki.puzzroom.domain.Centimeter
 import tokyo.isseikuzumaki.puzzroom.domain.Degree
 import tokyo.isseikuzumaki.puzzroom.domain.Point
 import tokyo.isseikuzumaki.puzzroom.domain.Polygon
@@ -41,55 +37,6 @@ data class PlacedShape(
     val color: Color = Color.Green,
     val name: String = ""
 )
-
-/**
- * Convert domain-specific PlacedShape to normalized format
- * ドメイン固有の PlacedShape を無次元形式に変換
- */
-fun PlacedShape.toNormalized(canvasWidth: Int, canvasHeight: Int): NormalizedPlacedShape {
-    return NormalizedPlacedShape(
-        shape = NormalizedShape(
-            points = shape.points.map { point ->
-                NormalizedPoint(
-                    x = point.x.value / canvasWidth.toFloat(),
-                    y = point.y.value / canvasHeight.toFloat()
-                )
-            },
-            color = color
-        ),
-        position = NormalizedPoint(
-            x = position.x.value / canvasWidth.toFloat(),
-            y = position.y.value / canvasHeight.toFloat()
-        ),
-        rotation = rotation.value,
-        color = color,
-        name = name
-    )
-}
-
-/**
- * Convert normalized PlacedShape to domain-specific format
- * 無次元形式を ドメイン固有の PlacedShape に変換
- */
-fun NormalizedPlacedShape.toDomain(canvasWidth: Int, canvasHeight: Int): PlacedShape {
-    return PlacedShape(
-        shape = Polygon(
-            points = shape.points.map { point ->
-                Point(
-                    Centimeter(point.x * canvasWidth),
-                    Centimeter(point.y * canvasHeight)
-                )
-            }
-        ),
-        position = Point(
-            Centimeter(position.x * canvasWidth),
-            Centimeter(position.y * canvasHeight)
-        ),
-        rotation = Degree(rotation),
-        color = color,
-        name = name
-    )
-}
 
 /**
  * Normalized point with dimensionless coordinates (0.0 - 1.0)
@@ -240,17 +187,8 @@ fun ShapeLayoutCanvas(
                             // Apply rotation if needed
                             val x = point.x * width
                             val y = point.y * height
-                            
-                            if (placedShape.rotation != 0f) {
-                                val angle = Math.toRadians(placedShape.rotation.toDouble())
-                                val cos = kotlin.math.cos(angle).toFloat()
-                                val sin = kotlin.math.sin(angle).toFloat()
-                                val rotatedX = centerX + (x * cos - y * sin)
-                                val rotatedY = centerY + (x * sin + y * cos)
-                                Offset(rotatedX, rotatedY)
-                            } else {
-                                Offset(centerX + x, centerY + y)
-                            }
+
+                            Offset(centerX + x, centerY + y)
                         }
                         
                         if (shapeOffsets.isNotEmpty()) {
@@ -337,99 +275,4 @@ private fun ShapeLayoutCanvasPreview() {
             )
         )
     }
-}
-                ) {
-                    // 背景図形（部屋の形状など）を描画
-                    backgroundShape?.let { polygon ->
-                        drawPoints(
-                            points = polygon.points.map { it.toCanvasOffset() } + polygon.points.first()
-                                .toCanvasOffset(),
-                            pointMode = PointMode.Polygon,
-                            color = Color.Gray,
-                            strokeWidth = 3f
-                        )
-                    }
-
-                    // 配置済みの図形を描画
-                    placedShapes.forEachIndexed { index, placed ->
-                        val rotatedPoints = placed.shape.rotateAroundCenterOffsets(
-                            placed.position,
-                            placed.rotation
-                        )
-                        val isSelected = index == selectedShapeIndex
-                        drawPoints(
-                            points = rotatedPoints + rotatedPoints.first(),
-                            pointMode = PointMode.Polygon,
-                            color = if (isSelected) Color.Blue else placed.color,
-                            strokeWidth = if (isSelected) 5f else 3f
-                        )
-                    }
-
-                    // 配置中の図形をプレビュー表示
-                    if (shapeToPlace != null && shapePosition != null) {
-                        val rotatedPoints = shapeToPlace.rotateAroundCenterOffsets(
-                            shapePosition!!.toPoint(),
-                            shapeRotation.degree()
-                        )
-                        drawPoints(
-                            points = rotatedPoints + rotatedPoints.first(),
-                            pointMode = PointMode.Polygon,
-                            color = Color.Cyan,
-                            strokeWidth = 5f
-                        )
-                    }
-                }
-            },
-            modifier = Modifier,
-            topContent = { AppSlider(state = xSliderState) },
-            bottomContent = { AppSlider(state = xSliderState) },
-            leftContent = {
-                AppSlider(
-                    state = ySliderState,
-                    orientation = SliderOrientation.Vertical
-                )
-            },
-            rightContent = {
-                AppSlider(
-                    state = ySliderState,
-                    orientation = SliderOrientation.Vertical
-                )
-            },
-            topLeftContent = {},
-            topRightContent = {},
-            bottomLeftContent = {},
-            bottomRightContent = {}
-        )
-    }
-}
-
-@Preview
-@Composable
-private fun ShapeLayoutCanvasPreview() {
-    ShapeLayoutCanvas(
-        backgroundShape = Polygon(
-            points = listOf(
-                Point(0.cm(), 0.cm()),
-                Point(500.cm(), 0.cm()),
-                Point(500.cm(), 400.cm()),
-                Point(0.cm(), 400.cm())
-            )
-        ),
-        placedShapes = listOf(
-            PlacedShape(
-                shape = Polygon(
-                    points = listOf(
-                        Point(0.cm(), 0.cm()),
-                        Point(120.cm(), 0.cm()),
-                        Point(120.cm(), 80.cm()),
-                        Point(0.cm(), 80.cm())
-                    )
-                ),
-                position = Point(100.cm(), 100.cm()),
-                rotation = 0f.degree(),
-                color = Color.Green,
-                name = "Rectangle"
-            )
-        )
-    )
 }
