@@ -177,17 +177,8 @@ fun ShapeLayoutCanvas(
                             // Apply rotation if needed
                             val x = point.x * width
                             val y = point.y * height
-                            
-                            if (placedShape.rotation != 0f) {
-                                val angle = Math.toRadians(placedShape.rotation.toDouble())
-                                val cos = kotlin.math.cos(angle).toFloat()
-                                val sin = kotlin.math.sin(angle).toFloat()
-                                val rotatedX = centerX + (x * cos - y * sin)
-                                val rotatedY = centerY + (x * sin + y * cos)
-                                Offset(rotatedX, rotatedY)
-                            } else {
-                                Offset(centerX + x, centerY + y)
-                            }
+
+                            Offset(centerX + x, centerY + y)
                         }
                         
                         if (shapeOffsets.isNotEmpty()) {
@@ -209,17 +200,8 @@ fun ShapeLayoutCanvas(
                             // Apply rotation if needed
                             val x = point.x * width
                             val y = point.y * height
-                            
-                            if (placedShape.rotation != 0f) {
-                                val angle = Math.toRadians(placedShape.rotation.toDouble())
-                                val cos = kotlin.math.cos(angle).toFloat()
-                                val sin = kotlin.math.sin(angle).toFloat()
-                                val rotatedX = centerX + (x * cos - y * sin)
-                                val rotatedY = centerY + (x * sin + y * cos)
-                                Offset(rotatedX, rotatedY)
-                            } else {
-                                Offset(centerX + x, centerY + y)
-                            }
+
+                            Offset(centerX + x, centerY + y)
                         }
                         
                         if (shapeOffsets.isNotEmpty()) {
@@ -259,6 +241,9 @@ fun ShapeLayoutCanvas(
 @Preview
 @Composable
 private fun ShapeLayoutCanvasPreview() {
+    var x by remember { mutableStateOf(0.5f) }
+    var y by remember { mutableStateOf(0.5f) }
+
     PuzzroomTheme {
         val shape1 = NormalizedPlacedShape(
             shape = NormalizedShape(
@@ -285,7 +270,7 @@ private fun ShapeLayoutCanvasPreview() {
                 ),
                 color = Color.Red
             ),
-            position = NormalizedPoint(0.6f, 0.5f),
+            position = NormalizedPoint(x, y),
             color = Color.Red,
             name = "Shape 2"
         )
@@ -302,7 +287,11 @@ private fun ShapeLayoutCanvasPreview() {
                 ),
                 color = Color.Gray,
                 strokeWidth = 2f
-            )
+            ),
+            onSelectedShapePositionChanged = { newPosition ->
+                x = newPosition.x
+                y = newPosition.y
+            }
         )
     }
 }
