@@ -142,24 +142,18 @@ fun ShapeLayoutCanvas(
         )
     }
 
-    // Track if we're currently updating sliders to prevent infinite loop
-    var isUpdatingSliders by remember { mutableStateOf(false) }
-
-    // Update slider values when a shape is selected, but prevent loop
-    LaunchedEffect(selectedShapeIndex, placedShapes) {
-        if (!isUpdatingSliders) {
-            selectedShapeIndex?.let { index ->
-                if (index >= 0 && index < placedShapes.size) {
-                    val selectedShape = placedShapes[index]
-                    isUpdatingSliders = true
-                    xSliderState.updateValueFromFraction(
-                        selectedShape.position.x.value.toFloat() / canvasWidth
-                    )
-                    ySliderState.updateValueFromFraction(
-                        selectedShape.position.y.value.toFloat() / canvasHeight
-                    )
-                    isUpdatingSliders = false
-                }
+    // Update slider values when a shape is selected
+    // Only responds to selection changes, not position changes, avoiding infinite loop
+    LaunchedEffect(selectedShapeIndex) {
+        selectedShapeIndex?.let { index ->
+            if (index >= 0 && index < placedShapes.size) {
+                val selectedShape = placedShapes[index]
+                xSliderState.updateValueFromFraction(
+                    selectedShape.position.x.value.toFloat() / canvasWidth
+                )
+                ySliderState.updateValueFromFraction(
+                    selectedShape.position.y.value.toFloat() / canvasHeight
+                )
             }
         }
     }

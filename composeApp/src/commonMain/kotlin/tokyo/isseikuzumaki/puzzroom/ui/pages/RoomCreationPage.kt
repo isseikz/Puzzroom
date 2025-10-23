@@ -5,6 +5,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.viewmodel.compose.viewModel
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import tokyo.isseikuzumaki.puzzroom.domain.Centimeter.Companion.cm
 import tokyo.isseikuzumaki.puzzroom.domain.Degree.Companion.degree
@@ -14,6 +15,7 @@ import tokyo.isseikuzumaki.puzzroom.domain.RoomShapeType
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.PlacedShape
 import tokyo.isseikuzumaki.puzzroom.ui.templates.RoomCreationTemplate
 import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
+import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.ShapePlacementViewModel
 
 /**
  * Room creation page - allows users to create rooms by placing walls and doors
@@ -26,13 +28,15 @@ fun RoomCreationPage(
     backgroundImageUrl: String? = null,
     onRoomCreated: (List<PlacedShape>) -> Unit = { _ -> },
     onCancel: () -> Unit = { },
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: ShapePlacementViewModel = viewModel { ShapePlacementViewModel() }
 ) {
     var selectedShapeType by remember { mutableStateOf<RoomShapeType?>(null) }
     var shapeRotation by remember { mutableStateOf(0f) }
-    var placedShapes by remember { mutableStateOf<List<PlacedShape>>(emptyList()) }
-    var selectedShapeIndex by remember { mutableStateOf<Int?>(null) }
-    var currentPosition by remember { mutableStateOf<Point?>(null) }
+    
+    val placedShapes by viewModel.placedShapes.collectAsState()
+    val selectedShapeIndex by viewModel.selectedShapeIndex.collectAsState()
+    val currentPosition by viewModel.currentPosition.collectAsState()
     
     val bottomSheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = false
@@ -50,19 +54,13 @@ fun RoomCreationPage(
         placedShapes = placedShapes,
         selectedShapeIndex = selectedShapeIndex,
         onPositionUpdate = { position ->
-            currentPosition = position
+            viewModel.updatePosition(position)
         },
         onShapeSelected = { index ->
-            selectedShapeIndex = index
+            viewModel.selectShape(index)
         },
         onShapeMoved = { index, newPosition ->
-            placedShapes = placedShapes.mapIndexed { i, shape ->
-                if (i == index) {
-                    shape.copy(position = newPosition)
-                } else {
-                    shape
-                }
-            }
+            viewModel.moveShape(index, newPosition)
         },
         onShapeTypeSelected = { shapeType ->
             selectedShapeType = shapeType
@@ -90,7 +88,7 @@ fun RoomCreationPage(
                             points = listOf(
                                 Point(0.cm(), 0.cm()),
                                 Point(80.cm(), 0.cm()),
-                                Point(80.cm(), 20.cm()),
+                                Point(80.cm(), 20.cm(),),
                                 Point(0.cm(), 20.cm())
                             )
                         ),
@@ -117,9 +115,7 @@ fun RoomCreationPage(
                     )
                 }
             }
-            placedShapes = placedShapes + newShape
-            // Select the newly added shape so it can be immediately moved
-            selectedShapeIndex = placedShapes.size
+            viewModel.addShape(newShape)
         },
         bottomSheetState = bottomSheetState,
         onCancelBottomSheet = {
