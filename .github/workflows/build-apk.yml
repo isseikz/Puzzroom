@@ -4,6 +4,10 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+# Limit permissions of GITHUB_TOKEN for security
+permissions:
+  contents: read
+
 # Allow only one concurrent build per PR, cancel in-progress runs when new commits are pushed
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
