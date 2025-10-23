@@ -75,18 +75,18 @@ data class NormalizedPlacedShape(
  * 
  * @param backgroundImageUrl Canvas背景として表示する画像のURL
  * @param backgroundShape 背景図形（無次元座標）
- * @param shapes 配置済みの図形リスト（無次元座標）
- * @param selectedShapeIndex 現在選択中の図形のインデックス
- * @param onShapePositionChanged スライダーによる図形位置変更時のコールバック
+ * @param selectedShape 選択中の図形（無次元座標）。スライダーで移動可能。
+ * @param unselectedShapes 選択されていない図形リスト（無次元座標）。表示のみ。
+ * @param onSelectedShapePositionChanged 選択中の図形の位置変更時のコールバック
  * @param modifier Canvas全体に適用されるModifier
  */
 @Composable
 fun ShapeLayoutCanvas(
     backgroundImageUrl: String? = null,
     backgroundShape: NormalizedShape? = null,
-    shapes: List<NormalizedPlacedShape> = emptyList(),
-    selectedShapeIndex: Int? = null,
-    onShapePositionChanged: (index: Int, newPosition: NormalizedPoint) -> Unit = { _, _ -> },
+    selectedShape: NormalizedPlacedShape? = null,
+    unselectedShapes: List<NormalizedPlacedShape> = emptyList(),
+    onSelectedShapePositionChanged: (newPosition: NormalizedPoint) -> Unit = { _ -> },
     modifier: Modifier = Modifier
 ) {
     // Track actual canvas size using onSizeChanged
@@ -98,15 +98,12 @@ fun ShapeLayoutCanvas(
             valueRange = 0f..1f,
             onValueChange = { fraction ->
                 // Update selected shape position when slider moves
-                selectedShapeIndex?.let { index ->
-                    if (index >= 0 && index < shapes.size) {
-                        val currentShape = shapes[index]
-                        val newPosition = NormalizedPoint(
-                            x = fraction,
-                            y = currentShape.position.y
-                        )
-                        onShapePositionChanged(index, newPosition)
-                    }
+                selectedShape?.let { shape ->
+                    val newPosition = NormalizedPoint(
+                        x = fraction,
+                        y = shape.position.y
+                    )
+                    onSelectedShapePositionChanged(newPosition)
                 }
             }
         )
@@ -118,28 +115,22 @@ fun ShapeLayoutCanvas(
             valueRange = 0f..1f,
             onValueChange = { fraction ->
                 // Update selected shape position when slider moves
-                selectedShapeIndex?.let { index ->
-                    if (index >= 0 && index < shapes.size) {
-                        val currentShape = shapes[index]
-                        val newPosition = NormalizedPoint(
-                            x = currentShape.position.x,
-                            y = fraction
-                        )
-                        onShapePositionChanged(index, newPosition)
-                    }
+                selectedShape?.let { shape ->
+                    val newPosition = NormalizedPoint(
+                        x = shape.position.x,
+                        y = fraction
+                    )
+                    onSelectedShapePositionChanged(newPosition)
                 }
             }
         )
     }
 
     // Update slider values when a shape is selected
-    LaunchedEffect(selectedShapeIndex) {
-        selectedShapeIndex?.let { index ->
-            if (index >= 0 && index < shapes.size) {
-                val selectedShape = shapes[index]
-                xSliderState.updateValueFromFraction(selectedShape.position.x)
-                ySliderState.updateValueFromFraction(selectedShape.position.y)
-            }
+    LaunchedEffect(selectedShape) {
+        selectedShape?.let { shape ->
+            xSliderState.updateValueFromFraction(shape.position.x)
+            ySliderState.updateValueFromFraction(shape.position.y)
         }
     }
 
@@ -177,9 +168,8 @@ fun ShapeLayoutCanvas(
                         }
                     }
 
-                    // Draw all placed shapes
-                    shapes.forEachIndexed { index, placedShape ->
-                        val isSelected = index == selectedShapeIndex
+                    // Draw unselected shapes
+                    unselectedShapes.forEach { placedShape ->
                         val shapeOffsets = placedShape.shape.points.map { point ->
                             val centerX = placedShape.position.x * width
                             val centerY = placedShape.position.y * height
@@ -187,16 +177,57 @@ fun ShapeLayoutCanvas(
                             // Apply rotation if needed
                             val x = point.x * width
                             val y = point.y * height
-
-                            Offset(centerX + x, centerY + y)
+                            
+                            if (placedShape.rotation != 0f) {
+                                val angle = Math.toRadians(placedShape.rotation.toDouble())
+                                val cos = kotlin.math.cos(angle).toFloat()
+                                val sin = kotlin.math.sin(angle).toFloat()
+                                val rotatedX = centerX + (x * cos - y * sin)
+                                val rotatedY = centerY + (x * sin + y * cos)
+                                Offset(rotatedX, rotatedY)
+                            } else {
+                                Offset(centerX + x, centerY + y)
+                            }
                         }
                         
                         if (shapeOffsets.isNotEmpty()) {
                             drawPoints(
                                 points = shapeOffsets + shapeOffsets.first(),
                                 pointMode = PointMode.Polygon,
-                                color = if (isSelected) Color.Blue else placedShape.color,
-                                strokeWidth = if (isSelected) 5f else placedShape.shape.strokeWidth
+                                color = placedShape.color,
+                                strokeWidth = placedShape.shape.strokeWidth
+                            )
+                        }
+                    }
+                    
+                    // Draw selected shape (highlighted)
+                    selectedShape?.let { placedShape ->
+                        val shapeOffsets = placedShape.shape.points.map { point ->
+                            val centerX = placedShape.position.x * width
+                            val centerY = placedShape.position.y * height
+                            
+                            // Apply rotation if needed
+                            val x = point.x * width
+                            val y = point.y * height
+                            
+                            if (placedShape.rotation != 0f) {
+                                val angle = Math.toRadians(placedShape.rotation.toDouble())
+                                val cos = kotlin.math.cos(angle).toFloat()
+                                val sin = kotlin.math.sin(angle).toFloat()
+                                val rotatedX = centerX + (x * cos - y * sin)
+                                val rotatedY = centerY + (x * sin + y * cos)
+                                Offset(rotatedX, rotatedY)
+                            } else {
+                                Offset(centerX + x, centerY + y)
+                            }
+                        }
+                        
+                        if (shapeOffsets.isNotEmpty()) {
+                            drawPoints(
+                                points = shapeOffsets + shapeOffsets.first(),
+                                pointMode = PointMode.Polygon,
+                                color = Color.Blue,  // Highlight selected shape
+                                strokeWidth = 5f
                             )
                         }
                     }
@@ -229,40 +260,39 @@ fun ShapeLayoutCanvas(
 @Composable
 private fun ShapeLayoutCanvasPreview() {
     PuzzroomTheme {
-        val shapes = listOf(
-            NormalizedPlacedShape(
-                shape = NormalizedShape(
-                    points = listOf(
-                        NormalizedPoint(0f, 0f),
-                        NormalizedPoint(0.2f, 0f),
-                        NormalizedPoint(0.2f, 0.15f),
-                        NormalizedPoint(0f, 0.15f)
-                    ),
-                    color = Color.Green
+        val shape1 = NormalizedPlacedShape(
+            shape = NormalizedShape(
+                points = listOf(
+                    NormalizedPoint(0f, 0f),
+                    NormalizedPoint(0.2f, 0f),
+                    NormalizedPoint(0.2f, 0.15f),
+                    NormalizedPoint(0f, 0.15f)
                 ),
-                position = NormalizedPoint(0.3f, 0.3f),
-                color = Color.Green,
-                name = "Shape 1"
+                color = Color.Green
             ),
-            NormalizedPlacedShape(
-                shape = NormalizedShape(
-                    points = listOf(
-                        NormalizedPoint(0f, 0f),
-                        NormalizedPoint(0.15f, 0f),
-                        NormalizedPoint(0.15f, 0.15f),
-                        NormalizedPoint(0f, 0.15f)
-                    ),
-                    color = Color.Red
+            position = NormalizedPoint(0.3f, 0.3f),
+            color = Color.Green,
+            name = "Shape 1"
+        )
+        
+        val shape2 = NormalizedPlacedShape(
+            shape = NormalizedShape(
+                points = listOf(
+                    NormalizedPoint(0f, 0f),
+                    NormalizedPoint(0.15f, 0f),
+                    NormalizedPoint(0.15f, 0.15f),
+                    NormalizedPoint(0f, 0.15f)
                 ),
-                position = NormalizedPoint(0.6f, 0.5f),
-                color = Color.Red,
-                name = "Shape 2"
-            )
+                color = Color.Red
+            ),
+            position = NormalizedPoint(0.6f, 0.5f),
+            color = Color.Red,
+            name = "Shape 2"
         )
         
         ShapeLayoutCanvas(
-            shapes = shapes,
-            selectedShapeIndex = 0,
+            selectedShape = shape1,
+            unselectedShapes = listOf(shape2),
             backgroundShape = NormalizedShape(
                 points = listOf(
                     NormalizedPoint(0.1f, 0.1f),
