@@ -13,18 +13,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PointMode
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppSlider
-import tokyo.isseikuzumaki.puzzroom.ui.atoms.SliderOrientation
-import tokyo.isseikuzumaki.puzzroom.ui.state.SliderState
-import tokyo.isseikuzumaki.puzzroom.ui.molecules.FloorPlanBackgroundImage
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
 import tokyo.isseikuzumaki.puzzroom.domain.Degree
 import tokyo.isseikuzumaki.puzzroom.domain.Point
 import tokyo.isseikuzumaki.puzzroom.domain.Polygon
+import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppSlider
+import tokyo.isseikuzumaki.puzzroom.ui.atoms.SliderOrientation
+import tokyo.isseikuzumaki.puzzroom.ui.molecules.FloorPlanBackgroundImage
+import tokyo.isseikuzumaki.puzzroom.ui.state.SliderState
+import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
 
 /**
  * Placed shape with position and rotation (domain-specific types)
@@ -43,8 +41,8 @@ data class PlacedShape(
  * 無次元化された座標点（0.0 - 1.0）
  */
 data class NormalizedPoint(
-    val x: Float,  // 0.0 - 1.0
-    val y: Float   // 0.0 - 1.0
+    val x: Float = 0.5f,  // 0.0 - 1.0
+    val y: Float = 0.5f  // 0.0 - 1.0
 )
 
 /**
@@ -77,7 +75,7 @@ data class NormalizedPlacedShape(
  * @param backgroundShape 背景図形（無次元座標）
  * @param selectedShape 選択中の図形（無次元座標）。スライダーで移動可能。
  * @param unselectedShapes 選択されていない図形リスト（無次元座標）。表示のみ。
- * @param onSelectedShapePositionChanged 選択中の図形の位置変更時のコールバック
+ * @param onSliderReleased 選択中の図形の位置変更時のコールバック
  * @param modifier Canvas全体に適用されるModifier
  */
 @Composable
@@ -86,44 +84,37 @@ fun ShapeLayoutCanvas(
     backgroundShape: NormalizedShape? = null,
     selectedShape: NormalizedPlacedShape? = null,
     unselectedShapes: List<NormalizedPlacedShape> = emptyList(),
-    onSelectedShapePositionChanged: (newPosition: NormalizedPoint) -> Unit = { _ -> },
+    onSliderReleased: (NormalizedPlacedShape?) -> Unit = { _ -> },
     modifier: Modifier = Modifier
 ) {
-    // Track actual canvas size using onSizeChanged
-    var canvasSize by remember { mutableStateOf(IntSize(500, 500)) }
+    var sliderPosition by remember { mutableStateOf(NormalizedPoint()) }
 
     val xSliderState = remember {
         SliderState(
-            initialValue = 0.5f,
+            initialValue = selectedShape?.position?.x ?: 0.5f,
             valueRange = 0f..1f,
             onValueChange = { fraction ->
-                // Update selected shape position when slider moves
                 selectedShape?.let { shape ->
-                    val newPosition = NormalizedPoint(
-                        x = fraction,
-                        y = shape.position.y
-                    )
-                    onSelectedShapePositionChanged(newPosition)
+                    sliderPosition = sliderPosition.copy(x = fraction)
                 }
+            },
+            onSliderReleased = {
+                onSliderReleased(selectedShape?.copy(position = sliderPosition))
             }
         )
     }
 
     val ySliderState = remember {
         SliderState(
-            initialValue = 0.5f,
+            initialValue = selectedShape?.position?.y ?: 0.5f,
             valueRange = 0f..1f,
             onValueChange = { fraction ->
-                // Update selected shape position when slider moves
-                // Invert Y: slider top (0) = shape top (0), slider bottom (1) = shape bottom (1)
-                // Since vertical sliders typically increase upward, we invert to match Canvas Y (increases downward)
                 selectedShape?.let { shape ->
-                    val newPosition = NormalizedPoint(
-                        x = shape.position.x,
-                        y = 1f - fraction  // Invert Y to match Canvas coordinate system
-                    )
-                    onSelectedShapePositionChanged(newPosition)
+                    sliderPosition = sliderPosition.copy(y = 1f - fraction)
                 }
+            },
+            onSliderReleased = {
+                onSliderReleased(selectedShape?.copy(position = sliderPosition))
             }
         )
     }
@@ -149,9 +140,6 @@ fun ShapeLayoutCanvas(
                 Canvas(
                     modifier = Modifier
                         .fillMaxSize()
-                        .onSizeChanged { size ->
-                            canvasSize = size
-                        }
                 ) {
                     val width = size.width
                     val height = size.height
@@ -197,8 +185,8 @@ fun ShapeLayoutCanvas(
                     // Draw selected shape (highlighted)
                     selectedShape?.let { placedShape ->
                         val shapeOffsets = placedShape.shape.points.map { point ->
-                            val centerX = placedShape.position.x * width
-                            val centerY = placedShape.position.y * height
+                            val centerX = sliderPosition.x * width
+                            val centerY = sliderPosition.y * height
                             
                             // Apply rotation if needed
                             val x = point.x * width
@@ -258,7 +246,7 @@ private fun ShapeLayoutCanvasPreview() {
                 ),
                 color = Color.Green
             ),
-            position = NormalizedPoint(0.3f, 0.3f),
+            position = NormalizedPoint(x, y),
             color = Color.Green,
             name = "Shape 1"
         )
@@ -273,7 +261,7 @@ private fun ShapeLayoutCanvasPreview() {
                 ),
                 color = Color.Red
             ),
-            position = NormalizedPoint(x, y),
+            position = NormalizedPoint(0.3f, 0.3f),
             color = Color.Red,
             name = "Shape 2"
         )
@@ -291,10 +279,12 @@ private fun ShapeLayoutCanvasPreview() {
                 color = Color.Gray,
                 strokeWidth = 2f
             ),
-            onSelectedShapePositionChanged = { newPosition ->
-                x = newPosition.x
-                y = newPosition.y
-            }
+            onSliderReleased = { updatedShape ->
+                updatedShape?.let {
+                    x = it.position.x
+                    y = it.position.y
+                }
+            },
         )
     }
 }
