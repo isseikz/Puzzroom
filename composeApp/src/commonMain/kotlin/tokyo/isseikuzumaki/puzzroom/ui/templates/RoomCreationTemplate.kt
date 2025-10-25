@@ -99,7 +99,7 @@ data class PlacedShape(
     }
 }
 
-private data class UiState(
+private data class RoomCreationUiState(
     val shapeTypeToPlace: RoomShapeType? = null,
     val editingShape: NormalizedPlacedShape? = null,
 )
@@ -122,7 +122,7 @@ fun RoomCreationTemplate(
     val bottomSheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = false
     )
-    var data by remember { mutableStateOf(UiState()) }
+    var data by remember { mutableStateOf(RoomCreationUiState()) }
 
     Column(
         verticalArrangement = Arrangement.Bottom
