@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PointMode
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import tokyo.isseikuzumaki.puzzroom.domain.Centimeter
 import tokyo.isseikuzumaki.puzzroom.domain.Degree
 import tokyo.isseikuzumaki.puzzroom.domain.Point
 import tokyo.isseikuzumaki.puzzroom.domain.Polygon
@@ -24,17 +25,6 @@ import tokyo.isseikuzumaki.puzzroom.ui.molecules.FloorPlanBackgroundImage
 import tokyo.isseikuzumaki.puzzroom.ui.state.SliderState
 import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
 
-/**
- * Placed shape with position and rotation (domain-specific types)
- * 互換性のための旧形式データクラス
- */
-data class PlacedShape(
-    val shape: Polygon,
-    val position: Point,
-    val rotation: Degree = Degree(0f),
-    val color: Color = Color.Green,
-    val name: String = ""
-)
 
 /**
  * Normalized point with dimensionless coordinates (0.0 - 1.0)
@@ -75,7 +65,7 @@ data class NormalizedPlacedShape(
  * @param backgroundShape 背景図形（無次元座標）
  * @param selectedShape 選択中の図形（無次元座標）。スライダーで移動可能。
  * @param unselectedShapes 選択されていない図形リスト（無次元座標）。表示のみ。
- * @param onSliderReleased 選択中の図形の位置変更時のコールバック
+ * @param onSelectedShapePosition 選択中の図形の位置変更時のコールバック
  * @param modifier Canvas全体に適用されるModifier
  */
 @Composable
@@ -84,8 +74,8 @@ fun ShapeLayoutCanvas(
     backgroundShape: NormalizedShape? = null,
     selectedShape: NormalizedPlacedShape? = null,
     unselectedShapes: List<NormalizedPlacedShape> = emptyList(),
-    onSliderReleased: (NormalizedPlacedShape?) -> Unit = { _ -> },
-    modifier: Modifier = Modifier
+    onSelectedShapePosition: (NormalizedPoint) -> Unit = { _ -> },
+    modifier: Modifier = Modifier,
 ) {
     var sliderPosition by remember { mutableStateOf(NormalizedPoint()) }
 
@@ -94,12 +84,10 @@ fun ShapeLayoutCanvas(
             initialValue = selectedShape?.position?.x ?: 0.5f,
             valueRange = 0f..1f,
             onValueChange = { fraction ->
-                selectedShape?.let { shape ->
-                    sliderPosition = sliderPosition.copy(x = fraction)
-                }
+                sliderPosition = sliderPosition.copy(x = fraction)
             },
             onSliderReleased = {
-                onSliderReleased(selectedShape?.copy(position = sliderPosition))
+                onSelectedShapePosition(sliderPosition)
             }
         )
     }
@@ -109,12 +97,10 @@ fun ShapeLayoutCanvas(
             initialValue = selectedShape?.position?.y ?: 0.5f,
             valueRange = 0f..1f,
             onValueChange = { fraction ->
-                selectedShape?.let { shape ->
-                    sliderPosition = sliderPosition.copy(y = 1f - fraction)
-                }
+                sliderPosition = sliderPosition.copy(y = 1f - fraction)
             },
             onSliderReleased = {
-                onSliderReleased(selectedShape?.copy(position = sliderPosition))
+                onSelectedShapePosition(sliderPosition)
             }
         )
     }
@@ -123,7 +109,6 @@ fun ShapeLayoutCanvas(
     LaunchedEffect(selectedShape) {
         selectedShape?.let { shape ->
             xSliderState.updateValueFromFraction(shape.position.x)
-            // Invert Y for slider: shape Y=0 (top) → slider=1 (top), shape Y=1 (bottom) → slider=0 (bottom)
             ySliderState.updateValueFromFraction(1f - shape.position.y)
         }
     }
@@ -138,8 +123,7 @@ fun ShapeLayoutCanvas(
             commonSize = 20.dp,
             centerContent = {
                 Canvas(
-                    modifier = Modifier
-                        .fillMaxSize()
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     val width = size.width
                     val height = size.height
@@ -207,19 +191,17 @@ fun ShapeLayoutCanvas(
                 }
             },
             modifier = Modifier,
-            topContent = { AppSlider(state = xSliderState) },
-            bottomContent = { AppSlider(state = xSliderState) },
+            topContent = { selectedShape?.let { AppSlider(state = xSliderState) } },
+            bottomContent = { selectedShape?.let { AppSlider(state = xSliderState) } },
             leftContent = {
-                AppSlider(
-                    state = ySliderState,
-                    orientation = SliderOrientation.Vertical
-                )
+                selectedShape?.let {
+                    AppSlider(state = ySliderState, orientation = SliderOrientation.Vertical)
+                }
             },
             rightContent = {
-                AppSlider(
-                    state = ySliderState,
-                    orientation = SliderOrientation.Vertical
-                )
+                selectedShape?.let {
+                    AppSlider(state = ySliderState, orientation = SliderOrientation.Vertical)
+                }
             },
             topLeftContent = {},
             topRightContent = {},
@@ -232,9 +214,6 @@ fun ShapeLayoutCanvas(
 @Preview
 @Composable
 private fun ShapeLayoutCanvasPreview() {
-    var x by remember { mutableStateOf(0.5f) }
-    var y by remember { mutableStateOf(0.5f) }
-
     PuzzroomTheme {
         val shape1 = NormalizedPlacedShape(
             shape = NormalizedShape(
@@ -246,7 +225,7 @@ private fun ShapeLayoutCanvasPreview() {
                 ),
                 color = Color.Green
             ),
-            position = NormalizedPoint(x, y),
+            position = NormalizedPoint(0.5f, 0.5f),
             color = Color.Green,
             name = "Shape 1"
         )
@@ -279,12 +258,6 @@ private fun ShapeLayoutCanvasPreview() {
                 color = Color.Gray,
                 strokeWidth = 2f
             ),
-            onSliderReleased = { updatedShape ->
-                updatedShape?.let {
-                    x = it.position.x
-                    y = it.position.y
-                }
-            },
         )
     }
 }

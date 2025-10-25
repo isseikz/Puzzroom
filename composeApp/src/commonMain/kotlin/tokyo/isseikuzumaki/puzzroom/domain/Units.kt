@@ -29,6 +29,8 @@ value class Centimeter(val value: Int) {
 
     companion object {
         fun Int.cm() = Centimeter(this)
+        val Int.cm: Centimeter
+            get() = Centimeter(this)
     }
 }
 

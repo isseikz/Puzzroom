@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import tokyo.isseikuzumaki.puzzroom.domain.Point
-import tokyo.isseikuzumaki.puzzroom.ui.organisms.PlacedShape
+import tokyo.isseikuzumaki.puzzroom.ui.templates.PlacedShape
 
 /**
  * Shape placement ViewModel

@@ -26,12 +26,12 @@ import tokyo.isseikuzumaki.puzzroom.domain.Polygon
 import tokyo.isseikuzumaki.puzzroom.domain.Room
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.ButtonToCreate
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.ShapeLayoutCanvas
-import tokyo.isseikuzumaki.puzzroom.ui.organisms.PlacedShape
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.FurnitureSelector
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.FurnitureCreationForm
 import tokyo.isseikuzumaki.puzzroom.ui.state.PlacedFurniture
 import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
 import androidx.compose.ui.graphics.Color
+import tokyo.isseikuzumaki.puzzroom.ui.templates.PlacedShape
 
 /**
  * 家具配置ページ（Page）
@@ -77,15 +77,7 @@ fun FurniturePlacementTemplate(
         verticalArrangement = Arrangement.Bottom
     ) {
         ShapeLayoutCanvas(
-            backgroundShape = room.shape,
             backgroundImageUrl = backgroundImageUrl,
-            shapeToPlace = shapeToPlace,
-            shapeRotation = furnitureRotation,
-            placedShapes = placedShapes,
-            selectedShapeIndex = selectedFurnitureIndex,
-            onPositionUpdate = onPositionUpdate,
-            onShapeSelected = onFurnitureSelected,
-            onShapeMoved = onFurnitureMoved,
             modifier = modifier.weight(1f)
         )
 

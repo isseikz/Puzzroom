@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -16,20 +15,94 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import tokyo.isseikuzumaki.puzzroom.domain.Centimeter
 import tokyo.isseikuzumaki.puzzroom.domain.Centimeter.Companion.cm
+import tokyo.isseikuzumaki.puzzroom.domain.Degree
 import tokyo.isseikuzumaki.puzzroom.domain.Degree.Companion.degree
 import tokyo.isseikuzumaki.puzzroom.domain.Point
 import tokyo.isseikuzumaki.puzzroom.domain.Polygon
 import tokyo.isseikuzumaki.puzzroom.domain.RoomShapeType
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.ButtonToCreate
-import tokyo.isseikuzumaki.puzzroom.ui.organisms.PlacedShape
+import tokyo.isseikuzumaki.puzzroom.ui.organisms.NormalizedPlacedShape
+import tokyo.isseikuzumaki.puzzroom.ui.organisms.NormalizedPoint
+import tokyo.isseikuzumaki.puzzroom.ui.organisms.NormalizedShape
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.RoomShapeSelector
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.ShapeAttributeForm
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.ShapeLayoutCanvas
 import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
-import androidx.compose.ui.graphics.Color
+
+/**
+ * Placed shape with position and rotation (domain-specific types)
+ */
+data class PlacedShape(
+    val shape: Polygon,
+    val position: Point,
+    val rotation: Degree = Degree(0f),
+    val color: Color = Color.Green,
+    val name: String = "",
+) {
+    fun normalize(spaceSize: IntSize): NormalizedPlacedShape {
+        return NormalizedPlacedShape(
+            shape = NormalizedShape(
+                points = this.shape.points.map { point ->
+                    NormalizedPoint(
+                        x = point.x.value / spaceSize.width.toFloat(),
+                        y = point.y.value / spaceSize.height.toFloat()
+                    )
+                }
+            ),
+            position = NormalizedPoint(
+                x = this.position.x.value / spaceSize.width.toFloat(),
+                y = this.position.y.value / spaceSize.height.toFloat()
+            )
+        )
+    }
+
+    companion object {
+        fun createWall(width: Centimeter): PlacedShape {
+            return PlacedShape(
+                shape = Polygon(
+                    points = listOf(
+                        Point(Centimeter(0), Centimeter(0)),
+                        Point(width, Centimeter(0))
+                    )
+                ),
+                position = Point(Centimeter(0), Centimeter(0)),
+                name = "Wall"
+            )
+        }
+
+        fun createDoor(width: Centimeter): PlacedShape {
+            // Simplified as a sector (future extension to arc)
+            val points = mutableListOf<Point>()
+            points.add(Point(Centimeter(0), Centimeter(0)))
+
+            // Create vertices of the sector
+            val steps = 10
+            for (i in 0..steps) {
+                val radians = (kotlin.math.PI * 0.5f * i / steps)
+                val x = (width.value * kotlin.math.cos(radians)).toInt()
+                val y = (width.value * kotlin.math.sin(radians)).toInt()
+                points.add(Point(Centimeter(x), Centimeter(y)))
+            }
+
+            return PlacedShape(
+                shape = Polygon(points),
+                position = Point(Centimeter(0), Centimeter(0)),
+                name = "Door"
+            )
+        }
+    }
+}
+
+private data class UiState(
+    val shapeTypeToPlace: RoomShapeType? = null,
+    val editingShape: NormalizedPlacedShape? = null,
+)
 
 /**
  * 部屋作成テンプレート（Template）
@@ -39,43 +112,51 @@ import androidx.compose.ui.graphics.Color
 @Composable
 fun RoomCreationTemplate(
     backgroundImageUrl: String? = null,
-    shapeTypeToPlace: RoomShapeType? = null,
-    shapeRotation: Float = 0f,
-    placeableShapeTypes: List<RoomShapeType> = listOf(RoomShapeType.WALL, RoomShapeType.DOOR),
     placedShapes: List<PlacedShape> = emptyList(),
-    selectedShapeIndex: Int? = null,
-    onPositionUpdate: (position: Point?) -> Unit = { _ -> },
-    onShapeSelected: (index: Int?) -> Unit = { _ -> },
-    onShapeMoved: (index: Int, newPosition: Point) -> Unit = { _, _ -> },
-    onShapeTypeSelected: (RoomShapeType) -> Unit = { _ -> },
-    bottomSheetState: SheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = false
-    ),
-    onCancelBottomSheet: () -> Unit = { },
-    onSaveBottomSheet: () -> Unit = { },
     modifier: Modifier = Modifier
 ) {
+    var spaceSize by remember { mutableStateOf(IntSize(1000, 1000)) }
+
+    var currentShapes by remember { mutableStateOf(placedShapes.map { it.normalize(spaceSize) }) }
     var showBottomSheet by remember { mutableStateOf(false) }
+    val bottomSheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = false
+    )
+    var data by remember { mutableStateOf(UiState()) }
 
     Column(
         verticalArrangement = Arrangement.Bottom
     ) {
         ShapeLayoutCanvas(
+            selectedShape = data.editingShape,
+            unselectedShapes = currentShapes,
+            onSelectedShapePosition = { newPosition ->
+                data = data.copy(
+                    editingShape = data.editingShape?.copy(
+                        position = newPosition
+                    )
+                )
+            },
             backgroundImageUrl = backgroundImageUrl,
-            shapeToPlace = null, // Shape creation is handled in the Page component
-            shapeRotation = shapeRotation,
-            placedShapes = placedShapes,
-            selectedShapeIndex = selectedShapeIndex,
-            onPositionUpdate = onPositionUpdate,
-            onShapeSelected = onShapeSelected,
-            onShapeMoved = onShapeMoved,
             modifier = modifier.weight(1f)
         )
 
         RoomShapeSelector(
-            items = placeableShapeTypes,
-            selectedShape = shapeTypeToPlace,
-            onShapeSelected = onShapeTypeSelected,
+            items = RoomShapeType.entries,
+            selectedShape = data.shapeTypeToPlace,
+            onShapeSelected = { shapeType: RoomShapeType ->
+                data.editingShape?.let { currentShapes = currentShapes + it }
+
+                val newShape = when (shapeType) {
+                    RoomShapeType.WALL -> PlacedShape.createWall(300.cm).normalize(spaceSize)
+                    RoomShapeType.DOOR -> PlacedShape.createDoor(100.cm).normalize(spaceSize)
+                    else -> PlacedShape.createWall(100.cm).normalize(spaceSize) // TODO
+                }
+                data = data.copy(
+                    shapeTypeToPlace = shapeType,
+                    editingShape = newShape
+                )
+            },
             modifier = Modifier.fillMaxWidth().height(100.dp)
                 .background(color = MaterialTheme.colorScheme.secondaryContainer)
         )
@@ -95,11 +176,14 @@ fun RoomCreationTemplate(
             ) {
                 ShapeAttributeForm(
                     onDismiss = {
-                        onCancelBottomSheet()
                         showBottomSheet = false
                     },
-                    onSave = { _ ->
-                        onSaveBottomSheet()
+                    onSave = { modalData ->
+                        data = data.copy(
+                            editingShape = data.editingShape?.copy(
+                                // TODO scale size of polygon
+                            )
+                        )
                         showBottomSheet = false
                     }
                 )
@@ -114,11 +198,6 @@ fun RoomCreationTemplate(
 private fun RoomCreationTemplatePreview() {
     PuzzroomTheme {
         RoomCreationTemplate(
-            placeableShapeTypes = listOf(
-                RoomShapeType.WALL,
-                RoomShapeType.DOOR,
-                RoomShapeType.WINDOW
-            ),
             placedShapes = listOf(
                 PlacedShape(
                     shape = Polygon(
