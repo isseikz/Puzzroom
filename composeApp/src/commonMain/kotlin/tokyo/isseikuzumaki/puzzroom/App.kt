@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -81,7 +82,11 @@ fun App(
                     )
                 }
                 composable(route = AppScreen.Room.name) {
-                    RoomCreationPage()
+                    val project by projectViewModel.currentProject.collectAsState()
+                    RoomCreationPage(
+                        backgroundImageUrl = project?.layoutUrl,
+                        viewModel = projectViewModel
+                    )
                 }
                 composable(route = AppScreen.Furniture.name) {
                     FurniturePlacementPage(
