@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -51,8 +52,8 @@ fun BottomNavigationBar(
         ),
         NavigationItem(
             screen = AppScreen.Furniture,
-            label = "Furniture",
-            icon = Icons.Default.Edit
+            label = "Place",
+            icon = Icons.Default.MoreVert
         )
     )
 
