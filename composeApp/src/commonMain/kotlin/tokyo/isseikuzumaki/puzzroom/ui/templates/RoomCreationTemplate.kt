@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,46 +23,36 @@ import tokyo.isseikuzumaki.puzzroom.domain.Degree
 import tokyo.isseikuzumaki.puzzroom.domain.Degree.Companion.degree
 import tokyo.isseikuzumaki.puzzroom.domain.Point
 import tokyo.isseikuzumaki.puzzroom.domain.Polygon
+import tokyo.isseikuzumaki.puzzroom.domain.Room
 import tokyo.isseikuzumaki.puzzroom.domain.RoomShapeType
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.ButtonToCreate
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.NormalizedPlacedShape
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.NormalizedPoint
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.NormalizedShape
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.RoomShapeSelector
-import tokyo.isseikuzumaki.puzzroom.ui.organisms.ShapeAttributeForm
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.ShapeLayoutCanvas
 import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
-import tokyo.isseikuzumaki.puzzroom.domain.Room
 
 /**
  * Convert a list of PlacedShape (walls/doors) to a Room
  *
- * For now, this creates a simple room by taking all the points from all shapes
- * and combining them into a single polygon. In the future, this could be enhanced
- * to properly merge wall segments into a closed polygon.
+ * This function accepts any layout of shapes (walls/doors) and creates a room from them.
+ * The polygon does NOT need to be closed - users can save incomplete layouts.
+ *
+ * The resulting room polygon contains all points from all placed shapes,
+ * translated to their absolute positions.
+ *
+ * @param shapes List of walls/doors that make up the room layout
+ * @param roomName Name for the created room
+ * @return Room with polygon containing all shape points
  */
 fun convertPlacedShapesToRoom(
     shapes: List<PlacedShape>,
     roomName: String = "New Room"
 ): Room {
-    if (shapes.isEmpty()) {
-        // Return a default small room if no shapes provided
-        return Room(
-            name = roomName,
-            shape = Polygon(
-                points = listOf(
-                    Point(Centimeter(0), Centimeter(0)),
-                    Point(Centimeter(300), Centimeter(0)),
-                    Point(Centimeter(300), Centimeter(300)),
-                    Point(Centimeter(0), Centimeter(300))
-                )
-            )
-        )
-    }
-
-    // Collect all points from all shapes
-    // TODO: In the future, properly merge wall segments into a closed polygon
+    // Collect all points from all shapes, translated to absolute positions
     val allPoints = mutableListOf<Point>()
+
     shapes.forEach { placedShape ->
         placedShape.shape.points.forEach { point ->
             // Translate point by the shape's position
@@ -76,9 +64,21 @@ fun convertPlacedShapesToRoom(
         }
     }
 
+    // If no shapes provided, create a minimal polygon with at least 3 points
+    // to satisfy the Room data structure
+    val finalPoints = if (allPoints.isEmpty()) {
+        listOf(
+            Point(Centimeter(0), Centimeter(0)),
+            Point(Centimeter(100), Centimeter(0)),
+            Point(Centimeter(100), Centimeter(100))
+        )
+    } else {
+        allPoints
+    }
+
     return Room(
         name = roomName,
-        shape = Polygon(points = allPoints)
+        shape = Polygon(points = finalPoints)
     )
 }
 
@@ -166,10 +166,6 @@ fun RoomCreationTemplate(
     var spaceSize by remember { mutableStateOf(IntSize(1000, 1000)) }
 
     var currentShapes by remember { mutableStateOf(placedShapes.map { it.normalize(spaceSize) }) }
-    var showBottomSheet by remember { mutableStateOf(false) }
-    val bottomSheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = false
-    )
     var data by remember { mutableStateOf(RoomCreationUiState()) }
 
     Column(
@@ -211,11 +207,16 @@ fun RoomCreationTemplate(
         
         ButtonToCreate(
             onClick = {
-                // Add current editing shape to the list
-                data.editingShape?.let { currentShapes = currentShapes + it }
+                // Add current editing shape to the list (if any)
+                val shapesToSave = if (data.editingShape != null) {
+                    currentShapes + data.editingShape!!
+                } else {
+                    currentShapes
+                }
 
                 // Convert normalized shapes back to PlacedShape and notify parent
-                val denormalizedShapes = currentShapes.map { normalizedShape ->
+                // This works even if shapesToSave is empty - users can save an empty room layout
+                val denormalizedShapes = shapesToSave.map { normalizedShape ->
                     PlacedShape(
                         shape = Polygon(
                             points = normalizedShape.shape.points.map { point ->
@@ -234,35 +235,13 @@ fun RoomCreationTemplate(
                         name = normalizedShape.name
                     )
                 }
+
+                // Notify parent to save current layout (even if incomplete/empty)
                 onShapesChanged(denormalizedShapes)
-                showBottomSheet = true
             },
             modifier = Modifier.fillMaxWidth().height(56.dp)
                 .background(color = MaterialTheme.colorScheme.secondaryContainer)
         )
-
-        if (showBottomSheet) {
-            ModalBottomSheet(
-                onDismissRequest = {
-                    showBottomSheet = false
-                },
-                sheetState = bottomSheetState
-            ) {
-                ShapeAttributeForm(
-                    onDismiss = {
-                        showBottomSheet = false
-                    },
-                    onSave = { modalData ->
-                        data = data.copy(
-                            editingShape = data.editingShape?.copy(
-                                // TODO scale size of polygon
-                            )
-                        )
-                        showBottomSheet = false
-                    }
-                )
-            }
-        }
     }
 }
 
