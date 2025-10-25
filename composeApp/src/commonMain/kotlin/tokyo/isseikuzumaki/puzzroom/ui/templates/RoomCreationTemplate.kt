@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,6 +32,7 @@ import tokyo.isseikuzumaki.puzzroom.ui.organisms.NormalizedPlacedShape
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.NormalizedPoint
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.NormalizedShape
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.RoomShapeSelector
+import tokyo.isseikuzumaki.puzzroom.ui.organisms.ShapeAttributeForm
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.ShapeLayoutCanvas
 import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
 
@@ -167,6 +170,10 @@ fun RoomCreationTemplate(
 
     var currentShapes by remember { mutableStateOf(placedShapes.map { it.normalize(spaceSize) }) }
     var data by remember { mutableStateOf(RoomCreationUiState()) }
+    var showBottomSheet by remember { mutableStateOf(false) }
+    val bottomSheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true
+    )
 
     Column(
         verticalArrangement = Arrangement.Bottom
@@ -180,6 +187,20 @@ fun RoomCreationTemplate(
                         position = newPosition
                     )
                 )
+            },
+            onShapeSelected = { selectedIndex ->
+                val newSelectedShape = currentShapes.getOrNull(selectedIndex)
+                val newUnselectedShapes = currentShapes.toMutableList()
+                    .apply {
+                        removeAt(selectedIndex)
+                        data.editingShape?.let { add(it) }
+                    }
+                currentShapes = newUnselectedShapes
+                data = data.copy(
+                    shapeTypeToPlace = null,
+                    editingShape = newSelectedShape
+                )
+                showBottomSheet = true
             },
             backgroundImageUrl = backgroundImageUrl,
             modifier = modifier.weight(1f)
@@ -200,6 +221,8 @@ fun RoomCreationTemplate(
                     shapeTypeToPlace = shapeType,
                     editingShape = newShape
                 )
+
+                showBottomSheet = true
             },
             modifier = Modifier.fillMaxWidth().height(100.dp)
                 .background(color = MaterialTheme.colorScheme.secondaryContainer)
@@ -242,6 +265,45 @@ fun RoomCreationTemplate(
             modifier = Modifier.fillMaxWidth().height(56.dp)
                 .background(color = MaterialTheme.colorScheme.secondaryContainer)
         )
+
+        if (showBottomSheet) {
+            ModalBottomSheet(
+                onDismissRequest = {
+                    showBottomSheet = false
+                },
+                sheetState = bottomSheetState
+            ) {
+                ShapeAttributeForm(
+                    onDismiss = {
+                        showBottomSheet = false
+                    },
+                    onSave = { modalData ->
+                        val shape = data.editingShape ?: return@ShapeAttributeForm
+
+                        // FIXME たぶんここの計算式間違ってる (元々の Shape の大きさと、modalData で指定された大きさの比率を計算して拡大縮小する)
+                        val firstEdgeLength = spaceSize.width * shape.shape.points.first()
+                            .distanceTo(shape.shape.points[1])
+                        val scale = modalData.width.value / firstEdgeLength
+
+                        data = data.copy(
+                            editingShape = data.editingShape?.let {
+                                it.copy(
+                                    shape = it.shape.points.map { point ->
+                                        NormalizedPoint(
+                                            x = point.x * scale,
+                                            y = point.y * scale
+                                        )
+                                    }.let { points ->
+                                        NormalizedShape(points)
+                                    },
+                                )
+                            }
+                        )
+                        showBottomSheet = false
+                    }
+                )
+            }
+        }
     }
 }
 

@@ -24,6 +24,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import tokyo.isseikuzumaki.puzzroom.domain.Centimeter
+import tokyo.isseikuzumaki.puzzroom.domain.Centimeter.Companion.cm
+import tokyo.isseikuzumaki.puzzroom.domain.Degree
+import tokyo.isseikuzumaki.puzzroom.domain.Degree.Companion.degree
 import tokyo.isseikuzumaki.puzzroom.domain.RoomShapeType
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppButton
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppIconButton
@@ -37,8 +41,8 @@ import tokyo.isseikuzumaki.puzzroom.ui.molecules.ActionButtons
  */
 data class ShapeAttributeFormData(
     val shapeType: RoomShapeType = RoomShapeType.WALL,
-    val width: String = "",
-    val angle: String = ""
+    val width: Centimeter = 100.cm,
+    val angle: Degree = 0.degree
 )
 
 /**
@@ -60,12 +64,11 @@ fun ShapeAttributeForm(
     var formData by remember { mutableStateOf(initialData) }
     
     // Validation
-    val widthValue = formData.width.toFloatOrNull()
-    val isWidthValid = widthValue != null && widthValue > 0f
+    val isWidthValid = formData.width.value > 0
 
-    val angleValue = formData.angle.toFloatOrNull()
+    val angleValue = formData.angle.value
     val isAngleValid = when (formData.shapeType) {
-        RoomShapeType.DOOR -> angleValue != null && angleValue > 0f && angleValue <= 180f
+        RoomShapeType.DOOR -> angleValue in 0f..180f
         else -> true // Not required for walls
     }
 
@@ -114,8 +117,8 @@ fun ShapeAttributeForm(
         
         // Width input (common for all types)
         AppTextField(
-            value = formData.width,
-            onValueChange = { formData = formData.copy(width = it) },
+            value = formData.width.value.toString(),
+            onValueChange = { formData = formData.copy(width = (it.toIntOrNull() ?: 0).cm) },
             label = "Width (cm)",
             modifier = Modifier.fillMaxWidth()
         )
@@ -144,7 +147,7 @@ private fun ShapeAttributeFormPreview() {
     ShapeAttributeForm(
         initialData = ShapeAttributeFormData(
             shapeType = RoomShapeType.WALL,
-            width = "10",
+            width = 10.cm,
         ),
         onDismiss = {},
         onSave = {}
@@ -173,7 +176,7 @@ private fun ShapeAttributeFormWithBottomSheetPreview(
         mutableStateOf(
             ShapeAttributeFormData(
                 shapeType = RoomShapeType.DOOR,
-                width = "80",
+                width = 80.cm,
             )
         )
     }

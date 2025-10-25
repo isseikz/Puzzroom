@@ -72,5 +72,14 @@ value class Degree(val value: Float) {
             }
             return Degree(positive.toFloat())
         }
+
+        val Int.degree: Degree
+            get() {
+                var positive = this % 360
+                while (positive < 0) {
+                    positive += 360
+                }
+                return Degree(positive.toFloat())
+            }
     }
 }

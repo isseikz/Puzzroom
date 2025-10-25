@@ -1,6 +1,7 @@
 package tokyo.isseikuzumaki.puzzroom.ui.organisms
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -13,17 +14,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PointMode
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import tokyo.isseikuzumaki.puzzroom.domain.Centimeter
-import tokyo.isseikuzumaki.puzzroom.domain.Degree
-import tokyo.isseikuzumaki.puzzroom.domain.Point
-import tokyo.isseikuzumaki.puzzroom.domain.Polygon
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.AppSlider
 import tokyo.isseikuzumaki.puzzroom.ui.atoms.SliderOrientation
 import tokyo.isseikuzumaki.puzzroom.ui.molecules.FloorPlanBackgroundImage
 import tokyo.isseikuzumaki.puzzroom.ui.state.SliderState
 import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
+import kotlin.math.sqrt
 
 
 /**
@@ -33,7 +34,13 @@ import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
 data class NormalizedPoint(
     val x: Float = 0.5f,  // 0.0 - 1.0
     val y: Float = 0.5f  // 0.0 - 1.0
-)
+) {
+    fun distanceTo(other: NormalizedPoint): Float {
+        val dx = this.x - other.x
+        val dy = this.y - other.y
+        return sqrt(dx * dx + dy * dy)
+    }
+}
 
 /**
  * Normalized shape - generic shape representation with dimensionless coordinates
@@ -58,14 +65,46 @@ data class NormalizedPlacedShape(
 )
 
 /**
+ * Check if a normalized point is near a placed shape
+ * Uses bounding box approximation for hit testing
+ */
+private fun isPointNearShape(
+    point: NormalizedPoint,
+    shape: NormalizedPlacedShape,
+    canvasSize: IntSize
+): Boolean {
+    // Expand hit area by this many pixels
+    val hitTolerance = 20f / canvasSize.width.coerceAtLeast(1)
+
+    // Calculate bounding box of shape
+    val shapePoints = shape.shape.points.map { shapePoint ->
+        NormalizedPoint(
+            x = shape.position.x + shapePoint.x,
+            y = shape.position.y + shapePoint.y
+        )
+    }
+
+    if (shapePoints.isEmpty()) return false
+
+    val minX = shapePoints.minOf { it.x } - hitTolerance
+    val maxX = shapePoints.maxOf { it.x } + hitTolerance
+    val minY = shapePoints.minOf { it.y } - hitTolerance
+    val maxY = shapePoints.maxOf { it.y } + hitTolerance
+
+    // Simple bounding box check
+    return point.x >= minX && point.x <= maxX && point.y >= minY && point.y <= maxY
+}
+
+/**
  * シンプル化された図形配置用キャンバス（Organism）
  * UI ライブラリとして分離可能な汎用コンポーネント
- * 
+ *
  * @param backgroundImageUrl Canvas背景として表示する画像のURL
  * @param backgroundShape 背景図形（無次元座標）
  * @param selectedShape 選択中の図形（無次元座標）。スライダーで移動可能。
  * @param unselectedShapes 選択されていない図形リスト（無次元座標）。表示のみ。
  * @param onSelectedShapePosition 選択中の図形の位置変更時のコールバック
+ * @param onShapeSelected タップされた図形のインデックスを返すコールバック
  * @param modifier Canvas全体に適用されるModifier
  */
 @Composable
@@ -75,6 +114,7 @@ fun ShapeLayoutCanvas(
     selectedShape: NormalizedPlacedShape? = null,
     unselectedShapes: List<NormalizedPlacedShape> = emptyList(),
     onSelectedShapePosition: (NormalizedPoint) -> Unit = { _ -> },
+    onShapeSelected: (Int) -> Unit = { _ -> },
     modifier: Modifier = Modifier,
 ) {
     var sliderPosition by remember { mutableStateOf(NormalizedPoint()) }
@@ -113,6 +153,8 @@ fun ShapeLayoutCanvas(
         }
     }
 
+    var canvasSize by remember { mutableStateOf(IntSize.Zero) }
+
     Box(modifier = modifier) {
         FloorPlanBackgroundImage(
             imageUrl = backgroundImageUrl,
@@ -123,7 +165,30 @@ fun ShapeLayoutCanvas(
             commonSize = 20.dp,
             centerContent = {
                 Canvas(
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .onSizeChanged { canvasSize = it }
+                        .pointerInput(Unit) {
+                            detectTapGestures { tapOffset ->
+                                // Convert tap to normalized coordinates
+                                if (canvasSize.width > 0 && canvasSize.height > 0) {
+                                    val normalizedTap = NormalizedPoint(
+                                        x = tapOffset.x / canvasSize.width,
+                                        y = tapOffset.y / canvasSize.height
+                                    )
+
+                                    // FIXME 検出できないときがある
+                                    // Check if tap hits any unselected shape (in reverse order - top to bottom)
+                                    unselectedShapes.asReversed().forEachIndexed { reversedIndex, shape ->
+                                        val actualIndex = unselectedShapes.size - 1 - reversedIndex
+                                        if (isPointNearShape(normalizedTap, shape, canvasSize)) {
+                                            onShapeSelected(actualIndex)
+                                            return@detectTapGestures
+                                        }
+                                    }
+                                }
+                            }
+                        }
                 ) {
                     val width = size.width
                     val height = size.height
