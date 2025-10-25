@@ -10,7 +10,134 @@ data class Room(
     val id: String = Uuid.random().toString(),
     val name: String,
     val shape: Polygon,
-)
+) {
+    companion object {
+        // Preset room templates
+        val PRESETS = listOf(
+            // Small rooms (3-4 tatami mats, ~6m²)
+            Room(
+                name = "Compact Room (2m x 3m)",
+                shape = Polygon(
+                    points = listOf(
+                        Point(Centimeter(0), Centimeter(0)),
+                        Point(Centimeter(200), Centimeter(0)),
+                        Point(Centimeter(200), Centimeter(300)),
+                        Point(Centimeter(0), Centimeter(300))
+                    )
+                )
+            ),
+            Room(
+                name = "Square Room (2.5m x 2.5m)",
+                shape = Polygon(
+                    points = listOf(
+                        Point(Centimeter(0), Centimeter(0)),
+                        Point(Centimeter(250), Centimeter(0)),
+                        Point(Centimeter(250), Centimeter(250)),
+                        Point(Centimeter(0), Centimeter(250))
+                    )
+                )
+            ),
+
+            // Medium rooms (6-8 tatami mats, ~10-13m²)
+            Room(
+                name = "Bedroom (3m x 3.5m)",
+                shape = Polygon(
+                    points = listOf(
+                        Point(Centimeter(0), Centimeter(0)),
+                        Point(Centimeter(300), Centimeter(0)),
+                        Point(Centimeter(300), Centimeter(350)),
+                        Point(Centimeter(0), Centimeter(350))
+                    )
+                )
+            ),
+            Room(
+                name = "Study Room (3m x 4m)",
+                shape = Polygon(
+                    points = listOf(
+                        Point(Centimeter(0), Centimeter(0)),
+                        Point(Centimeter(300), Centimeter(0)),
+                        Point(Centimeter(300), Centimeter(400)),
+                        Point(Centimeter(0), Centimeter(400))
+                    )
+                )
+            ),
+            Room(
+                name = "Square Room (3.5m x 3.5m)",
+                shape = Polygon(
+                    points = listOf(
+                        Point(Centimeter(0), Centimeter(0)),
+                        Point(Centimeter(350), Centimeter(0)),
+                        Point(Centimeter(350), Centimeter(350)),
+                        Point(Centimeter(0), Centimeter(350))
+                    )
+                )
+            ),
+
+            // Large rooms (10-12 tatami mats, ~16-20m²)
+            Room(
+                name = "Living Room (4m x 5m)",
+                shape = Polygon(
+                    points = listOf(
+                        Point(Centimeter(0), Centimeter(0)),
+                        Point(Centimeter(400), Centimeter(0)),
+                        Point(Centimeter(400), Centimeter(500)),
+                        Point(Centimeter(0), Centimeter(500))
+                    )
+                )
+            ),
+            Room(
+                name = "Master Bedroom (4m x 4.5m)",
+                shape = Polygon(
+                    points = listOf(
+                        Point(Centimeter(0), Centimeter(0)),
+                        Point(Centimeter(400), Centimeter(0)),
+                        Point(Centimeter(400), Centimeter(450)),
+                        Point(Centimeter(0), Centimeter(450))
+                    )
+                )
+            ),
+
+            // Extra large rooms (15+ tatami mats, ~25m²+)
+            Room(
+                name = "Large Living Room (5m x 6m)",
+                shape = Polygon(
+                    points = listOf(
+                        Point(Centimeter(0), Centimeter(0)),
+                        Point(Centimeter(500), Centimeter(0)),
+                        Point(Centimeter(500), Centimeter(600)),
+                        Point(Centimeter(0), Centimeter(600))
+                    )
+                )
+            ),
+            Room(
+                name = "Spacious Room (6m x 6m)",
+                shape = Polygon(
+                    points = listOf(
+                        Point(Centimeter(0), Centimeter(0)),
+                        Point(Centimeter(600), Centimeter(0)),
+                        Point(Centimeter(600), Centimeter(600)),
+                        Point(Centimeter(0), Centimeter(600))
+                    )
+                )
+            ),
+
+            // L-shaped room
+            Room(
+                name = "L-Shaped Room (4m x 5m)",
+                shape = Polygon(
+                    points = listOf(
+                        Point(Centimeter(0), Centimeter(0)),
+                        Point(Centimeter(400), Centimeter(0)),
+                        Point(Centimeter(400), Centimeter(300)),
+                        Point(Centimeter(250), Centimeter(300)),
+                        Point(Centimeter(250), Centimeter(500)),
+                        Point(Centimeter(0), Centimeter(500))
+                    )
+                )
+            )
+        )
+    }
+}
 
 @Serializable
 data class Furniture(
