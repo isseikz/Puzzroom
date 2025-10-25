@@ -50,7 +50,7 @@ data class RoomShapeElement(
             val steps = 10
             for (i in 0..steps) {
                 val currentAngle = (angle.value * i / steps)
-                val radians = Math.toRadians(currentAngle.toDouble())
+                val radians = kotlin.math.PI * currentAngle.toDouble() / 180.0
                 val x = position.x.value + (width.value * kotlin.math.cos(radians)).toInt()
                 val y = position.y.value + (width.value * kotlin.math.sin(radians)).toInt()
                 points.add(Point(Centimeter(x), Centimeter(y)))
