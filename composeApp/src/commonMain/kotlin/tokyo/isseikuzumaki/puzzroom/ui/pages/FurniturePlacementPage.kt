@@ -11,6 +11,7 @@ import tokyo.isseikuzumaki.puzzroom.AppState
 import tokyo.isseikuzumaki.puzzroom.domain.*
 import tokyo.isseikuzumaki.puzzroom.ui.molecules.SaveStateIndicator
 import tokyo.isseikuzumaki.puzzroom.ui.state.PlacedFurniture
+import tokyo.isseikuzumaki.puzzroom.ui.templates.FurniturePlacementTemplate
 import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.FurnitureTemplateViewModel
 import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.ProjectViewModel
 
@@ -184,48 +185,37 @@ fun FurniturePlacementPage(
                 FurniturePlacementTemplate(
                     room = selectedRoom!!,
                     backgroundImageUrl = project?.layoutUrl,
-                    furnitureToPlace = currentFurniture,
-                    furnitureRotation = furnitureRotation,
                     placeableItems = placeableItems,
                     placedItems = placedFurnitures,
-                    selectedFurnitureIndex = selectedFurnitureIndex,
-                    onPositionUpdate = { position ->
-                        currentPosition = position
-                    },
-                    onFurnitureSelected = { index ->
-                        selectedFurnitureIndex = index
-                        if (index != null) {
-                            appState.selectFurnitureTemplate(null)
-                        }
-                    },
-                    onFurnitureMoved = { index, newPosition ->
-                        placedFurnitures = placedFurnitures.mapIndexed { i, furniture ->
-                            if (i == index) {
-                                furniture.copy(position = newPosition)
-                            } else {
-                                furniture
-                            }
-                        }
-                        // Update ViewModel
+                    onFurnitureChanged = { updatedFurniture ->
+                        // Update local state
+                        placedFurnitures = updatedFurniture
+
+                        // Save to project
                         project?.let { currentProject ->
-                            currentFloorPlan?.let { floorPlan ->
-                                val updatedLayoutEntry = floorPlan.layouts.getOrNull(index)?.copy(position = newPosition)
-                                if (updatedLayoutEntry != null) {
-                                    val updatedFloorPlan = floorPlan.copy(
-                                        layouts = floorPlan.layouts.mapIndexed { i, layout ->
-                                            if (i == index) updatedLayoutEntry else layout
-                                        }
+                            selectedRoom?.let { room ->
+                                val currentFloorPlan = currentProject.floorPlans.firstOrNull() ?: FloorPlan()
+
+                                // Remove old layouts for this room and add new ones
+                                val otherLayouts = currentFloorPlan.layouts.filter { it.room.id != room.id }
+                                val newLayouts = updatedFurniture.map { placedFurniture ->
+                                    LayoutEntry(
+                                        room = room,
+                                        furniture = placedFurniture.furniture,
+                                        position = placedFurniture.position,
+                                        rotation = placedFurniture.rotation
                                     )
-                                    val updatedProject = currentProject.copy(
-                                        floorPlans = listOf(updatedFloorPlan)
-                                    )
-                                    viewModel.updateProject(updatedProject)
                                 }
+
+                                val updatedFloorPlan = currentFloorPlan.copy(
+                                    layouts = otherLayouts + newLayouts
+                                )
+                                val updatedProject = currentProject.copy(
+                                    floorPlans = listOf(updatedFloorPlan)
+                                )
+                                viewModel.updateProject(updatedProject)
                             }
                         }
-                    },
-                    onCancelBottomSheet = {
-                        // Handle bottom sheet cancellation if needed
                     },
                     modifier = Modifier.weight(1f)
                 )
