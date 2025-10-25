@@ -34,6 +34,53 @@ import tokyo.isseikuzumaki.puzzroom.ui.organisms.RoomShapeSelector
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.ShapeAttributeForm
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.ShapeLayoutCanvas
 import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
+import tokyo.isseikuzumaki.puzzroom.domain.Room
+
+/**
+ * Convert a list of PlacedShape (walls/doors) to a Room
+ *
+ * For now, this creates a simple room by taking all the points from all shapes
+ * and combining them into a single polygon. In the future, this could be enhanced
+ * to properly merge wall segments into a closed polygon.
+ */
+fun convertPlacedShapesToRoom(
+    shapes: List<PlacedShape>,
+    roomName: String = "New Room"
+): Room {
+    if (shapes.isEmpty()) {
+        // Return a default small room if no shapes provided
+        return Room(
+            name = roomName,
+            shape = Polygon(
+                points = listOf(
+                    Point(Centimeter(0), Centimeter(0)),
+                    Point(Centimeter(300), Centimeter(0)),
+                    Point(Centimeter(300), Centimeter(300)),
+                    Point(Centimeter(0), Centimeter(300))
+                )
+            )
+        )
+    }
+
+    // Collect all points from all shapes
+    // TODO: In the future, properly merge wall segments into a closed polygon
+    val allPoints = mutableListOf<Point>()
+    shapes.forEach { placedShape ->
+        placedShape.shape.points.forEach { point ->
+            // Translate point by the shape's position
+            val translatedPoint = Point(
+                x = Centimeter(point.x.value + placedShape.position.x.value),
+                y = Centimeter(point.y.value + placedShape.position.y.value)
+            )
+            allPoints.add(translatedPoint)
+        }
+    }
+
+    return Room(
+        name = roomName,
+        shape = Polygon(points = allPoints)
+    )
+}
 
 /**
  * Placed shape with position and rotation (domain-specific types)
@@ -113,6 +160,7 @@ private data class RoomCreationUiState(
 fun RoomCreationTemplate(
     backgroundImageUrl: String? = null,
     placedShapes: List<PlacedShape> = emptyList(),
+    onShapesChanged: (List<PlacedShape>) -> Unit = { },
     modifier: Modifier = Modifier
 ) {
     var spaceSize by remember { mutableStateOf(IntSize(1000, 1000)) }
@@ -162,7 +210,33 @@ fun RoomCreationTemplate(
         )
         
         ButtonToCreate(
-            onClick = { showBottomSheet = true },
+            onClick = {
+                // Add current editing shape to the list
+                data.editingShape?.let { currentShapes = currentShapes + it }
+
+                // Convert normalized shapes back to PlacedShape and notify parent
+                val denormalizedShapes = currentShapes.map { normalizedShape ->
+                    PlacedShape(
+                        shape = Polygon(
+                            points = normalizedShape.shape.points.map { point ->
+                                Point(
+                                    Centimeter((point.x * spaceSize.width).toInt()),
+                                    Centimeter((point.y * spaceSize.height).toInt())
+                                )
+                            }
+                        ),
+                        position = Point(
+                            Centimeter((normalizedShape.position.x * spaceSize.width).toInt()),
+                            Centimeter((normalizedShape.position.y * spaceSize.height).toInt())
+                        ),
+                        rotation = Degree(normalizedShape.rotation),
+                        color = normalizedShape.color,
+                        name = normalizedShape.name
+                    )
+                }
+                onShapesChanged(denormalizedShapes)
+                showBottomSheet = true
+            },
             modifier = Modifier.fillMaxWidth().height(56.dp)
                 .background(color = MaterialTheme.colorScheme.secondaryContainer)
         )
