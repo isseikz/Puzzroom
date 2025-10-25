@@ -187,6 +187,36 @@ fun FurniturePlacementPage(
                     backgroundImageUrl = project?.layoutUrl,
                     placeableItems = placeableItems,
                     placedItems = placedFurnitures,
+                    onFurnitureChanged = { updatedFurniture ->
+                        // Update local state
+                        placedFurnitures = updatedFurniture
+
+                        // Save to project
+                        project?.let { currentProject ->
+                            selectedRoom?.let { room ->
+                                val currentFloorPlan = currentProject.floorPlans.firstOrNull() ?: FloorPlan()
+
+                                // Remove old layouts for this room and add new ones
+                                val otherLayouts = currentFloorPlan.layouts.filter { it.room.id != room.id }
+                                val newLayouts = updatedFurniture.map { placedFurniture ->
+                                    LayoutEntry(
+                                        room = room,
+                                        furniture = placedFurniture.furniture,
+                                        position = placedFurniture.position,
+                                        rotation = placedFurniture.rotation
+                                    )
+                                }
+
+                                val updatedFloorPlan = currentFloorPlan.copy(
+                                    layouts = otherLayouts + newLayouts
+                                )
+                                val updatedProject = currentProject.copy(
+                                    floorPlans = listOf(updatedFloorPlan)
+                                )
+                                viewModel.updateProject(updatedProject)
+                            }
+                        }
+                    },
                     modifier = Modifier.weight(1f)
                 )
             }

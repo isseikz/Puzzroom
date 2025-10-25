@@ -20,7 +20,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import tokyo.isseikuzumaki.puzzroom.domain.Centimeter
 import tokyo.isseikuzumaki.puzzroom.domain.Centimeter.Companion.cm
+import tokyo.isseikuzumaki.puzzroom.domain.Degree
 import tokyo.isseikuzumaki.puzzroom.domain.Degree.Companion.degree
 import tokyo.isseikuzumaki.puzzroom.domain.Furniture
 import tokyo.isseikuzumaki.puzzroom.domain.Point
@@ -52,6 +54,7 @@ fun FurniturePlacementTemplate(
     backgroundImageUrl: String? = null,
     placeableItems: List<Furniture> = emptyList(),
     placedItems: List<PlacedFurniture> = emptyList(),
+    onFurnitureChanged: (List<PlacedFurniture>) -> Unit = { },
     modifier: Modifier = Modifier
 ) {
     var spaceSize by remember { mutableStateOf(IntSize(1000, 1000)) }
@@ -60,6 +63,31 @@ fun FurniturePlacementTemplate(
         skipPartiallyExpanded = false
     )
     var data by remember { mutableStateOf(FurniturePlacementUiState()) }
+
+    // Helper function to denormalize shapes and notify parent
+    fun notifyFurnitureChanged(normalizedShapes: List<NormalizedPlacedShape>) {
+        val denormalizedFurniture = normalizedShapes.map { normalizedShape ->
+            PlacedFurniture(
+                furniture = Furniture(
+                    name = normalizedShape.name,
+                    shape = Polygon(
+                        points = normalizedShape.shape.points.map { point ->
+                            Point(
+                                Centimeter((point.x * spaceSize.width).toInt()),
+                                Centimeter((point.y * spaceSize.height).toInt())
+                            )
+                        }
+                    )
+                ),
+                position = Point(
+                    Centimeter((normalizedShape.position.x * spaceSize.width).toInt()),
+                    Centimeter((normalizedShape.position.y * spaceSize.height).toInt())
+                ),
+                rotation = Degree(normalizedShape.rotation)
+            )
+        }
+        onFurnitureChanged(denormalizedFurniture)
+    }
 
     // Convert room shape to normalized background shape
     val backgroundShape = remember(room, spaceSize) {
@@ -110,11 +138,17 @@ fun FurniturePlacementTemplate(
             selectedShape = data.editingFurniture,
             unselectedShapes = currentShapes,
             onSelectedShapePosition = { newPosition ->
-                data = data.copy(
-                    editingFurniture = data.editingFurniture?.copy(
-                        position = newPosition
-                    )
+                val updatedEditingFurniture = data.editingFurniture?.copy(
+                    position = newPosition
                 )
+                data = data.copy(
+                    editingFurniture = updatedEditingFurniture
+                )
+
+                // Notify parent of position change (for auto-save)
+                updatedEditingFurniture?.let {
+                    notifyFurnitureChanged(currentShapes + it)
+                }
             },
             modifier = modifier.weight(1f)
         )
@@ -124,7 +158,12 @@ fun FurniturePlacementTemplate(
             selectedShape = null,
             onShapeSelected = { furniture ->
                 // Add current editing furniture to the list
-                data.editingFurniture?.let { currentShapes = currentShapes + it }
+                val updatedShapes = if (data.editingFurniture != null) {
+                    currentShapes + data.editingFurniture!!
+                } else {
+                    currentShapes
+                }
+                currentShapes = updatedShapes
 
                 // Create new furniture shape to place
                 val newShape = NormalizedPlacedShape(
@@ -143,6 +182,9 @@ fun FurniturePlacementTemplate(
                     name = furniture.name
                 )
                 data = data.copy(editingFurniture = newShape)
+
+                // Notify parent that furniture was added
+                notifyFurnitureChanged(updatedShapes)
             },
             modifier = Modifier.fillMaxWidth().height(100.dp)
                 .background(color = MaterialTheme.colorScheme.secondaryContainer)
