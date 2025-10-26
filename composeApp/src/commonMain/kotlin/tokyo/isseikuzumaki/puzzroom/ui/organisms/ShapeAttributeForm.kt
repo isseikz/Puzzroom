@@ -210,7 +210,11 @@ private fun ShapeAttributeFormWithBottomSheetPreview(
             )
 
             AppText(
-                text = "Current: ${currentData.shapeType.displayName()} (${currentData.width}cm width, ${currentData.angle.value}° angle)",
+                text = if (currentData.shapeType == RoomShapeType.DOOR) {
+                    "Current: ${currentData.shapeType.displayName()} (${currentData.width}cm width, ${currentData.angle.value}° angle)"
+                } else {
+                    "Current: ${currentData.shapeType.displayName()} (${currentData.width}cm width)"
+                },
                 style = MaterialTheme.typography.bodyMedium
             )
 
