@@ -43,7 +43,7 @@ fun RoomCreationPage(
     var selectedRoom by remember { mutableStateOf<Room?>(null) }
     val saveState by viewModel.saveState.collectAsState()
 
-    var showNameDialog by remember { mutableStateOf(false) }
+    var showNameDialog by remember { mutableStateOf(rooms.isEmpty()) }
     var pendingShapes by remember { mutableStateOf<List<PlacedShape>?>(null) }
 
     Column(modifier = modifier) {
@@ -87,21 +87,20 @@ fun RoomCreationPage(
     }
 
     // Room name dialog
-    if (showNameDialog && pendingShapes != null) {
+    if (showNameDialog) {
         RoomNameDialog(
             onConfirm = { roomName ->
-                pendingShapes?.let { shapes ->
-                    val newRoom = convertPlacedShapesToRoom(shapes, roomName)
-                    project?.let { currentProject ->
-                        val currentFloorPlan = currentProject.floorPlans.firstOrNull() ?: FloorPlan()
-                        val updatedFloorPlan = currentFloorPlan.copy(
-                            rooms = currentFloorPlan.rooms + newRoom
-                        )
-                        val updatedProject = currentProject.copy(
-                            floorPlans = listOf(updatedFloorPlan)
-                        )
-                        viewModel.updateProject(updatedProject)
-                    }
+                // Create room from shapes (if available) or empty list (for first-time users)
+                val newRoom = convertPlacedShapesToRoom(pendingShapes ?: emptyList(), roomName)
+                project?.let { currentProject ->
+                    val currentFloorPlan = currentProject.floorPlans.firstOrNull() ?: FloorPlan()
+                    val updatedFloorPlan = currentFloorPlan.copy(
+                        rooms = currentFloorPlan.rooms + newRoom
+                    )
+                    val updatedProject = currentProject.copy(
+                        floorPlans = listOf(updatedFloorPlan)
+                    )
+                    viewModel.updateProject(updatedProject)
                 }
                 showNameDialog = false
                 pendingShapes = null
