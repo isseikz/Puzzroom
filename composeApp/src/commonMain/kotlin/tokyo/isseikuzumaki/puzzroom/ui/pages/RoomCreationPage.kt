@@ -122,15 +122,18 @@ fun RoomCreationPage(
                 project?.let { currentProject ->
                     val currentFloorPlan = currentProject.floorPlans.firstOrNull() ?: FloorPlan()
                     
+                    // Store the ID to track which room to update/select after save
+                    val currentRoomId = selectedRoom?.id
+                    
                     // If editing an existing room, update it; otherwise add a new room
-                    val updatedRooms = if (selectedRoom != null) {
+                    val updatedRooms = if (currentRoomId != null) {
                         // Update existing room by replacing it with the edited version
-                        val roomIndex = currentFloorPlan.rooms.indexOfFirst { it.id == selectedRoom!!.id }
+                        val roomIndex = currentFloorPlan.rooms.indexOfFirst { it.id == currentRoomId }
                         if (roomIndex >= 0) {
                             // Preserve the ID of the existing room
-                            val updatedRoom = newRoom.copy(id = selectedRoom!!.id)
-                            currentFloorPlan.rooms.toMutableList().apply {
-                                set(roomIndex, updatedRoom)
+                            val updatedRoom = newRoom.copy(id = currentRoomId)
+                            currentFloorPlan.rooms.mapIndexed { index, room ->
+                                if (index == roomIndex) updatedRoom else room
                             }
                         } else {
                             // Room not found, add as new
@@ -150,7 +153,8 @@ fun RoomCreationPage(
                     viewModel.updateProject(updatedProject)
                     
                     // Update selectedRoom to point to the saved room
-                    selectedRoom = updatedRooms.find { it.id == (selectedRoom?.id ?: newRoom.id) }
+                    val targetId = currentRoomId ?: newRoom.id
+                    selectedRoom = updatedRooms.find { it.id == targetId }
                 }
                 showNameDialog = false
                 pendingShapes = null
