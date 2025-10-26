@@ -124,18 +124,16 @@ fun ShapeAttributeForm(
         )
         
         VerticalSpacer(height = 8.dp)
-        
-        // Angle input (for doors)
-        if (formData.shapeType == RoomShapeType.DOOR) {
-            AppTextField(
-                value = formData.angle.value.toString(),
-                onValueChange = { formData = formData.copy(angle = (it.toFloatOrNull() ?: 0f).degree()) },
-                label = "Angle (degrees)",
-                modifier = Modifier.fillMaxWidth()
-            )
-            
-            VerticalSpacer(height = 8.dp)
-        }
+
+        // Angle input (common for all types)
+        AppTextField(
+            value = formData.angle.value.toString(),
+            onValueChange = { formData = formData.copy(angle = (it.toFloatOrNull() ?: 0f).degree()) },
+            label = "Angle (degrees)",
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        VerticalSpacer(height = 8.dp)
         
         HorizontalDivider()
         

@@ -296,6 +296,7 @@ fun RoomCreationTemplate(
                                     }.let { points ->
                                         NormalizedShape(points)
                                     },
+                                    rotation = modalData.angle.value
                                 )
                             }
                         )

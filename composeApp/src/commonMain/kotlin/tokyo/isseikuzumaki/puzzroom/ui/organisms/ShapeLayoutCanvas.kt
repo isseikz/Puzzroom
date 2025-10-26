@@ -213,14 +213,21 @@ fun ShapeLayoutCanvas(
                         val shapeOffsets = placedShape.shape.points.map { point ->
                             val centerX = placedShape.position.x * width
                             val centerY = placedShape.position.y * height
-                            
-                            // Apply rotation if needed
+
+                            // Apply rotation
+                            val angleRad = placedShape.rotation * (kotlin.math.PI / 180.0)
+                            val cos = kotlin.math.cos(angleRad)
+                            val sin = kotlin.math.sin(angleRad)
+
                             val x = point.x * width
                             val y = point.y * height
 
-                            Offset(centerX + x, centerY + y)
+                            val rotatedX = x * cos - y * sin
+                            val rotatedY = x * sin + y * cos
+
+                            Offset(centerX + rotatedX.toFloat(), centerY + rotatedY.toFloat())
                         }
-                        
+
                         if (shapeOffsets.isNotEmpty()) {
                             drawPoints(
                                 points = shapeOffsets + shapeOffsets.first(),
@@ -230,20 +237,27 @@ fun ShapeLayoutCanvas(
                             )
                         }
                     }
-                    
+
                     // Draw selected shape (highlighted)
                     selectedShape?.let { placedShape ->
                         val shapeOffsets = placedShape.shape.points.map { point ->
                             val centerX = sliderPosition.x * width
                             val centerY = sliderPosition.y * height
-                            
-                            // Apply rotation if needed
+
+                            // Apply rotation
+                            val angleRad = placedShape.rotation * (kotlin.math.PI / 180.0)
+                            val cos = kotlin.math.cos(angleRad)
+                            val sin = kotlin.math.sin(angleRad)
+
                             val x = point.x * width
                             val y = point.y * height
 
-                            Offset(centerX + x, centerY + y)
+                            val rotatedX = x * cos - y * sin
+                            val rotatedY = x * sin + y * cos
+
+                            Offset(centerX + rotatedX.toFloat(), centerY + rotatedY.toFloat())
                         }
-                        
+
                         if (shapeOffsets.isNotEmpty()) {
                             drawPoints(
                                 points = shapeOffsets + shapeOffsets.first(),
