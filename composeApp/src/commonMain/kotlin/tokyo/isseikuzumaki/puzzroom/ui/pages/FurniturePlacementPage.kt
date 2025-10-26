@@ -1,15 +1,30 @@
 package tokyo.isseikuzumaki.puzzroom.ui.pages
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import tokyo.isseikuzumaki.puzzroom.AppState
-import tokyo.isseikuzumaki.puzzroom.domain.*
+import tokyo.isseikuzumaki.puzzroom.domain.Centimeter
+import tokyo.isseikuzumaki.puzzroom.domain.FloorPlan
+import tokyo.isseikuzumaki.puzzroom.domain.Furniture
+import tokyo.isseikuzumaki.puzzroom.domain.LayoutEntry
+import tokyo.isseikuzumaki.puzzroom.domain.Point
+import tokyo.isseikuzumaki.puzzroom.domain.Polygon
+import tokyo.isseikuzumaki.puzzroom.domain.Room
 import tokyo.isseikuzumaki.puzzroom.ui.molecules.SaveStateIndicator
+import tokyo.isseikuzumaki.puzzroom.ui.organisms.RoomSelectionList
 import tokyo.isseikuzumaki.puzzroom.ui.state.PlacedFurniture
 import tokyo.isseikuzumaki.puzzroom.ui.templates.FurniturePlacementTemplate
 import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.FurnitureTemplateViewModel
@@ -27,15 +42,9 @@ fun FurniturePlacementPage(
     val furnitureTemplates by furnitureTemplateViewModel.allTemplates.collectAsState()
     val currentFloorPlan = project?.floorPlans?.firstOrNull()
     val rooms = currentFloorPlan?.rooms ?: emptyList()
-    var selectedRoom by remember { mutableStateOf<Room?>(appState.selectedRoom) }
+    var selectedRoom by remember { mutableStateOf<Room?>(null) }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Save state indicator
-        SaveStateIndicator(
-            saveState = saveState,
-            onRetry = { viewModel.saveNow() }
-        )
-
         // Room selection
         if (selectedRoom == null) {
             Text(
@@ -50,36 +59,8 @@ fun FurniturePlacementPage(
                     modifier = Modifier.padding(16.dp)
                 )
             } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(rooms) { room ->
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth(),
-                            onClick = {
-                                selectedRoom = room
-                                appState.selectRoom(room)
-                            }
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp)
-                            ) {
-                                Text(
-                                    room.name,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                Text(
-                                    "Number of vertices: ${room.shape.points.size}",
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            }
-                        }
-                    }
+                RoomSelectionList(rooms) {
+                    selectedRoom = it
                 }
             }
         } else {
@@ -162,64 +143,50 @@ fun FurniturePlacementPage(
                 }
             }
 
-            Column(modifier = Modifier.fillMaxSize()) {
-                // Room header with back button
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        "Room: ${selectedRoom!!.name}",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Button(onClick = {
-                        selectedRoom = null
-                    }) {
-                        Text("Back to room selection")
-                    }
-                }
+            // Save state indicator
+            SaveStateIndicator(
+                saveState = saveState,
+                onRetry = { viewModel.saveNow() }
+            )
 
-                // Use FurniturePlacementTemplate
-                FurniturePlacementTemplate(
-                    room = selectedRoom!!,
-                    backgroundImageUrl = project?.layoutUrl,
-                    placeableItems = placeableItems,
-                    placedItems = placedFurnitures,
-                    onFurnitureChanged = { updatedFurniture ->
-                        // Update local state
-                        placedFurnitures = updatedFurniture
+            // Use FurniturePlacementTemplate
+            FurniturePlacementTemplate(
+                room = selectedRoom!!,
+                backgroundImageUrl = project?.layoutUrl,
+                placeableItems = placeableItems,
+                placedItems = placedFurnitures,
+                onFurnitureChanged = { updatedFurniture ->
+                    // Update local state
+                    placedFurnitures = updatedFurniture
 
-                        // Save to project
-                        project?.let { currentProject ->
-                            selectedRoom?.let { room ->
-                                val currentFloorPlan = currentProject.floorPlans.firstOrNull() ?: FloorPlan()
+                    // Save to project
+                    project?.let { currentProject ->
+                        selectedRoom?.let { room ->
+                            val currentFloorPlan = currentProject.floorPlans.firstOrNull() ?: FloorPlan()
 
-                                // Remove old layouts for this room and add new ones
-                                val otherLayouts = currentFloorPlan.layouts.filter { it.room.id != room.id }
-                                val newLayouts = updatedFurniture.map { placedFurniture ->
-                                    LayoutEntry(
-                                        room = room,
-                                        furniture = placedFurniture.furniture,
-                                        position = placedFurniture.position,
-                                        rotation = placedFurniture.rotation
-                                    )
-                                }
-
-                                val updatedFloorPlan = currentFloorPlan.copy(
-                                    layouts = otherLayouts + newLayouts
+                            // Remove old layouts for this room and add new ones
+                            val otherLayouts = currentFloorPlan.layouts.filter { it.room.id != room.id }
+                            val newLayouts = updatedFurniture.map { placedFurniture ->
+                                LayoutEntry(
+                                    room = room,
+                                    furniture = placedFurniture.furniture,
+                                    position = placedFurniture.position,
+                                    rotation = placedFurniture.rotation
                                 )
-                                val updatedProject = currentProject.copy(
-                                    floorPlans = listOf(updatedFloorPlan)
-                                )
-                                viewModel.updateProject(updatedProject)
                             }
+
+                            val updatedFloorPlan = currentFloorPlan.copy(
+                                layouts = otherLayouts + newLayouts
+                            )
+                            val updatedProject = currentProject.copy(
+                                floorPlans = listOf(updatedFloorPlan)
+                            )
+                            viewModel.updateProject(updatedProject)
                         }
-                    },
-                    modifier = Modifier.weight(1f)
-                )
-            }
+                    }
+                },
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }

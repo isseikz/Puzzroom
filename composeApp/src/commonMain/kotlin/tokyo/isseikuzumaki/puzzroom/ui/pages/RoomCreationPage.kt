@@ -1,18 +1,27 @@
 package tokyo.isseikuzumaki.puzzroom.ui.pages
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.runtime.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import tokyo.isseikuzumaki.puzzroom.domain.FloorPlan
+import tokyo.isseikuzumaki.puzzroom.domain.Room
 import tokyo.isseikuzumaki.puzzroom.ui.molecules.SaveStateIndicator
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.RoomNameDialog
+import tokyo.isseikuzumaki.puzzroom.ui.organisms.RoomSelectionList
 import tokyo.isseikuzumaki.puzzroom.ui.templates.PlacedShape
 import tokyo.isseikuzumaki.puzzroom.ui.templates.RoomCreationTemplate
 import tokyo.isseikuzumaki.puzzroom.ui.templates.convertPlacedShapesToRoom
-import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
 import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.ProjectViewModel
 import tokyo.isseikuzumaki.puzzroom.ui.viewmodel.rememberProjectViewModel
 
@@ -29,30 +38,52 @@ fun RoomCreationPage(
     viewModel: ProjectViewModel = rememberProjectViewModel()
 ) {
     val project by viewModel.currentProject.collectAsState()
+    val currentFloorPlan = project?.floorPlans?.firstOrNull()
+    val rooms = currentFloorPlan?.rooms ?: emptyList()
+    var selectedRoom by remember { mutableStateOf<Room?>(null) }
     val saveState by viewModel.saveState.collectAsState()
 
     var showNameDialog by remember { mutableStateOf(false) }
     var pendingShapes by remember { mutableStateOf<List<PlacedShape>?>(null) }
 
     Column(modifier = modifier) {
-        // Save state indicator
-        SaveStateIndicator(
-            saveState = saveState,
-            onRetry = { viewModel.saveNow() },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        )
+        if (selectedRoom == null) {
+            Text(
+                "Please select a room",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(16.dp)
+            )
 
-        RoomCreationTemplate(
-            backgroundImageUrl = backgroundImageUrl,
-            placedShapes = emptyList(),
-            onShapesChanged = { shapes ->
-                pendingShapes = shapes
-                showNameDialog = true
-            },
-            modifier = Modifier.weight(1f)
-        )
+            if (rooms.isEmpty()) {
+                Text(
+                    "No rooms are registered. Please create a room on the Room screen.",
+                    modifier = Modifier.padding(16.dp)
+                )
+            } else {
+                RoomSelectionList(rooms) {
+                    selectedRoom = it
+                }
+            }
+        } else {
+            // Save state indicator
+            SaveStateIndicator(
+                saveState = saveState,
+                onRetry = { viewModel.saveNow() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            )
+
+            RoomCreationTemplate(
+                backgroundImageUrl = backgroundImageUrl,
+                placedShapes = emptyList(), //FIXME: Load existing shapes if editing
+                onShapesChanged = { shapes ->
+                    pendingShapes = shapes
+                    showNameDialog = true
+                },
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 
     // Room name dialog
@@ -80,14 +111,5 @@ fun RoomCreationPage(
                 pendingShapes = null
             }
         )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Preview
-@Composable
-private fun RoomCreationPagePreview() {
-    PuzzroomTheme {
-        RoomCreationPage()
     }
 }
