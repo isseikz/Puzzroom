@@ -7,6 +7,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,8 +44,15 @@ fun RoomCreationPage(
     var selectedRoom by remember { mutableStateOf<Room?>(null) }
     val saveState by viewModel.saveState.collectAsState()
 
-    var showNameDialog by remember { mutableStateOf(rooms.isEmpty()) }
+    var showNameDialog by remember { mutableStateOf(false) }
     var pendingShapes by remember { mutableStateOf<List<PlacedShape>?>(null) }
+    
+    // Auto-show dialog when room list becomes empty (first-time user experience)
+    LaunchedEffect(rooms.isEmpty()) {
+        if (rooms.isEmpty()) {
+            showNameDialog = true
+        }
+    }
 
     Column(modifier = modifier) {
         if (selectedRoom == null) {
@@ -91,6 +99,8 @@ fun RoomCreationPage(
         RoomNameDialog(
             onConfirm = { roomName ->
                 // Create room from shapes (if available) or empty list (for first-time users)
+                // pendingShapes is null when dialog is auto-shown for empty room list,
+                // and contains shapes when triggered from RoomCreationTemplate
                 val newRoom = convertPlacedShapesToRoom(pendingShapes ?: emptyList(), roomName)
                 project?.let { currentProject ->
                     val currentFloorPlan = currentProject.floorPlans.firstOrNull() ?: FloorPlan()
