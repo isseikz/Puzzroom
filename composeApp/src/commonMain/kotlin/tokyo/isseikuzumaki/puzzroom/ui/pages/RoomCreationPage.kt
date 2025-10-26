@@ -1,7 +1,9 @@
 package tokyo.isseikuzumaki.puzzroom.ui.pages
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -17,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import tokyo.isseikuzumaki.puzzroom.domain.FloorPlan
 import tokyo.isseikuzumaki.puzzroom.domain.Room
 import tokyo.isseikuzumaki.puzzroom.ui.molecules.SaveStateIndicator
+import tokyo.isseikuzumaki.puzzroom.ui.organisms.ButtonToCreate
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.RoomNameDialog
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.RoomSelectionList
 import tokyo.isseikuzumaki.puzzroom.ui.templates.PlacedShape
@@ -45,26 +48,13 @@ fun RoomCreationPage(
 
     var showNameDialog by remember { mutableStateOf(false) }
     var pendingShapes by remember { mutableStateOf<List<PlacedShape>?>(null) }
+    var createRoomCallback by remember { mutableStateOf<(() -> Unit)?>(null) }
 
     Column(modifier = modifier) {
-        if (selectedRoom == null) {
-            Text(
-                "Please select a room",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(16.dp)
-            )
-
-            if (rooms.isEmpty()) {
-                Text(
-                    "No rooms are registered. Please create a room on the Room screen.",
-                    modifier = Modifier.padding(16.dp)
-                )
-            } else {
-                RoomSelectionList(rooms) {
-                    selectedRoom = it
-                }
-            }
-        } else {
+        // Show room creation interface when:
+        // 1. Room list is empty (first-time users)
+        // 2. A room is selected for editing
+        if (rooms.isEmpty() || selectedRoom != null) {
             // Save state indicator
             SaveStateIndicator(
                 saveState = saveState,
@@ -81,8 +71,33 @@ fun RoomCreationPage(
                     pendingShapes = shapes
                     showNameDialog = true
                 },
+                onCreateRoomClick = { callback ->
+                    createRoomCallback = callback
+                },
                 modifier = Modifier.weight(1f)
             )
+
+            // ButtonToCreate to finalize and save the room
+            ButtonToCreate(
+                onClick = {
+                    createRoomCallback?.invoke()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .background(color = MaterialTheme.colorScheme.secondaryContainer)
+            )
+        } else {
+            // Show room selection list
+            Text(
+                "Please select a room",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(16.dp)
+            )
+
+            RoomSelectionList(rooms) {
+                selectedRoom = it
+            }
         }
     }
 

@@ -27,7 +27,6 @@ import tokyo.isseikuzumaki.puzzroom.domain.Point
 import tokyo.isseikuzumaki.puzzroom.domain.Polygon
 import tokyo.isseikuzumaki.puzzroom.domain.Room
 import tokyo.isseikuzumaki.puzzroom.domain.RoomShapeType
-import tokyo.isseikuzumaki.puzzroom.ui.organisms.ButtonToCreate
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.NormalizedPlacedShape
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.NormalizedPoint
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.NormalizedShape
@@ -164,6 +163,7 @@ fun RoomCreationTemplate(
     backgroundImageUrl: String? = null,
     placedShapes: List<PlacedShape> = emptyList(),
     onShapesChanged: (List<PlacedShape>) -> Unit = { },
+    onCreateRoomClick: (() -> Unit) -> Unit = { },
     modifier: Modifier = Modifier
 ) {
     var spaceSize by remember { mutableStateOf(IntSize(1000, 1000)) }
@@ -174,6 +174,40 @@ fun RoomCreationTemplate(
     val bottomSheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true
     )
+
+    // Provide a callback to the parent to get current shapes and trigger creation
+    onCreateRoomClick {
+        // Add current editing shape to the list (if any)
+        val shapesToSave = if (data.editingShape != null) {
+            currentShapes + data.editingShape!!
+        } else {
+            currentShapes
+        }
+
+        // Convert normalized shapes back to PlacedShape and notify parent
+        val denormalizedShapes = shapesToSave.map { normalizedShape ->
+            PlacedShape(
+                shape = Polygon(
+                    points = normalizedShape.shape.points.map { point ->
+                        Point(
+                            Centimeter((point.x * spaceSize.width).toInt()),
+                            Centimeter((point.y * spaceSize.height).toInt())
+                        )
+                    }
+                ),
+                position = Point(
+                    Centimeter((normalizedShape.position.x * spaceSize.width).toInt()),
+                    Centimeter((normalizedShape.position.y * spaceSize.height).toInt())
+                ),
+                rotation = Degree(normalizedShape.rotation),
+                color = normalizedShape.color,
+                name = normalizedShape.name
+            )
+        }
+
+        // Notify parent with denormalized shapes
+        onShapesChanged(denormalizedShapes)
+    }
 
     Column(
         verticalArrangement = Arrangement.Bottom
@@ -225,44 +259,6 @@ fun RoomCreationTemplate(
                 showBottomSheet = true
             },
             modifier = Modifier.fillMaxWidth().height(100.dp)
-                .background(color = MaterialTheme.colorScheme.secondaryContainer)
-        )
-        
-        ButtonToCreate(
-            onClick = {
-                // Add current editing shape to the list (if any)
-                val shapesToSave = if (data.editingShape != null) {
-                    currentShapes + data.editingShape!!
-                } else {
-                    currentShapes
-                }
-
-                // Convert normalized shapes back to PlacedShape and notify parent
-                // This works even if shapesToSave is empty - users can save an empty room layout
-                val denormalizedShapes = shapesToSave.map { normalizedShape ->
-                    PlacedShape(
-                        shape = Polygon(
-                            points = normalizedShape.shape.points.map { point ->
-                                Point(
-                                    Centimeter((point.x * spaceSize.width).toInt()),
-                                    Centimeter((point.y * spaceSize.height).toInt())
-                                )
-                            }
-                        ),
-                        position = Point(
-                            Centimeter((normalizedShape.position.x * spaceSize.width).toInt()),
-                            Centimeter((normalizedShape.position.y * spaceSize.height).toInt())
-                        ),
-                        rotation = Degree(normalizedShape.rotation),
-                        color = normalizedShape.color,
-                        name = normalizedShape.name
-                    )
-                }
-
-                // Notify parent to save current layout (even if incomplete/empty)
-                onShapesChanged(denormalizedShapes)
-            },
-            modifier = Modifier.fillMaxWidth().height(56.dp)
                 .background(color = MaterialTheme.colorScheme.secondaryContainer)
         )
 
