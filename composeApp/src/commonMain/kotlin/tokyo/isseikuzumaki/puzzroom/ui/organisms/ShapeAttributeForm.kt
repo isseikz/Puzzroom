@@ -125,6 +125,18 @@ fun ShapeAttributeForm(
         
         VerticalSpacer(height = 8.dp)
         
+        // Angle input (for doors)
+        if (formData.shapeType == RoomShapeType.DOOR) {
+            AppTextField(
+                value = formData.angle.value.toString(),
+                onValueChange = { formData = formData.copy(angle = (it.toFloatOrNull() ?: 0f).degree()) },
+                label = "Angle (degrees)",
+                modifier = Modifier.fillMaxWidth()
+            )
+            
+            VerticalSpacer(height = 8.dp)
+        }
+        
         HorizontalDivider()
         
         // Action buttons
@@ -146,8 +158,9 @@ fun ShapeAttributeForm(
 private fun ShapeAttributeFormPreview() {
     ShapeAttributeForm(
         initialData = ShapeAttributeFormData(
-            shapeType = RoomShapeType.WALL,
-            width = 10.cm,
+            shapeType = RoomShapeType.DOOR,
+            width = 80.cm,
+            angle = 90.degree
         ),
         onDismiss = {},
         onSave = {}
@@ -177,6 +190,7 @@ private fun ShapeAttributeFormWithBottomSheetPreview(
             ShapeAttributeFormData(
                 shapeType = RoomShapeType.DOOR,
                 width = 80.cm,
+                angle = 90.degree
             )
         )
     }
@@ -196,7 +210,7 @@ private fun ShapeAttributeFormWithBottomSheetPreview(
             )
 
             AppText(
-                text = "Current: ${currentData.shapeType.displayName()} (${currentData.width}cm width)",
+                text = "Current: ${currentData.shapeType.displayName()} (${currentData.width}cm width, ${currentData.angle.value}° angle)",
                 style = MaterialTheme.typography.bodyMedium
             )
 
