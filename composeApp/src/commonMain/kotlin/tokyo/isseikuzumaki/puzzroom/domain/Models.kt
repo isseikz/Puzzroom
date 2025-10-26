@@ -10,6 +10,7 @@ data class Room(
     val id: String = Uuid.random().toString(),
     val name: String,
     val shape: Polygon,
+    val shapes: List<PlacedShapeData> = emptyList(),
 ) {
     companion object {
         // Preset room templates

@@ -74,9 +74,14 @@ fun RoomCreationPage(
                     .padding(16.dp)
             )
 
+            // Load existing shapes from the selected room
+            val existingShapes = selectedRoom?.shapes?.map { shapeData ->
+                PlacedShape.fromData(shapeData)
+            } ?: emptyList()
+
             RoomCreationTemplate(
                 backgroundImageUrl = backgroundImageUrl,
-                placedShapes = emptyList(), //FIXME: Load existing shapes if editing
+                placedShapes = existingShapes,
                 onShapesChanged = { shapes ->
                     pendingShapes = shapes
                     showNameDialog = true
