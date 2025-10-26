@@ -7,6 +7,7 @@ on:
 # Limit permissions of GITHUB_TOKEN for security
 permissions:
   contents: read
+  pull-requests: write
 
 # Allow only one concurrent build per PR, cancel in-progress runs when new commits are pushed
 concurrency:
@@ -39,3 +40,23 @@ jobs:
           name: android-apk
           path: composeApp/build/outputs/apk/debug/*.apk
           retention-days: 30
+
+      - name: Post Artifact Link to PR Comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Actions の実行結果ページの URL を構築
+            const runUrl = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}";
+            
+            // コメントの本文を作成
+            const body = `✅ ビルドが完了しました。
+            
+            APK は **[こちらのアクション実行結果ページ](${runUrl})** の "Artifacts" セクション (**android-apk**) からダウンロードできます。`;
+            
+            // PR にコメントを投稿
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
