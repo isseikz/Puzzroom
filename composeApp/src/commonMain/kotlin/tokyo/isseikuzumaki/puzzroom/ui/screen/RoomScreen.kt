@@ -1,6 +1,8 @@
 package tokyo.isseikuzumaki.puzzroom.ui.screen
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
@@ -157,6 +159,47 @@ fun RoomScreen(
                     .padding(start = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // Room template selector
+                var showTemplateSelector by remember { mutableStateOf(false) }
+                Button(
+                    onClick = { showTemplateSelector = !showTemplateSelector },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(if (showTemplateSelector) "Hide Templates" else "Add Room from Template")
+                }
+
+                if (showTemplateSelector) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .padding(vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(Room.PRESETS) { template ->
+                            Button(
+                                onClick = {
+                                    // Add template room to project
+                                    project?.let {
+                                        val currentFloorPlan = it.floorPlans.firstOrNull() ?: FloorPlan()
+                                        val updatedFloorPlan = currentFloorPlan.copy(
+                                            rooms = currentFloorPlan.rooms + template
+                                        )
+                                        val updatedProject = it.copy(
+                                            floorPlans = listOf(updatedFloorPlan)
+                                        )
+                                        viewModel.updateProject(updatedProject)
+                                        showTemplateSelector = false
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(template.name, maxLines = 1)
+                            }
+                        }
+                    }
+                }
+
                 // Polygon list
                 PolygonListPanel(
                     polygons = polygons,

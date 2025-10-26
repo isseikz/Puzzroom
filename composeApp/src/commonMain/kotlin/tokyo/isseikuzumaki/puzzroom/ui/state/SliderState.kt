@@ -15,7 +15,8 @@ import androidx.compose.runtime.setValue
 class SliderState(
     initialValue: Float = 0f,
     val valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
-    val onValueChange: (Float) -> Unit = {}
+    val onValueChange: (Float) -> Unit = {},
+    val onSliderReleased: () -> Unit = {}
 ) {
     /**
      * Current value of the slider (スライダーの現在値)

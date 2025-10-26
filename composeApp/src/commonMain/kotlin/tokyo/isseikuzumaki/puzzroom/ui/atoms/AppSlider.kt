@@ -78,7 +78,6 @@ fun AppSlider(
     thumb: @Composable () -> Unit = { DefaultThumb() },
     track: @Composable () -> Unit = { DefaultTrack(orientation) }
 ) {
-    var isDragging by remember { mutableStateOf(false) }
 
     Layout(
         content = {
@@ -93,9 +92,11 @@ fun AppSlider(
         },
         modifier = modifier.pointerInput(orientation) {
             detectDragGestures(
-                onDragStart = { isDragging = true },
-                onDragEnd = { isDragging = false },
-                onDragCancel = { isDragging = false },
+                onDragStart = { /* No-op */ },
+                onDragEnd = {
+                    state.onSliderReleased()
+                },
+                onDragCancel = { /* No-op */ },
                 onDrag = { change, dragAmount ->
                     change.consume()
                     when (orientation) {

@@ -8,7 +8,6 @@ import kotlin.jvm.JvmInline
 @JvmInline
 value class Centimeter(val value: Int) {
     init {
-        require(value >= 0) { "Centimeter must be greater than 0" }
         require(value < Int.MAX_VALUE) { "Out of range " }
     }
 
@@ -30,6 +29,8 @@ value class Centimeter(val value: Int) {
 
     companion object {
         fun Int.cm() = Centimeter(this)
+        val Int.cm: Centimeter
+            get() = Centimeter(this)
     }
 }
 
@@ -71,5 +72,14 @@ value class Degree(val value: Float) {
             }
             return Degree(positive.toFloat())
         }
+
+        val Int.degree: Degree
+            get() {
+                var positive = this % 360
+                while (positive < 0) {
+                    positive += 360
+                }
+                return Degree(positive.toFloat())
+            }
     }
 }
