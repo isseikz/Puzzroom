@@ -82,6 +82,7 @@ fun RoomCreationPage(
                 onClick = {
                     createRoomCallback?.invoke()
                 },
+                enabled = createRoomCallback != null,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
