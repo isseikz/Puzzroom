@@ -231,10 +231,6 @@ fun RoomCreationTemplate(
                 )
                 showBottomSheet = true
             },
-            onCanvasSizeChanged = { newSize ->
-                // Update space size when canvas size is determined/changed
-                spaceSize = newSize
-            },
             backgroundImageUrl = backgroundImageUrl,
             modifier = modifier.weight(1f)
         )

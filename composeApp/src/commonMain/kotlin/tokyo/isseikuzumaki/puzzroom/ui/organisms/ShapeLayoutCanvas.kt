@@ -105,7 +105,6 @@ private fun isPointNearShape(
  * @param unselectedShapes 選択されていない図形リスト（無次元座標）。表示のみ。
  * @param onSelectedShapePosition 選択中の図形の位置変更時のコールバック
  * @param onShapeSelected タップされた図形のインデックスを返すコールバック
- * @param onCanvasSizeChanged Canvas サイズが変更されたときのコールバック
  * @param modifier Canvas全体に適用されるModifier
  */
 @Composable
@@ -116,7 +115,6 @@ fun ShapeLayoutCanvas(
     unselectedShapes: List<NormalizedPlacedShape> = emptyList(),
     onSelectedShapePosition: (NormalizedPoint) -> Unit = { _ -> },
     onShapeSelected: (Int) -> Unit = { _ -> },
-    onCanvasSizeChanged: (IntSize) -> Unit = { _ -> },
     modifier: Modifier = Modifier,
 ) {
     var sliderPosition by remember { mutableStateOf(NormalizedPoint()) }
@@ -156,13 +154,6 @@ fun ShapeLayoutCanvas(
     }
 
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
-
-    // Notify parent when canvas size changes
-    LaunchedEffect(canvasSize) {
-        if (canvasSize.width > 0 && canvasSize.height > 0) {
-            onCanvasSizeChanged(canvasSize)
-        }
-    }
 
     Box(modifier = modifier) {
         FloorPlanBackgroundImage(
