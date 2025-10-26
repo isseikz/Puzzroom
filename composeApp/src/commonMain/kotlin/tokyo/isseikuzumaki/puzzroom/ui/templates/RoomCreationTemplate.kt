@@ -23,6 +23,7 @@ import tokyo.isseikuzumaki.puzzroom.domain.Centimeter
 import tokyo.isseikuzumaki.puzzroom.domain.Centimeter.Companion.cm
 import tokyo.isseikuzumaki.puzzroom.domain.Degree
 import tokyo.isseikuzumaki.puzzroom.domain.Degree.Companion.degree
+import tokyo.isseikuzumaki.puzzroom.domain.PlacedShapeData
 import tokyo.isseikuzumaki.puzzroom.domain.Point
 import tokyo.isseikuzumaki.puzzroom.domain.Polygon
 import tokyo.isseikuzumaki.puzzroom.domain.Room
@@ -43,11 +44,12 @@ import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
  * The polygon does NOT need to be closed - users can save incomplete layouts.
  *
  * The resulting room polygon contains all points from all placed shapes,
- * translated to their absolute positions.
+ * translated to their absolute positions. The individual shapes are also stored
+ * in the room for later editing.
  *
  * @param shapes List of walls/doors that make up the room layout
  * @param roomName Name for the created room
- * @return Room with polygon containing all shape points
+ * @return Room with polygon containing all shape points and individual shapes stored
  */
 fun convertPlacedShapesToRoom(
     shapes: List<PlacedShape>,
@@ -79,9 +81,21 @@ fun convertPlacedShapesToRoom(
         allPoints
     }
 
+    // Convert PlacedShape (UI) to PlacedShapeData (domain) for storage
+    val shapesData = shapes.map { placedShape ->
+        PlacedShapeData(
+            shape = placedShape.shape,
+            position = placedShape.position,
+            rotation = placedShape.rotation,
+            colorArgb = (placedShape.color.value and 0xFFFFFFFFu).toInt(), // Extract ARGB as Int
+            name = placedShape.name
+        )
+    }
+
     return Room(
         name = roomName,
-        shape = Polygon(points = finalPoints)
+        shape = Polygon(points = finalPoints),
+        shapes = shapesData
     )
 }
 
@@ -113,6 +127,19 @@ data class PlacedShape(
     }
 
     companion object {
+        /**
+         * Convert PlacedShapeData (domain model) to PlacedShape (UI model)
+         */
+        fun fromData(data: PlacedShapeData): PlacedShape {
+            return PlacedShape(
+                shape = data.shape,
+                position = data.position,
+                rotation = data.rotation,
+                color = Color(data.colorArgb),
+                name = data.name
+            )
+        }
+
         fun createWall(width: Centimeter): PlacedShape {
             return PlacedShape(
                 shape = Polygon(
@@ -168,7 +195,9 @@ fun RoomCreationTemplate(
 ) {
     var spaceSize by remember { mutableStateOf(IntSize(1000, 1000)) }
 
-    var currentShapes by remember { mutableStateOf(placedShapes.map { it.normalize(spaceSize) }) }
+    var currentShapes by remember(placedShapes, spaceSize) { 
+        mutableStateOf(placedShapes.map { it.normalize(spaceSize) }) 
+    }
     var data by remember { mutableStateOf(RoomCreationUiState()) }
     var showBottomSheet by remember { mutableStateOf(false) }
     val bottomSheetState = rememberModalBottomSheetState(
