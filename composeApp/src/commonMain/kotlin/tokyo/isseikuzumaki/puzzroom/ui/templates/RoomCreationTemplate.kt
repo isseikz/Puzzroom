@@ -87,7 +87,7 @@ fun convertPlacedShapesToRoom(
             shape = placedShape.shape,
             position = placedShape.position,
             rotation = placedShape.rotation,
-            colorArgb = placedShape.color.value.toInt(), // Convert ULong ARGB to Int
+            colorArgb = (placedShape.color.value and 0xFFFFFFFFu).toInt(), // Extract ARGB as Int
             name = placedShape.name
         )
     }
