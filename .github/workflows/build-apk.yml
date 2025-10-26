@@ -46,7 +46,7 @@ jobs:
         with:
           script: |
             // Actions の実行結果ページの URL を構築
-            const runUrl = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}";
+            const runUrl = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts";
             
             // コメントの本文を作成
             const body = `✅ ビルドが完了しました。
