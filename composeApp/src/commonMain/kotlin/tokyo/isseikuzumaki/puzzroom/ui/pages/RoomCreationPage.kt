@@ -44,6 +44,18 @@ fun RoomCreationPage(
     var selectedRoom by remember { mutableStateOf<Room?>(null) }
     val saveState by viewModel.saveState.collectAsState()
 
+    // Sync selectedRoom with the latest room data from the project
+    LaunchedEffect(rooms, selectedRoom?.id) {
+        selectedRoom?.let { currentSelection ->
+            // Find the updated version of the selected room
+            rooms.find { it.id == currentSelection.id }?.let { updatedRoom ->
+                if (updatedRoom != currentSelection) {
+                    selectedRoom = updatedRoom
+                }
+            }
+        }
+    }
+
     var showNameDialog by remember { mutableStateOf(false) }
     var pendingShapes by remember { mutableStateOf<List<PlacedShape>?>(null) }
     
@@ -109,13 +121,40 @@ fun RoomCreationPage(
                 val newRoom = convertPlacedShapesToRoom(pendingShapes ?: emptyList(), roomName)
                 project?.let { currentProject ->
                     val currentFloorPlan = currentProject.floorPlans.firstOrNull() ?: FloorPlan()
+                    
+                    // Store the ID to track which room to update/select after save
+                    val currentRoomId = selectedRoom?.id
+                    
+                    // If editing an existing room, update it; otherwise add a new room
+                    val updatedRooms = if (currentRoomId != null) {
+                        // Update existing room by replacing it with the edited version
+                        val roomIndex = currentFloorPlan.rooms.indexOfFirst { it.id == currentRoomId }
+                        if (roomIndex >= 0) {
+                            // Preserve the ID of the existing room
+                            val updatedRoom = newRoom.copy(id = currentRoomId)
+                            currentFloorPlan.rooms.mapIndexed { index, room ->
+                                if (index == roomIndex) updatedRoom else room
+                            }
+                        } else {
+                            // Room not found, add as new
+                            currentFloorPlan.rooms + newRoom
+                        }
+                    } else {
+                        // Creating a new room
+                        currentFloorPlan.rooms + newRoom
+                    }
+                    
                     val updatedFloorPlan = currentFloorPlan.copy(
-                        rooms = currentFloorPlan.rooms + newRoom
+                        rooms = updatedRooms
                     )
                     val updatedProject = currentProject.copy(
                         floorPlans = listOf(updatedFloorPlan)
                     )
                     viewModel.updateProject(updatedProject)
+                    
+                    // Update selectedRoom to point to the saved room
+                    val targetId = currentRoomId ?: newRoom.id
+                    selectedRoom = updatedRooms.find { it.id == targetId }
                 }
                 showNameDialog = false
                 pendingShapes = null
