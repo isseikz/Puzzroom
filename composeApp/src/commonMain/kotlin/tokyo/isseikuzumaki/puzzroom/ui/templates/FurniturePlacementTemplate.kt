@@ -116,7 +116,7 @@ fun FurniturePlacementTemplate(
     }
 
     // Convert placed furniture to normalized shapes
-    var currentShapes by remember {
+    var currentShapes by remember(spaceSize) {
         mutableStateOf(
             placedItems.map { placedFurniture ->
                 NormalizedPlacedShape(
