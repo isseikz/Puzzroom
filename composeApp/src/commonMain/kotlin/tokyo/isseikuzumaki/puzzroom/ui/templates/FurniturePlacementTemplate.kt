@@ -125,8 +125,7 @@ fun FurniturePlacementTemplate(
                                 x = point.x.value / spaceSize.width.toFloat(),
                                 y = point.y.value / spaceSize.height.toFloat()
                             )
-                        },
-                        color = Color.Green
+                        }
                     ),
                     position = NormalizedPoint(
                         x = placedFurniture.position.x.value / spaceSize.width.toFloat(),
@@ -184,8 +183,7 @@ fun FurniturePlacementTemplate(
                                 x = point.x.value / spaceSize.width.toFloat(),
                                 y = point.y.value / spaceSize.height.toFloat()
                             )
-                        },
-                        color = Color.Green
+                        }
                     ),
                     position = NormalizedPoint(0.5f, 0.5f),
                     rotation = 0f,
