@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeHotReload)
     alias(libs.plugins.kotlinx.serialization)
+    alias(libs.plugins.kover)
 }
 
 kotlin {
@@ -117,6 +118,31 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "tokyo.isseikuzumaki.puzzroom"
             packageVersion = "1.0.0"
+        }
+    }
+}
+
+kover {
+    reports {
+        // Configure coverage report filters
+        filters {
+            excludes {
+                // Exclude generated code and UI previews
+                classes(
+                    "*ComposableSingletons*",
+                    "*Preview*",
+                    "*Res*",
+                    "*.BuildConfig"
+                )
+            }
+        }
+
+        // Configure report generation
+        verify {
+            // Minimum coverage thresholds (optional - adjust as needed)
+            rule {
+                minBound(50)
+            }
         }
     }
 }
