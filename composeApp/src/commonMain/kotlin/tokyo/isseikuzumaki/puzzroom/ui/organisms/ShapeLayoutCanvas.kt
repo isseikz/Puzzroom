@@ -100,7 +100,8 @@ private fun isPointNearShape(
  * UI ライブラリとして分離可能な汎用コンポーネント
  *
  * @param backgroundImageUrl Canvas背景として表示する画像のURL
- * @param backgroundShape 背景図形（無次元座標）
+ * @param backgroundShape 背景図形（無次元座標）- deprecated, use backgroundShapes instead
+ * @param backgroundShapes 背景図形リスト（無次元座標）- 壁やドアなどの個別の図形
  * @param selectedShape 選択中の図形（無次元座標）。スライダーで移動可能。
  * @param unselectedShapes 選択されていない図形リスト（無次元座標）。表示のみ。
  * @param onSelectedShapePosition 選択中の図形の位置変更時のコールバック
@@ -111,6 +112,7 @@ private fun isPointNearShape(
 fun ShapeLayoutCanvas(
     backgroundImageUrl: String? = null,
     backgroundShape: NormalizedShape? = null,
+    backgroundShapes: List<NormalizedPlacedShape> = emptyList(),
     selectedShape: NormalizedPlacedShape? = null,
     unselectedShapes: List<NormalizedPlacedShape> = emptyList(),
     onSelectedShapePosition: (NormalizedPoint) -> Unit = { _ -> },
@@ -193,7 +195,7 @@ fun ShapeLayoutCanvas(
                     val width = size.width
                     val height = size.height
 
-                    // Draw background shape
+                    // Draw background shape (deprecated - kept for backward compatibility)
                     backgroundShape?.let { bgShape ->
                         val bgOffsets = bgShape.points.map { point ->
                             Offset(point.x * width, point.y * height)
@@ -204,6 +206,37 @@ fun ShapeLayoutCanvas(
                                 pointMode = PointMode.Polygon,
                                 color = bgShape.color,
                                 strokeWidth = bgShape.strokeWidth
+                            )
+                        }
+                    }
+
+                    // Draw background shapes (walls, doors, etc. as separate shapes)
+                    backgroundShapes.forEach { placedShape ->
+                        val shapeOffsets = placedShape.shape.points.map { point ->
+                            val centerX = placedShape.position.x * width
+                            val centerY = placedShape.position.y * height
+
+                            // Apply rotation
+                            val angleRad = placedShape.rotation * (kotlin.math.PI / 180.0)
+                            val cos = kotlin.math.cos(angleRad)
+                            val sin = kotlin.math.sin(angleRad)
+
+                            val x = point.x * width
+                            val y = point.y * height
+
+                            val rotatedX = x * cos - y * sin
+                            val rotatedY = x * sin + y * cos
+
+                            Offset(centerX + rotatedX.toFloat(), centerY + rotatedY.toFloat())
+                        }
+
+                        // Draw each shape independently (don't connect endpoints)
+                        if (shapeOffsets.size >= 2) {
+                            drawPoints(
+                                points = shapeOffsets,
+                                pointMode = PointMode.Polygon,
+                                color = placedShape.color,
+                                strokeWidth = placedShape.shape.strokeWidth
                             )
                         }
                     }
