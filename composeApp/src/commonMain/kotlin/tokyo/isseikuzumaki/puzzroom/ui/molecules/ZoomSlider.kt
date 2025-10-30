@@ -38,7 +38,7 @@ fun ZoomSlider(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         AppText(
-            text = "縮尺",
+            text = "Scale",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSecondaryContainer
         )
