@@ -122,11 +122,20 @@ internal fun isPointNearShape(
     // 画面サイズに対する相対的な許容範囲を設定（約30ピクセル相当）
     val hitTolerance = 30f / canvasSize.width.coerceAtLeast(1)
 
-    // Transform shape points to world coordinates
+    // Transform shape points to world coordinates with rotation
+    val angleRad = shape.rotation * (kotlin.math.PI / 180.0)
+    val cos = kotlin.math.cos(angleRad).toFloat()
+    val sin = kotlin.math.sin(angleRad).toFloat()
+    
     val shapePoints = shape.shape.points.map { shapePoint ->
+        // Apply rotation around origin
+        val rotatedX = shapePoint.x * cos - shapePoint.y * sin
+        val rotatedY = shapePoint.x * sin + shapePoint.y * cos
+        
+        // Then translate to position
         NormalizedPoint(
-            x = shape.position.x + shapePoint.x,
-            y = shape.position.y + shapePoint.y
+            x = shape.position.x + rotatedX,
+            y = shape.position.y + rotatedY
         )
     }
 

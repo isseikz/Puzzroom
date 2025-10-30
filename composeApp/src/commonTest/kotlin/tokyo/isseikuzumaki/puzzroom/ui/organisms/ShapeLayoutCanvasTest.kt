@@ -106,8 +106,10 @@ class ShapeLayoutCanvasTest {
         val expectedHit: Boolean
     )
 
-    private fun createSquareShape(position: NormalizedPoint = NormalizedPoint(0.4f, 0.4f)) =
-        NormalizedPlacedShape(
+    private fun createSquareShape(
+        position: NormalizedPoint = NormalizedPoint(0.4f, 0.4f),
+        rotation: Float = 0f
+    ) = NormalizedPlacedShape(
             shape = NormalizedShape(
                 points = listOf(
                     NormalizedPoint(0.0f, 0.0f),
@@ -116,7 +118,8 @@ class ShapeLayoutCanvasTest {
                     NormalizedPoint(0.0f, 0.2f)
                 )
             ),
-            position = position
+            position = position,
+            rotation = rotation
         )
 
     private val shapeHitTestCases = listOf(
@@ -190,6 +193,42 @@ class ShapeLayoutCanvasTest {
                 ),
                 position = NormalizedPoint(0.4f, 0.4f)
             ),
+            canvasSize = IntSize(1000, 1000),
+            expectedHit = true
+        ),
+        // Rotation test cases
+        ShapeHitTestCase(
+            name = "rotated shape - point on bottom edge after 45° rotation",
+            point = NormalizedPoint(0.471f, 0.471f), // Bottom-center after 45° rotation
+            shape = createSquareShape(rotation = 45f),
+            canvasSize = IntSize(1000, 1000),
+            expectedHit = true
+        ),
+        ShapeHitTestCase(
+            name = "rotated shape - point on original right edge after 90° rotation (now top)",
+            point = NormalizedPoint(0.3f, 0.6f), // Right edge center becomes top after 90° rotation
+            shape = createSquareShape(rotation = 90f),
+            canvasSize = IntSize(1000, 1000),
+            expectedHit = true
+        ),
+        ShapeHitTestCase(
+            name = "rotated shape - point where unrotated edge was, now inside",
+            point = NormalizedPoint(0.5f, 0.4f), // Was on edge, now inside after 45° rotation
+            shape = createSquareShape(rotation = 45f),
+            canvasSize = IntSize(1000, 1000),
+            expectedHit = false
+        ),
+        ShapeHitTestCase(
+            name = "rotated shape - 180° rotation, point on original top edge (now bottom)",
+            point = NormalizedPoint(0.3f, 0.2f), // Top edge center becomes bottom after 180° rotation
+            shape = createSquareShape(rotation = 180f),
+            canvasSize = IntSize(1000, 1000),
+            expectedHit = true
+        ),
+        ShapeHitTestCase(
+            name = "rotated shape - 270° rotation, point on edge",
+            point = NormalizedPoint(0.5f, 0.2f), // Right edge center after 270° rotation
+            shape = createSquareShape(rotation = 270f),
             canvasSize = IntSize(1000, 1000),
             expectedHit = true
         )
