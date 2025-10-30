@@ -40,6 +40,13 @@ data class NormalizedPoint(
         val dy = this.y - other.y
         return sqrt(dx * dx + dy * dy)
     }
+    
+    operator fun plus(other: NormalizedPoint) = NormalizedPoint(x + other.x, y + other.y)
+    operator fun minus(other: NormalizedPoint) = NormalizedPoint(x - other.x, y - other.y)
+    operator fun times(scalar: Float) = NormalizedPoint(x * scalar, y * scalar)
+    
+    fun dot(other: NormalizedPoint): Float = x * other.x + y * other.y
+    fun lengthSquared(): Float = x * x + y * y
 }
 
 /**
@@ -65,18 +72,57 @@ data class NormalizedPlacedShape(
 )
 
 /**
- * Check if a normalized point is near a placed shape
- * Uses bounding box approximation for hit testing
+ * Calculate the shortest distance from a point to a line segment
+ * 点と線分間の最短距離を計算
+ * 
+ * @param point The point to measure from
+ * @param segmentStart The start point of the line segment
+ * @param segmentEnd The end point of the line segment
+ * @return The shortest distance from the point to the line segment
  */
-private fun isPointNearShape(
+internal fun distanceFromPointToLineSegment(
+    point: NormalizedPoint,
+    segmentStart: NormalizedPoint,
+    segmentEnd: NormalizedPoint
+): Float {
+    // Vector from segment start to end
+    val segment = segmentEnd - segmentStart
+    val segmentLengthSquared = segment.lengthSquared()
+    
+    // Handle degenerate case where segment is a point
+    if (segmentLengthSquared < 1e-10f) {
+        return point.distanceTo(segmentStart)
+    }
+    
+    // Vector from segment start to point
+    val toPoint = point - segmentStart
+    
+    // Project point onto the line (infinite)
+    // t represents the position along the segment (0 = start, 1 = end)
+    val t = (toPoint.dot(segment) / segmentLengthSquared).coerceIn(0f, 1f)
+    
+    // Find the closest point on the segment
+    val closestPoint = segmentStart + (segment * t)
+    
+    // Return distance from point to closest point on segment
+    return point.distanceTo(closestPoint)
+}
+
+/**
+ * Check if a normalized point is near a placed shape
+ * Checks if the point is within hitTolerance distance from any line segment of the shape
+ * 図形を構成する線分のいずれかの付近にポイントがあるかチェック
+ */
+internal fun isPointNearShape(
     point: NormalizedPoint,
     shape: NormalizedPlacedShape,
     canvasSize: IntSize
 ): Boolean {
-    // Expand hit area by this many pixels
-    val hitTolerance = 20f / canvasSize.width.coerceAtLeast(1)
+    // Set hit tolerance to approximately 30 pixels (reasonable for touch/click targets)
+    // 画面サイズに対する相対的な許容範囲を設定（約30ピクセル相当）
+    val hitTolerance = 30f / canvasSize.width.coerceAtLeast(1)
 
-    // Calculate bounding box of shape
+    // Transform shape points to world coordinates
     val shapePoints = shape.shape.points.map { shapePoint ->
         NormalizedPoint(
             x = shape.position.x + shapePoint.x,
@@ -86,13 +132,19 @@ private fun isPointNearShape(
 
     if (shapePoints.isEmpty()) return false
 
-    val minX = shapePoints.minOf { it.x } - hitTolerance
-    val maxX = shapePoints.maxOf { it.x } + hitTolerance
-    val minY = shapePoints.minOf { it.y } - hitTolerance
-    val maxY = shapePoints.maxOf { it.y } + hitTolerance
-
-    // Simple bounding box check
-    return point.x >= minX && point.x <= maxX && point.y >= minY && point.y <= maxY
+    // Check distance from point to each line segment of the shape
+    for (i in shapePoints.indices) {
+        val segmentStart = shapePoints[i]
+        val segmentEnd = shapePoints[(i + 1) % shapePoints.size]
+        
+        val distance = distanceFromPointToLineSegment(point, segmentStart, segmentEnd)
+        
+        if (distance <= hitTolerance) {
+            return true
+        }
+    }
+    
+    return false
 }
 
 /**
