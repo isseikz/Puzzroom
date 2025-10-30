@@ -229,7 +229,6 @@ fun ShapeLayoutCanvas(
                                         y = tapOffset.y / canvasSize.height
                                     )
 
-                                    // FIXME 検出できないときがある
                                     // Check if tap hits any unselected shape (in reverse order - top to bottom)
                                     unselectedShapes.asReversed().forEachIndexed { reversedIndex, shape ->
                                         val actualIndex = unselectedShapes.size - 1 - reversedIndex
