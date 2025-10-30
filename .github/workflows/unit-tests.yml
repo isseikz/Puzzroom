@@ -36,13 +36,13 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Run Unit Tests
-        run: ./gradlew test --no-daemon --continue
+        run: ./gradlew testDebugUnitTest --no-daemon --continue
 
       - name: Publish Test Report
         uses: mikepenz/action-junit-report@v4
         if: always()
         with:
-          report_paths: '**/build/test-results/test/TEST-*.xml'
+          report_paths: '**/build/test-results/testDebugUnitTest/TEST-*.xml'
           check_name: Unit Test Results
           fail_on_failure: true
           detailed_summary: true
@@ -54,8 +54,8 @@ jobs:
         with:
           name: test-results
           path: |
-            **/build/test-results/test/
-            **/build/reports/tests/test/
+            **/build/test-results/testDebugUnitTest/
+            **/build/reports/tests/testDebugUnitTest/
           retention-days: 30
 
       - name: Post Test Summary to PR
