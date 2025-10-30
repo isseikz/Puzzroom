@@ -12,107 +12,102 @@ import kotlin.test.assertTrue
  */
 class ShapeLayoutCanvasTest {
 
-    @Test
-    fun `distanceFromPointToLineSegment - point on horizontal segment`() {
-        val point = NormalizedPoint(0.5f, 0.5f)
-        val start = NormalizedPoint(0.0f, 0.5f)
-        val end = NormalizedPoint(1.0f, 0.5f)
-        
-        val distance = distanceFromPointToLineSegment(point, start, end)
-        
-        assertEquals(0.0f, distance, 0.001f)
-    }
+    // Test data for distanceFromPointToLineSegment
+    private data class DistanceTestCase(
+        val name: String,
+        val point: NormalizedPoint,
+        val segmentStart: NormalizedPoint,
+        val segmentEnd: NormalizedPoint,
+        val expectedDistance: Float
+    )
+
+    private val distanceTestCases = listOf(
+        DistanceTestCase(
+            name = "point on horizontal segment",
+            point = NormalizedPoint(0.5f, 0.5f),
+            segmentStart = NormalizedPoint(0.0f, 0.5f),
+            segmentEnd = NormalizedPoint(1.0f, 0.5f),
+            expectedDistance = 0.0f
+        ),
+        DistanceTestCase(
+            name = "point on vertical segment",
+            point = NormalizedPoint(0.5f, 0.5f),
+            segmentStart = NormalizedPoint(0.5f, 0.0f),
+            segmentEnd = NormalizedPoint(0.5f, 1.0f),
+            expectedDistance = 0.0f
+        ),
+        DistanceTestCase(
+            name = "point perpendicular to segment",
+            point = NormalizedPoint(0.5f, 0.6f),
+            segmentStart = NormalizedPoint(0.0f, 0.5f),
+            segmentEnd = NormalizedPoint(1.0f, 0.5f),
+            expectedDistance = 0.1f
+        ),
+        DistanceTestCase(
+            name = "point closest to segment start",
+            point = NormalizedPoint(0.0f, 0.0f),
+            segmentStart = NormalizedPoint(0.5f, 0.5f),
+            segmentEnd = NormalizedPoint(1.0f, 0.5f),
+            expectedDistance = kotlin.math.sqrt(0.5f * 0.5f + 0.5f * 0.5f)
+        ),
+        DistanceTestCase(
+            name = "point closest to segment end",
+            point = NormalizedPoint(1.0f, 1.0f),
+            segmentStart = NormalizedPoint(0.0f, 0.5f),
+            segmentEnd = NormalizedPoint(0.5f, 0.5f),
+            expectedDistance = kotlin.math.sqrt(0.5f * 0.5f + 0.5f * 0.5f)
+        ),
+        DistanceTestCase(
+            name = "point on diagonal segment",
+            point = NormalizedPoint(0.5f, 0.5f),
+            segmentStart = NormalizedPoint(0.0f, 0.0f),
+            segmentEnd = NormalizedPoint(1.0f, 1.0f),
+            expectedDistance = 0.0f
+        ),
+        DistanceTestCase(
+            name = "degenerate segment (point)",
+            point = NormalizedPoint(0.5f, 0.5f),
+            segmentStart = NormalizedPoint(0.3f, 0.3f),
+            segmentEnd = NormalizedPoint(0.3f, 0.3f),
+            expectedDistance = kotlin.math.sqrt(0.2f * 0.2f + 0.2f * 0.2f)
+        ),
+        DistanceTestCase(
+            name = "point beyond segment end on extended line",
+            point = NormalizedPoint(1.5f, 0.5f),
+            segmentStart = NormalizedPoint(0.0f, 0.5f),
+            segmentEnd = NormalizedPoint(1.0f, 0.5f),
+            expectedDistance = 0.5f
+        )
+    )
 
     @Test
-    fun `distanceFromPointToLineSegment - point on vertical segment`() {
-        val point = NormalizedPoint(0.5f, 0.5f)
-        val start = NormalizedPoint(0.5f, 0.0f)
-        val end = NormalizedPoint(0.5f, 1.0f)
-        
-        val distance = distanceFromPointToLineSegment(point, start, end)
-        
-        assertEquals(0.0f, distance, 0.001f)
+    fun `distanceFromPointToLineSegment - all test cases`() {
+        distanceTestCases.forEach { testCase ->
+            val distance = distanceFromPointToLineSegment(
+                testCase.point,
+                testCase.segmentStart,
+                testCase.segmentEnd
+            )
+            assertEquals(
+                testCase.expectedDistance,
+                distance,
+                0.001f,
+                "Failed for case: ${testCase.name}"
+            )
+        }
     }
 
-    @Test
-    fun `distanceFromPointToLineSegment - point perpendicular to segment`() {
-        val point = NormalizedPoint(0.5f, 0.6f)
-        val start = NormalizedPoint(0.0f, 0.5f)
-        val end = NormalizedPoint(1.0f, 0.5f)
-        
-        val distance = distanceFromPointToLineSegment(point, start, end)
-        
-        // Distance should be 0.1 (perpendicular distance)
-        assertEquals(0.1f, distance, 0.001f)
-    }
+    // Test data for isPointNearShape
+    private data class ShapeHitTestCase(
+        val name: String,
+        val point: NormalizedPoint,
+        val shape: NormalizedPlacedShape,
+        val canvasSize: IntSize,
+        val expectedHit: Boolean
+    )
 
-    @Test
-    fun `distanceFromPointToLineSegment - point closest to segment start`() {
-        val point = NormalizedPoint(0.0f, 0.0f)
-        val start = NormalizedPoint(0.5f, 0.5f)
-        val end = NormalizedPoint(1.0f, 0.5f)
-        
-        val distance = distanceFromPointToLineSegment(point, start, end)
-        
-        // Distance should be sqrt((0.5)^2 + (0.5)^2) ≈ 0.707
-        val expected = kotlin.math.sqrt(0.5f * 0.5f + 0.5f * 0.5f)
-        assertEquals(expected, distance, 0.001f)
-    }
-
-    @Test
-    fun `distanceFromPointToLineSegment - point closest to segment end`() {
-        val point = NormalizedPoint(1.0f, 1.0f)
-        val start = NormalizedPoint(0.0f, 0.5f)
-        val end = NormalizedPoint(0.5f, 0.5f)
-        
-        val distance = distanceFromPointToLineSegment(point, start, end)
-        
-        // Distance should be sqrt((0.5)^2 + (0.5)^2) ≈ 0.707
-        val expected = kotlin.math.sqrt(0.5f * 0.5f + 0.5f * 0.5f)
-        assertEquals(expected, distance, 0.001f)
-    }
-
-    @Test
-    fun `distanceFromPointToLineSegment - point on diagonal segment`() {
-        val point = NormalizedPoint(0.5f, 0.5f)
-        val start = NormalizedPoint(0.0f, 0.0f)
-        val end = NormalizedPoint(1.0f, 1.0f)
-        
-        val distance = distanceFromPointToLineSegment(point, start, end)
-        
-        assertEquals(0.0f, distance, 0.001f)
-    }
-
-    @Test
-    fun `distanceFromPointToLineSegment - degenerate segment (point)`() {
-        val point = NormalizedPoint(0.5f, 0.5f)
-        val start = NormalizedPoint(0.3f, 0.3f)
-        val end = NormalizedPoint(0.3f, 0.3f)
-        
-        val distance = distanceFromPointToLineSegment(point, start, end)
-        
-        // Distance should be sqrt((0.2)^2 + (0.2)^2) ≈ 0.283
-        val expected = kotlin.math.sqrt(0.2f * 0.2f + 0.2f * 0.2f)
-        assertEquals(expected, distance, 0.001f)
-    }
-
-    @Test
-    fun `distanceFromPointToLineSegment - point beyond segment end on extended line`() {
-        val point = NormalizedPoint(1.5f, 0.5f)
-        val start = NormalizedPoint(0.0f, 0.5f)
-        val end = NormalizedPoint(1.0f, 0.5f)
-        
-        val distance = distanceFromPointToLineSegment(point, start, end)
-        
-        // Should measure distance to end point, not the extended line
-        // Distance should be 0.5
-        assertEquals(0.5f, distance, 0.001f)
-    }
-
-    @Test
-    fun `isPointNearShape - point on shape edge`() {
-        val canvasSize = IntSize(1000, 1000)
-        val shape = NormalizedPlacedShape(
+    private fun createSquareShape(position: NormalizedPoint = NormalizedPoint(0.4f, 0.4f)) =
+        NormalizedPlacedShape(
             shape = NormalizedShape(
                 points = listOf(
                     NormalizedPoint(0.0f, 0.0f),
@@ -121,148 +116,95 @@ class ShapeLayoutCanvasTest {
                     NormalizedPoint(0.0f, 0.2f)
                 )
             ),
-            position = NormalizedPoint(0.4f, 0.4f)
+            position = position
         )
-        
-        // Point on the bottom edge of the shape (y = 0.4)
-        val point = NormalizedPoint(0.5f, 0.4f)
-        
-        assertTrue(isPointNearShape(point, shape, canvasSize))
-    }
 
-    @Test
-    fun `isPointNearShape - point very close to shape edge`() {
-        val canvasSize = IntSize(1000, 1000)
-        val shape = NormalizedPlacedShape(
-            shape = NormalizedShape(
-                points = listOf(
-                    NormalizedPoint(0.0f, 0.0f),
-                    NormalizedPoint(0.2f, 0.0f),
-                    NormalizedPoint(0.2f, 0.2f),
-                    NormalizedPoint(0.0f, 0.2f)
-                )
+    private val shapeHitTestCases = listOf(
+        ShapeHitTestCase(
+            name = "point on shape edge",
+            point = NormalizedPoint(0.5f, 0.4f),
+            shape = createSquareShape(),
+            canvasSize = IntSize(1000, 1000),
+            expectedHit = true
+        ),
+        ShapeHitTestCase(
+            name = "point very close to shape edge",
+            point = NormalizedPoint(0.5f, 0.42f),
+            shape = createSquareShape(),
+            canvasSize = IntSize(1000, 1000),
+            expectedHit = true
+        ),
+        ShapeHitTestCase(
+            name = "point far from shape",
+            point = NormalizedPoint(0.8f, 0.8f),
+            shape = createSquareShape(),
+            canvasSize = IntSize(1000, 1000),
+            expectedHit = false
+        ),
+        ShapeHitTestCase(
+            name = "point inside shape but not near edges",
+            point = NormalizedPoint(0.5f, 0.5f),
+            shape = createSquareShape(),
+            canvasSize = IntSize(1000, 1000),
+            expectedHit = false
+        ),
+        ShapeHitTestCase(
+            name = "point near corner",
+            point = NormalizedPoint(0.41f, 0.41f),
+            shape = createSquareShape(),
+            canvasSize = IntSize(1000, 1000),
+            expectedHit = true
+        ),
+        ShapeHitTestCase(
+            name = "empty shape returns false",
+            point = NormalizedPoint(0.5f, 0.5f),
+            shape = NormalizedPlacedShape(
+                shape = NormalizedShape(points = emptyList()),
+                position = NormalizedPoint(0.5f, 0.5f)
             ),
-            position = NormalizedPoint(0.4f, 0.4f)
-        )
-        
-        // Point just outside the shape, but within tolerance (0.02 = 20 pixels on 1000px canvas)
-        val point = NormalizedPoint(0.5f, 0.42f)
-        
-        assertTrue(isPointNearShape(point, shape, canvasSize))
-    }
-
-    @Test
-    fun `isPointNearShape - point far from shape`() {
-        val canvasSize = IntSize(1000, 1000)
-        val shape = NormalizedPlacedShape(
-            shape = NormalizedShape(
-                points = listOf(
-                    NormalizedPoint(0.0f, 0.0f),
-                    NormalizedPoint(0.2f, 0.0f),
-                    NormalizedPoint(0.2f, 0.2f),
-                    NormalizedPoint(0.0f, 0.2f)
-                )
+            canvasSize = IntSize(1000, 1000),
+            expectedHit = false
+        ),
+        ShapeHitTestCase(
+            name = "single point shape",
+            point = NormalizedPoint(0.51f, 0.5f),
+            shape = NormalizedPlacedShape(
+                shape = NormalizedShape(
+                    points = listOf(NormalizedPoint(0.0f, 0.0f))
+                ),
+                position = NormalizedPoint(0.5f, 0.5f)
             ),
-            position = NormalizedPoint(0.4f, 0.4f)
-        )
-        
-        // Point far from the shape
-        val point = NormalizedPoint(0.8f, 0.8f)
-        
-        assertFalse(isPointNearShape(point, shape, canvasSize))
-    }
-
-    @Test
-    fun `isPointNearShape - point inside shape but not near edges`() {
-        val canvasSize = IntSize(1000, 1000)
-        val shape = NormalizedPlacedShape(
-            shape = NormalizedShape(
-                points = listOf(
-                    NormalizedPoint(0.0f, 0.0f),
-                    NormalizedPoint(0.2f, 0.0f),
-                    NormalizedPoint(0.2f, 0.2f),
-                    NormalizedPoint(0.0f, 0.2f)
-                )
+            canvasSize = IntSize(1000, 1000),
+            expectedHit = true
+        ),
+        ShapeHitTestCase(
+            name = "triangular shape",
+            point = NormalizedPoint(0.5f, 0.4f),
+            shape = NormalizedPlacedShape(
+                shape = NormalizedShape(
+                    points = listOf(
+                        NormalizedPoint(0.0f, 0.0f),
+                        NormalizedPoint(0.2f, 0.0f),
+                        NormalizedPoint(0.1f, 0.2f)
+                    )
+                ),
+                position = NormalizedPoint(0.4f, 0.4f)
             ),
-            position = NormalizedPoint(0.4f, 0.4f)
+            canvasSize = IntSize(1000, 1000),
+            expectedHit = true
         )
-        
-        // Point in the center of the shape, far from edges
-        // Center would be at (0.5, 0.5), which is 0.1 normalized units from nearest edge
-        // 0.1 normalized = 100 pixels on 1000px canvas, which is > 30px tolerance
-        val point = NormalizedPoint(0.5f, 0.5f)
-        
-        assertFalse(isPointNearShape(point, shape, canvasSize))
-    }
+    )
 
     @Test
-    fun `isPointNearShape - point near corner`() {
-        val canvasSize = IntSize(1000, 1000)
-        val shape = NormalizedPlacedShape(
-            shape = NormalizedShape(
-                points = listOf(
-                    NormalizedPoint(0.0f, 0.0f),
-                    NormalizedPoint(0.2f, 0.0f),
-                    NormalizedPoint(0.2f, 0.2f),
-                    NormalizedPoint(0.0f, 0.2f)
-                )
-            ),
-            position = NormalizedPoint(0.4f, 0.4f)
-        )
-        
-        // Point near the bottom-left corner (0.4, 0.4)
-        val point = NormalizedPoint(0.41f, 0.41f)
-        
-        assertTrue(isPointNearShape(point, shape, canvasSize))
-    }
-
-    @Test
-    fun `isPointNearShape - empty shape returns false`() {
-        val canvasSize = IntSize(1000, 1000)
-        val shape = NormalizedPlacedShape(
-            shape = NormalizedShape(points = emptyList()),
-            position = NormalizedPoint(0.5f, 0.5f)
-        )
-        
-        val point = NormalizedPoint(0.5f, 0.5f)
-        
-        assertFalse(isPointNearShape(point, shape, canvasSize))
-    }
-
-    @Test
-    fun `isPointNearShape - single point shape`() {
-        val canvasSize = IntSize(1000, 1000)
-        val shape = NormalizedPlacedShape(
-            shape = NormalizedShape(
-                points = listOf(NormalizedPoint(0.0f, 0.0f))
-            ),
-            position = NormalizedPoint(0.5f, 0.5f)
-        )
-        
-        // Point very close to the single point
-        val point = NormalizedPoint(0.51f, 0.5f)
-        
-        assertTrue(isPointNearShape(point, shape, canvasSize))
-    }
-
-    @Test
-    fun `isPointNearShape - triangular shape`() {
-        val canvasSize = IntSize(1000, 1000)
-        val shape = NormalizedPlacedShape(
-            shape = NormalizedShape(
-                points = listOf(
-                    NormalizedPoint(0.0f, 0.0f),
-                    NormalizedPoint(0.2f, 0.0f),
-                    NormalizedPoint(0.1f, 0.2f)
-                )
-            ),
-            position = NormalizedPoint(0.4f, 0.4f)
-        )
-        
-        // Point on the bottom edge of triangle
-        val point = NormalizedPoint(0.5f, 0.4f)
-        
-        assertTrue(isPointNearShape(point, shape, canvasSize))
+    fun `isPointNearShape - all test cases`() {
+        shapeHitTestCases.forEach { testCase ->
+            val result = isPointNearShape(testCase.point, testCase.shape, testCase.canvasSize)
+            assertEquals(
+                testCase.expectedHit,
+                result,
+                "Failed for case: ${testCase.name}"
+            )
+        }
     }
 
     @Test
@@ -271,17 +213,7 @@ class ShapeLayoutCanvasTest {
         val smallCanvas = IntSize(300, 300) // 30px tolerance = 0.1 normalized
         val largeCanvas = IntSize(3000, 3000) // 30px tolerance = 0.01 normalized
         
-        val shape = NormalizedPlacedShape(
-            shape = NormalizedShape(
-                points = listOf(
-                    NormalizedPoint(0.0f, 0.0f),
-                    NormalizedPoint(0.2f, 0.0f),
-                    NormalizedPoint(0.2f, 0.2f),
-                    NormalizedPoint(0.0f, 0.2f)
-                )
-            ),
-            position = NormalizedPoint(0.4f, 0.4f)
-        )
+        val shape = createSquareShape()
         
         // Point 0.05 units away (50 pixels on 1000px canvas)
         val point = NormalizedPoint(0.5f, 0.45f)
@@ -293,22 +225,26 @@ class ShapeLayoutCanvasTest {
         assertFalse(isPointNearShape(point, shape, largeCanvas))
     }
 
+    // Test data for NormalizedPoint operators
     @Test
     fun `NormalizedPoint - operator functions work correctly`() {
         val p1 = NormalizedPoint(0.3f, 0.4f)
         val p2 = NormalizedPoint(0.1f, 0.2f)
         
+        // Test addition
         val sum = p1 + p2
-        assertEquals(0.4f, sum.x, 0.001f)
-        assertEquals(0.6f, sum.y, 0.001f)
+        assertEquals(0.4f, sum.x, 0.001f, "Addition failed for x coordinate")
+        assertEquals(0.6f, sum.y, 0.001f, "Addition failed for y coordinate")
         
+        // Test subtraction
         val diff = p1 - p2
-        assertEquals(0.2f, diff.x, 0.001f)
-        assertEquals(0.2f, diff.y, 0.001f)
+        assertEquals(0.2f, diff.x, 0.001f, "Subtraction failed for x coordinate")
+        assertEquals(0.2f, diff.y, 0.001f, "Subtraction failed for y coordinate")
         
+        // Test scalar multiplication
         val scaled = p1 * 2f
-        assertEquals(0.6f, scaled.x, 0.001f)
-        assertEquals(0.8f, scaled.y, 0.001f)
+        assertEquals(0.6f, scaled.x, 0.001f, "Scalar multiplication failed for x coordinate")
+        assertEquals(0.8f, scaled.y, 0.001f, "Scalar multiplication failed for y coordinate")
     }
 
     @Test
