@@ -35,7 +35,9 @@ import tokyo.isseikuzumaki.puzzroom.ui.organisms.NormalizedPlacedShape
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.NormalizedPoint
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.NormalizedShape
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.ShapeLayoutCanvas
+import tokyo.isseikuzumaki.puzzroom.ui.molecules.ZoomSlider
 import tokyo.isseikuzumaki.puzzroom.ui.state.PlacedFurniture
+import tokyo.isseikuzumaki.puzzroom.ui.state.SliderState
 import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
 
 private data class FurniturePlacementUiState(
@@ -63,6 +65,16 @@ fun FurniturePlacementTemplate(
         skipPartiallyExpanded = false
     )
     var data by remember { mutableStateOf(FurniturePlacementUiState()) }
+
+    val zoomSliderState = remember {
+        SliderState(
+            initialValue = 1000f,
+            valueRange = 500f..1500f,
+            onValueChange = { newSize ->
+                spaceSize = IntSize(newSize.toInt(), newSize.toInt())
+            }
+        )
+    }
 
     // Helper function to denormalize shapes and notify parent
     fun notifyFurnitureChanged(normalizedShapes: List<NormalizedPlacedShape>) {
@@ -151,6 +163,13 @@ fun FurniturePlacementTemplate(
                 }
             },
             modifier = modifier.weight(1f)
+        )
+
+        ZoomSlider(
+            sliderState = zoomSliderState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(color = MaterialTheme.colorScheme.secondaryContainer)
         )
 
         FurnitureSelector(

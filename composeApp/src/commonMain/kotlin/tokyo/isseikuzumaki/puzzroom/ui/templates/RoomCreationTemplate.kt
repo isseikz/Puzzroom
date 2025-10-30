@@ -35,6 +35,8 @@ import tokyo.isseikuzumaki.puzzroom.ui.organisms.NormalizedShape
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.RoomShapeSelector
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.ShapeAttributeForm
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.ShapeLayoutCanvas
+import tokyo.isseikuzumaki.puzzroom.ui.molecules.ZoomSlider
+import tokyo.isseikuzumaki.puzzroom.ui.state.SliderState
 import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
 
 /**
@@ -204,6 +206,16 @@ fun RoomCreationTemplate(
         skipPartiallyExpanded = true
     )
 
+    val zoomSliderState = remember {
+        SliderState(
+            initialValue = 1000f,
+            valueRange = 500f..1500f,
+            onValueChange = { newSize ->
+                spaceSize = IntSize(newSize.toInt(), newSize.toInt())
+            }
+        )
+    }
+
     Column(
         verticalArrangement = Arrangement.Bottom
     ) {
@@ -233,6 +245,13 @@ fun RoomCreationTemplate(
             },
             backgroundImageUrl = backgroundImageUrl,
             modifier = modifier.weight(1f)
+        )
+
+        ZoomSlider(
+            sliderState = zoomSliderState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(color = MaterialTheme.colorScheme.secondaryContainer)
         )
 
         RoomShapeSelector(
