@@ -21,6 +21,7 @@ coil = "3.3.0"
 ktor = "3.3.0"
 imagepicker = "1.0.24-beta2"
 navigationCompose = "2.9.0"
+kover = "0.9.0"
 
 [libraries]
 androidx-icons-core = { module = "androidx.compose.material.icons:material-icons-core", version.ref = "icons" }
@@ -54,3 +55,4 @@ composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMul
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }

@@ -1,0 +1,202 @@
+name: Unit Tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+
+# Limit permissions of GITHUB_TOKEN for security
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+# Allow only one concurrent test run per PR, cancel in-progress runs when new commits are pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run Unit Tests
+        run: ./gradlew testDebugUnitTest --no-daemon --continue
+
+      - name: Publish Test Report
+        uses: mikepenz/action-junit-report@v4
+        if: always()
+        with:
+          report_paths: '**/build/test-results/testDebugUnitTest/TEST-*.xml'
+          check_name: Unit Test Results
+          fail_on_failure: true
+          detailed_summary: true
+          include_passed: true
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: |
+            **/build/test-results/testDebugUnitTest/
+            **/build/reports/tests/testDebugUnitTest/
+          retention-days: 30
+
+      - name: Post Test Summary to PR
+        uses: actions/github-script@v7
+        if: always() && github.event_name == 'pull_request'
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const { promisify } = require('util');
+            const readdir = promisify(fs.readdir);
+            const readFile = promisify(fs.readFile);
+            const stat = promisify(fs.stat);
+            
+            // Recursive function to find XML files
+            async function findTestXmlFiles(dir, fileList = []) {
+              try {
+                const files = await readdir(dir);
+                for (const file of files) {
+                  const filePath = path.join(dir, file);
+                  try {
+                    const fileStat = await stat(filePath);
+                    if (fileStat.isDirectory()) {
+                      if (!filePath.includes('node_modules')) {
+                        await findTestXmlFiles(filePath, fileList);
+                      }
+                    } else if (file.startsWith('TEST-') && file.endsWith('.xml')) {
+                      fileList.push(filePath);
+                    }
+                  } catch (err) {
+                    // Skip files we can't read
+                  }
+                }
+              } catch (err) {
+                // Skip directories we can't read
+              }
+              return fileList;
+            }
+            
+            // Parse XML manually (simple approach for JUnit format)
+            function parseJUnitXml(xmlContent) {
+              const testsuiteMatch = xmlContent.match(/<testsuite[^>]*>/);
+              if (!testsuiteMatch) return null;
+              
+              const testsMatch = testsuiteMatch[0].match(/tests="(\d+)"/);
+              const failuresMatch = testsuiteMatch[0].match(/failures="(\d+)"/);
+              const errorsMatch = testsuiteMatch[0].match(/errors="(\d+)"/);
+              const skippedMatch = testsuiteMatch[0].match(/skipped="(\d+)"/);
+              
+              return {
+                tests: testsMatch ? parseInt(testsMatch[1]) : 0,
+                failures: failuresMatch ? parseInt(failuresMatch[1]) : 0,
+                errors: errorsMatch ? parseInt(errorsMatch[1]) : 0,
+                skipped: skippedMatch ? parseInt(skippedMatch[1]) : 0
+              };
+            }
+            
+            // Find and parse all test result XML files
+            let testResults = {
+              total: 0,
+              passed: 0,
+              failed: 0,
+              skipped: 0,
+              errors: 0
+            };
+            
+            try {
+              // Find all TEST-*.xml files in build directories
+              const testResultFiles = await findTestXmlFiles('.');
+              
+              console.log(`Found ${testResultFiles.length} test result files`);
+              
+              // Parse each XML file and aggregate results
+              for (const file of testResultFiles) {
+                try {
+                  const xmlContent = await readFile(file, 'utf8');
+                  const result = parseJUnitXml(xmlContent);
+                  
+                  if (result) {
+                    testResults.total += result.tests;
+                    testResults.failed += result.failures;
+                    testResults.errors += result.errors;
+                    testResults.skipped += result.skipped;
+                    console.log(`Parsed ${file}: ${result.tests} tests`);
+                  }
+                } catch (parseError) {
+                  console.log(`Error parsing ${file}:`, parseError.message);
+                }
+              }
+              
+              // Calculate passed tests
+              testResults.passed = testResults.total - testResults.failed - testResults.errors - testResults.skipped;
+              
+              // Build the comment body
+              const runUrl = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}";
+              
+              let body = `## 🧪 Unit Test Results\n\n`;
+              
+              if (testResults.total > 0) {
+                // Create status emoji
+                const statusEmoji = testResults.failed === 0 && testResults.errors === 0 ? '✅' : '❌';
+                
+                body += `${statusEmoji} **Test Summary**\n\n`;
+                body += `| Status | Count |\n`;
+                body += `|--------|-------|\n`;
+                body += `| Total | ${testResults.total} |\n`;
+                body += `| ✅ Passed | ${testResults.passed} |\n`;
+                body += `| ❌ Failed | ${testResults.failed + testResults.errors} |\n`;
+                body += `| ⏭️ Skipped | ${testResults.skipped} |\n\n`;
+                
+                if (testResults.failed > 0 || testResults.errors > 0) {
+                  body += `⚠️ Some tests failed. Please check the details below.\n\n`;
+                }
+              } else {
+                body += `⚠️ No test results found.\n\n`;
+              }
+              
+              body += `📊 View detailed test results in the [Actions run](${runUrl}).\n`;
+              body += `Check the **Unit Test Results** check above for detailed pass/fail information.`;
+              
+              // Post comment to PR
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+              
+              console.log('Test summary posted successfully');
+              console.log(`Total: ${testResults.total}, Passed: ${testResults.passed}, Failed: ${testResults.failed + testResults.errors}, Skipped: ${testResults.skipped}`);
+              
+            } catch (error) {
+              console.log('Error posting test summary:', error);
+              console.log(error.stack);
+              
+              // Post a basic comment even if parsing fails
+              const runUrl = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}";
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `## 🧪 Unit Test Results\n\n⚠️ Could not parse test results.\n\nView detailed results in the [Actions run](${runUrl}).`
+              });
+            }
