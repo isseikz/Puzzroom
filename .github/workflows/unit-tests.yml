@@ -1,0 +1,94 @@
+name: Unit Tests
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+
+# Limit permissions of GITHUB_TOKEN for security
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+# Allow only one concurrent test run per PR, cancel in-progress runs when new commits are pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run Unit Tests
+        run: ./gradlew test --no-daemon --continue
+
+      - name: Publish Test Report
+        uses: mikepenz/action-junit-report@v4
+        if: always()
+        with:
+          report_paths: '**/build/test-results/test/TEST-*.xml'
+          check_name: Unit Test Results
+          fail_on_failure: true
+          detailed_summary: true
+          include_passed: true
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: |
+            **/build/test-results/test/
+            **/build/reports/tests/test/
+          retention-days: 30
+
+      - name: Post Test Summary to PR
+        uses: actions/github-script@v7
+        if: always() && github.event_name == 'pull_request'
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Try to find test result files
+            let testResults = {
+              total: 0,
+              passed: 0,
+              failed: 0,
+              skipped: 0
+            };
+            
+            try {
+              // This is a simplified approach - the junit report action handles detailed parsing
+              const runUrl = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}";
+              
+              let body = `## 🧪 Unit Test Results\n\n`;
+              body += `View detailed test results in the [Actions run](${runUrl}).\n\n`;
+              body += `Check the **Unit Test Results** section above for detailed pass/fail information.`;
+              
+              // Post comment to PR
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            } catch (error) {
+              console.log('Could not post test summary:', error);
+            }
