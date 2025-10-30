@@ -230,10 +230,20 @@ fun ShapeLayoutCanvas(
                             Offset(centerX + rotatedX.toFloat(), centerY + rotatedY.toFloat())
                         }
 
-                        // Draw each shape independently (don't connect endpoints)
-                        if (shapeOffsets.size >= 2) {
+                        // Draw each shape independently
+                        // Line segments (2 points) are not closed, polygons (3+ points) are closed
+                        if (shapeOffsets.size == 2) {
+                            // Wall (line segment) - don't close the shape
                             drawPoints(
                                 points = shapeOffsets,
+                                pointMode = PointMode.Lines,
+                                color = placedShape.color,
+                                strokeWidth = placedShape.shape.strokeWidth
+                            )
+                        } else if (shapeOffsets.size >= 3) {
+                            // Door or other polygon - close the shape
+                            drawPoints(
+                                points = shapeOffsets + shapeOffsets.first(),
                                 pointMode = PointMode.Polygon,
                                 color = placedShape.color,
                                 strokeWidth = placedShape.shape.strokeWidth

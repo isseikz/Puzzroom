@@ -101,7 +101,6 @@ fun FurniturePlacementTemplate(
                             y = point.y.value / spaceSize.height.toFloat()
                         )
                     },
-                    color = Color(placedShapeData.colorArgb),
                     strokeWidth = 2f
                 ),
                 position = NormalizedPoint(
