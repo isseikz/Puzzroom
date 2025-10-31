@@ -1,0 +1,4 @@
+# Google Services - Firebase Configuration
+# DO NOT commit the actual google-services.json file
+# Get yours from Firebase Console: https://console.firebase.google.com/
+google-services.json
