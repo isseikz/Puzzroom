@@ -351,7 +351,7 @@ private fun ShapeLayoutCanvasPreview() {
             color = Color.Green,
             name = "Shape 1"
         )
-        
+
         val shape2 = NormalizedPlacedShape(
             shape = NormalizedShape(
                 points = listOf(
@@ -366,7 +366,7 @@ private fun ShapeLayoutCanvasPreview() {
             color = Color.Red,
             name = "Shape 2"
         )
-        
+
         ShapeLayoutCanvas(
             selectedShape = shape1,
             unselectedShapes = listOf(shape2),
@@ -380,6 +380,142 @@ private fun ShapeLayoutCanvasPreview() {
                 color = Color.Gray,
                 strokeWidth = 2f
             ),
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun ShapeLayoutCanvasWithBackgroundShapesPreview() {
+    PuzzroomTheme {
+        // Furniture shapes
+        val furniture1 = NormalizedPlacedShape(
+            shape = NormalizedShape(
+                points = listOf(
+                    NormalizedPoint(0f, 0f),
+                    NormalizedPoint(0.2f, 0f),
+                    NormalizedPoint(0.2f, 0.15f),
+                    NormalizedPoint(0f, 0.15f)
+                ),
+                color = Color.Green
+            ),
+            position = NormalizedPoint(0.5f, 0.5f),
+            color = Color.Green,
+            name = "Furniture 1"
+        )
+
+        val furniture2 = NormalizedPlacedShape(
+            shape = NormalizedShape(
+                points = listOf(
+                    NormalizedPoint(0f, 0f),
+                    NormalizedPoint(0.15f, 0f),
+                    NormalizedPoint(0.15f, 0.15f),
+                    NormalizedPoint(0f, 0.15f)
+                ),
+                color = Color.Red
+            ),
+            position = NormalizedPoint(0.3f, 0.3f),
+            color = Color.Red,
+            name = "Furniture 2"
+        )
+
+        // Background shapes: walls (line segments) and doors (polygons)
+        val wall1 = NormalizedPlacedShape(
+            shape = NormalizedShape(
+                points = listOf(
+                    NormalizedPoint(-0.4f, -0.4f),
+                    NormalizedPoint(0.4f, -0.4f)
+                ),
+                color = Color.Gray,
+                strokeWidth = 3f
+            ),
+            position = NormalizedPoint(0.5f, 0.1f),
+            color = Color.Gray,
+            name = "North Wall"
+        )
+
+        val wall2 = NormalizedPlacedShape(
+            shape = NormalizedShape(
+                points = listOf(
+                    NormalizedPoint(-0.4f, -0.4f),
+                    NormalizedPoint(0.4f, -0.4f)
+                ),
+                color = Color.Gray,
+                strokeWidth = 3f
+            ),
+            position = NormalizedPoint(0.5f, 0.9f),
+            color = Color.Gray,
+            name = "South Wall"
+        )
+
+        val wall3 = NormalizedPlacedShape(
+            shape = NormalizedShape(
+                points = listOf(
+                    NormalizedPoint(-0.4f, -0.4f),
+                    NormalizedPoint(-0.4f, 0.4f)
+                ),
+                color = Color.Gray,
+                strokeWidth = 3f
+            ),
+            position = NormalizedPoint(0.1f, 0.5f),
+            color = Color.Gray,
+            name = "West Wall",
+            rotation = 0f
+        )
+
+        val wall4 = NormalizedPlacedShape(
+            shape = NormalizedShape(
+                points = listOf(
+                    NormalizedPoint(-0.4f, -0.4f),
+                    NormalizedPoint(-0.4f, 0.4f)
+                ),
+                color = Color.Gray,
+                strokeWidth = 3f
+            ),
+            position = NormalizedPoint(0.9f, 0.5f),
+            color = Color.Gray,
+            name = "East Wall",
+            rotation = 0f
+        )
+
+        val door = NormalizedPlacedShape(
+            shape = NormalizedShape(
+                points = listOf(
+                    NormalizedPoint(-0.05f, -0.02f),
+                    NormalizedPoint(0.05f, -0.02f),
+                    NormalizedPoint(0.05f, 0.02f),
+                    NormalizedPoint(-0.05f, 0.02f)
+                ),
+                color = Color.Cyan,
+                strokeWidth = 2f
+            ),
+            position = NormalizedPoint(0.5f, 0.1f),
+            color = Color.Cyan,
+            name = "Door"
+        )
+
+        ShapeLayoutCanvas(
+            selectedShape = furniture1,
+            unselectedShapes = listOf(furniture2),
+            backgroundShapes = listOf(
+                wall1, wall2, wall3, wall4, door,
+                NormalizedPlacedShape(
+                    shape = NormalizedShape(
+                        points = listOf(
+                            NormalizedPoint(0.1f, 0.9f),
+                            NormalizedPoint(0.9f, 0.9f),
+                            NormalizedPoint(0.9f, 0.1f),
+                            NormalizedPoint(0.1f, 0.1f)
+                        ),
+                        color = Color.LightGray,
+                        strokeWidth = 2f
+                    ),
+                    position = NormalizedPoint(0.185f, -0.15f),
+                    rotation = 20f,
+                    color = Color.LightGray,
+                    name = "Room Boundary"
+                )
+            )
         )
     }
 }
