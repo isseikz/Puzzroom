@@ -25,6 +25,7 @@ import tokyo.isseikuzumaki.puzzroom.domain.Centimeter.Companion.cm
 import tokyo.isseikuzumaki.puzzroom.domain.Degree
 import tokyo.isseikuzumaki.puzzroom.domain.Degree.Companion.degree
 import tokyo.isseikuzumaki.puzzroom.domain.Furniture
+import tokyo.isseikuzumaki.puzzroom.domain.PlacedShapeData
 import tokyo.isseikuzumaki.puzzroom.domain.Point
 import tokyo.isseikuzumaki.puzzroom.domain.Polygon
 import tokyo.isseikuzumaki.puzzroom.domain.Room
@@ -89,18 +90,28 @@ fun FurniturePlacementTemplate(
         onFurnitureChanged(denormalizedFurniture)
     }
 
-    // Convert room shape to normalized background shape
-    val backgroundShape = remember(room, spaceSize) {
-        NormalizedShape(
-            points = room.shape.points.map { point ->
-                NormalizedPoint(
-                    x = point.x.value / spaceSize.width.toFloat(),
-                    y = point.y.value / spaceSize.height.toFloat()
-                )
-            },
-            color = Color.Gray,
-            strokeWidth = 2f
-        )
+    // Convert room shapes (walls, doors, etc.) to normalized background shapes
+    val backgroundShapes = remember(room, spaceSize) {
+        room.shapes.map { placedShapeData ->
+            NormalizedPlacedShape(
+                shape = NormalizedShape(
+                    points = placedShapeData.shape.points.map { point ->
+                        NormalizedPoint(
+                            x = point.x.value / spaceSize.width.toFloat(),
+                            y = point.y.value / spaceSize.height.toFloat()
+                        )
+                    },
+                    strokeWidth = 2f
+                ),
+                position = NormalizedPoint(
+                    x = placedShapeData.position.x.value / spaceSize.width.toFloat(),
+                    y = placedShapeData.position.y.value / spaceSize.height.toFloat()
+                ),
+                rotation = placedShapeData.rotation.value,
+                color = Color(placedShapeData.colorArgb),
+                name = placedShapeData.name
+            )
+        }
     }
 
     // Convert placed furniture to normalized shapes
@@ -114,8 +125,7 @@ fun FurniturePlacementTemplate(
                                 x = point.x.value / spaceSize.width.toFloat(),
                                 y = point.y.value / spaceSize.height.toFloat()
                             )
-                        },
-                        color = Color.Green
+                        }
                     ),
                     position = NormalizedPoint(
                         x = placedFurniture.position.x.value / spaceSize.width.toFloat(),
@@ -134,7 +144,7 @@ fun FurniturePlacementTemplate(
     ) {
         ShapeLayoutCanvas(
             backgroundImageUrl = backgroundImageUrl,
-            backgroundShape = backgroundShape,
+            backgroundShapes = backgroundShapes,
             selectedShape = data.editingFurniture,
             unselectedShapes = currentShapes,
             onSelectedShapePosition = { newPosition ->
@@ -173,8 +183,7 @@ fun FurniturePlacementTemplate(
                                 x = point.x.value / spaceSize.width.toFloat(),
                                 y = point.y.value / spaceSize.height.toFloat()
                             )
-                        },
-                        color = Color.Green
+                        }
                     ),
                     position = NormalizedPoint(0.5f, 0.5f),
                     rotation = 0f,
@@ -235,6 +244,56 @@ private fun FurniturePlacementTemplatePreview() {
                         Point(900.cm(), 100.cm()),
                         Point(900.cm(), 900.cm()),
                         Point(100.cm(), 900.cm())
+                    )
+                ),
+                shapes = listOf(
+                    // Bottom wall
+                    PlacedShapeData(
+                        shape = Polygon(
+                            points = listOf(
+                                Point(0.cm(), 0.cm()),
+                                Point(800.cm(), 0.cm())
+                            )
+                        ),
+                        position = Point(100.cm(), 100.cm()),
+                        colorArgb = 0xFF808080.toInt(),
+                        name = "Bottom Wall"
+                    ),
+                    // Right wall
+                    PlacedShapeData(
+                        shape = Polygon(
+                            points = listOf(
+                                Point(0.cm(), 0.cm()),
+                                Point(0.cm(), 800.cm())
+                            )
+                        ),
+                        position = Point(900.cm(), 100.cm()),
+                        colorArgb = 0xFF808080.toInt(),
+                        name = "Right Wall"
+                    ),
+                    // Top wall
+                    PlacedShapeData(
+                        shape = Polygon(
+                            points = listOf(
+                                Point(0.cm(), 0.cm()),
+                                Point(800.cm(), 0.cm())
+                            )
+                        ),
+                        position = Point(100.cm(), 900.cm()),
+                        colorArgb = 0xFF808080.toInt(),
+                        name = "Top Wall"
+                    ),
+                    // Left wall
+                    PlacedShapeData(
+                        shape = Polygon(
+                            points = listOf(
+                                Point(0.cm(), 0.cm()),
+                                Point(0.cm(), 800.cm())
+                            )
+                        ),
+                        position = Point(100.cm(), 100.cm()),
+                        colorArgb = 0xFF808080.toInt(),
+                        name = "Left Wall"
                     )
                 )
             ),

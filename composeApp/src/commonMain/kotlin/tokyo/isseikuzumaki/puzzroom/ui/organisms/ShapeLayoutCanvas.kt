@@ -161,7 +161,8 @@ internal fun isPointNearShape(
  * UI ライブラリとして分離可能な汎用コンポーネント
  *
  * @param backgroundImageUrl Canvas背景として表示する画像のURL
- * @param backgroundShape 背景図形（無次元座標）
+ * @param backgroundShape 背景図形（無次元座標）- deprecated, use backgroundShapes instead
+ * @param backgroundShapes 背景図形リスト（無次元座標）- 壁やドアなどの個別の図形
  * @param selectedShape 選択中の図形（無次元座標）。スライダーで移動可能。
  * @param unselectedShapes 選択されていない図形リスト（無次元座標）。表示のみ。
  * @param onSelectedShapePosition 選択中の図形の位置変更時のコールバック
@@ -172,6 +173,7 @@ internal fun isPointNearShape(
 fun ShapeLayoutCanvas(
     backgroundImageUrl: String? = null,
     backgroundShape: NormalizedShape? = null,
+    backgroundShapes: List<NormalizedPlacedShape> = emptyList(),
     selectedShape: NormalizedPlacedShape? = null,
     unselectedShapes: List<NormalizedPlacedShape> = emptyList(),
     onSelectedShapePosition: (NormalizedPoint) -> Unit = { _ -> },
@@ -253,7 +255,7 @@ fun ShapeLayoutCanvas(
                     val width = size.width
                     val height = size.height
 
-                    // Draw background shape
+                    // Draw background shape (deprecated - kept for backward compatibility)
                     backgroundShape?.let { bgShape ->
                         val bgOffsets = bgShape.points.map { point ->
                             Offset(point.x * width, point.y * height)
@@ -264,6 +266,47 @@ fun ShapeLayoutCanvas(
                                 pointMode = PointMode.Polygon,
                                 color = bgShape.color,
                                 strokeWidth = bgShape.strokeWidth
+                            )
+                        }
+                    }
+
+                    // Draw background shapes (walls, doors, etc. as separate shapes)
+                    backgroundShapes.forEach { placedShape ->
+                        val shapeOffsets = placedShape.shape.points.map { point ->
+                            val centerX = placedShape.position.x * width
+                            val centerY = placedShape.position.y * height
+
+                            // Apply rotation
+                            val angleRad = placedShape.rotation * (kotlin.math.PI / 180.0)
+                            val cos = kotlin.math.cos(angleRad)
+                            val sin = kotlin.math.sin(angleRad)
+
+                            val x = point.x * width
+                            val y = point.y * height
+
+                            val rotatedX = x * cos - y * sin
+                            val rotatedY = x * sin + y * cos
+
+                            Offset(centerX + rotatedX.toFloat(), centerY + rotatedY.toFloat())
+                        }
+
+                        // Draw each shape independently
+                        // Line segments (2 points) are not closed, polygons (3+ points) are closed
+                        if (shapeOffsets.size == 2) {
+                            // Wall (line segment) - don't close the shape
+                            drawPoints(
+                                points = shapeOffsets,
+                                pointMode = PointMode.Lines,
+                                color = placedShape.color,
+                                strokeWidth = placedShape.shape.strokeWidth
+                            )
+                        } else if (shapeOffsets.size >= 3) {
+                            // Door or other polygon - close the shape
+                            drawPoints(
+                                points = shapeOffsets + shapeOffsets.first(),
+                                pointMode = PointMode.Polygon,
+                                color = placedShape.color,
+                                strokeWidth = placedShape.shape.strokeWidth
                             )
                         }
                     }
@@ -368,7 +411,7 @@ private fun ShapeLayoutCanvasPreview() {
             color = Color.Green,
             name = "Shape 1"
         )
-        
+
         val shape2 = NormalizedPlacedShape(
             shape = NormalizedShape(
                 points = listOf(
@@ -383,7 +426,7 @@ private fun ShapeLayoutCanvasPreview() {
             color = Color.Red,
             name = "Shape 2"
         )
-        
+
         ShapeLayoutCanvas(
             selectedShape = shape1,
             unselectedShapes = listOf(shape2),
@@ -397,6 +440,142 @@ private fun ShapeLayoutCanvasPreview() {
                 color = Color.Gray,
                 strokeWidth = 2f
             ),
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun ShapeLayoutCanvasWithBackgroundShapesPreview() {
+    PuzzroomTheme {
+        // Furniture shapes
+        val furniture1 = NormalizedPlacedShape(
+            shape = NormalizedShape(
+                points = listOf(
+                    NormalizedPoint(0f, 0f),
+                    NormalizedPoint(0.2f, 0f),
+                    NormalizedPoint(0.2f, 0.15f),
+                    NormalizedPoint(0f, 0.15f)
+                ),
+                color = Color.Green
+            ),
+            position = NormalizedPoint(0.5f, 0.5f),
+            color = Color.Green,
+            name = "Furniture 1"
+        )
+
+        val furniture2 = NormalizedPlacedShape(
+            shape = NormalizedShape(
+                points = listOf(
+                    NormalizedPoint(0f, 0f),
+                    NormalizedPoint(0.15f, 0f),
+                    NormalizedPoint(0.15f, 0.15f),
+                    NormalizedPoint(0f, 0.15f)
+                ),
+                color = Color.Red
+            ),
+            position = NormalizedPoint(0.3f, 0.3f),
+            color = Color.Red,
+            name = "Furniture 2"
+        )
+
+        // Background shapes: walls (line segments) and doors (polygons)
+        val wall1 = NormalizedPlacedShape(
+            shape = NormalizedShape(
+                points = listOf(
+                    NormalizedPoint(-0.4f, -0.4f),
+                    NormalizedPoint(0.4f, -0.4f)
+                ),
+                color = Color.Gray,
+                strokeWidth = 3f
+            ),
+            position = NormalizedPoint(0.5f, 0.1f),
+            color = Color.Gray,
+            name = "North Wall"
+        )
+
+        val wall2 = NormalizedPlacedShape(
+            shape = NormalizedShape(
+                points = listOf(
+                    NormalizedPoint(-0.4f, -0.4f),
+                    NormalizedPoint(0.4f, -0.4f)
+                ),
+                color = Color.Gray,
+                strokeWidth = 3f
+            ),
+            position = NormalizedPoint(0.5f, 0.9f),
+            color = Color.Gray,
+            name = "South Wall"
+        )
+
+        val wall3 = NormalizedPlacedShape(
+            shape = NormalizedShape(
+                points = listOf(
+                    NormalizedPoint(-0.4f, -0.4f),
+                    NormalizedPoint(-0.4f, 0.4f)
+                ),
+                color = Color.Gray,
+                strokeWidth = 3f
+            ),
+            position = NormalizedPoint(0.1f, 0.5f),
+            color = Color.Gray,
+            name = "West Wall",
+            rotation = 0f
+        )
+
+        val wall4 = NormalizedPlacedShape(
+            shape = NormalizedShape(
+                points = listOf(
+                    NormalizedPoint(-0.4f, -0.4f),
+                    NormalizedPoint(-0.4f, 0.4f)
+                ),
+                color = Color.Gray,
+                strokeWidth = 3f
+            ),
+            position = NormalizedPoint(0.9f, 0.5f),
+            color = Color.Gray,
+            name = "East Wall",
+            rotation = 0f
+        )
+
+        val door = NormalizedPlacedShape(
+            shape = NormalizedShape(
+                points = listOf(
+                    NormalizedPoint(-0.05f, -0.02f),
+                    NormalizedPoint(0.05f, -0.02f),
+                    NormalizedPoint(0.05f, 0.02f),
+                    NormalizedPoint(-0.05f, 0.02f)
+                ),
+                color = Color.Cyan,
+                strokeWidth = 2f
+            ),
+            position = NormalizedPoint(0.5f, 0.1f),
+            color = Color.Cyan,
+            name = "Door"
+        )
+
+        ShapeLayoutCanvas(
+            selectedShape = furniture1,
+            unselectedShapes = listOf(furniture2),
+            backgroundShapes = listOf(
+                wall1, wall2, wall3, wall4, door,
+                NormalizedPlacedShape(
+                    shape = NormalizedShape(
+                        points = listOf(
+                            NormalizedPoint(0.1f, 0.9f),
+                            NormalizedPoint(0.9f, 0.9f),
+                            NormalizedPoint(0.9f, 0.1f),
+                            NormalizedPoint(0.1f, 0.1f)
+                        ),
+                        color = Color.LightGray,
+                        strokeWidth = 2f
+                    ),
+                    position = NormalizedPoint(0.185f, -0.15f),
+                    rotation = 20f,
+                    color = Color.LightGray,
+                    name = "Room Boundary"
+                )
+            )
         )
     }
 }
