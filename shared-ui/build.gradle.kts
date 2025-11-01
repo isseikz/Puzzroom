@@ -49,7 +49,7 @@ kotlin {
 }
 
 android {
-    namespace = "tokyo.isseikuzumaki.puzzroom.shared.ui"
+    namespace = "tokyo.isseikuzumaki.shared.ui"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {

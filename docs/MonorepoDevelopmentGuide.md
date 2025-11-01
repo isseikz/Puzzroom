@@ -44,7 +44,7 @@ Puzzroom/
 - Firestore data persistence
 - Planned: Calendar and map visualization
 
-**Package**: `tokyo.isseikuzumaki.nlt`
+**Package**: `tokyo.isseikuzumaki.nolotracker`
 
 **Status**: Core features implemented, UI visualization pending
 

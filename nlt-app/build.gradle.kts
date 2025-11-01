@@ -65,11 +65,11 @@ kotlin {
 }
 
 android {
-    namespace = "tokyo.isseikuzumaki.nlt"
+    namespace = "tokyo.isseikuzumaki.nolotracker"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "tokyo.isseikuzumaki.nlt"
+        applicationId = "tokyo.isseikuzumaki.nolotracker"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
