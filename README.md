@@ -6,6 +6,7 @@ This repository is organized as a monorepo containing multiple KMP applications 
 
 - **`composeApp`**: Main Puzzroom application for room layout planning
 - **`nlt-app`**: NLT (Notification & Location Tracker) application for tracking notifications with location
+- **`quick-deploy-app`**: Quick Deploy tool for streamlined deployment in the Puzzroom ecosystem
 - **`shared-ui`**: Shared UI components library (atoms, molecules, organisms, theme)
 
 All applications follow the **Atomic Design** methodology and share the same warm color theme.
