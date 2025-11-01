@@ -45,7 +45,8 @@ data class UserSettings(
 
 ### Firestore Structure
 ```
-/artifacts/nlt_app/users/{userId}/settings
+Collection: artifacts/nlt_app/users/{userId}
+Document: settings
   {
     "userId": "firebase_auth_uid",
     "targetPackages": ["com.example.app1", "com.example.app2"],
@@ -58,7 +59,7 @@ data class UserSettings(
 
 1. **`saveUserSettings(settings: UserSettings)`**
    - Saves user settings to Firestore
-   - Path: `/artifacts/nlt_app/users/{userId}/settings`
+   - Collection: `artifacts/nlt_app/users/{userId}`, Document: `settings`
    - Uses authenticated user's UID
    - Atomic write operation
 
@@ -103,10 +104,10 @@ Comprehensive tests covering:
 
 1. **User Authentication**: All operations require authenticated user (Firebase Auth)
 2. **User Isolation**: Each user's settings are stored in their own document path
-3. **Path Structure**: `/artifacts/nlt_app/users/{userId}/settings` ensures data isolation
+3. **Path Structure**: Collection `artifacts/nlt_app/users/{userId}`, Document `settings` ensures data isolation
 4. **Firestore Rules**: Should be configured to restrict access:
    ```
-   match /artifacts/nlt_app/users/{userId}/settings {
+   match /artifacts/nlt_app/users/{userId}/{document=**} {
      allow read, write: if request.auth != null && request.auth.uid == userId;
    }
    ```

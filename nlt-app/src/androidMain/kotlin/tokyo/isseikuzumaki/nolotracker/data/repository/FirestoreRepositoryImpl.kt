@@ -231,7 +231,7 @@ class FirestoreRepositoryImpl {
                 return
             }
             
-            val settingsPath = getSettingsDocumentPath(userId)
+            val userCollectionPath = getUserCollectionPath(userId)
             
             // Convert to map for Firestore (First Normal Form)
             // Manual mapping ensures 1NF compliance and explicit field control
@@ -243,7 +243,8 @@ class FirestoreRepositoryImpl {
             )
             
             // Save to Firestore
-            firestore.document(settingsPath)
+            firestore.collection(userCollectionPath)
+                .document("settings")
                 .set(data)
                 .await()
             
@@ -270,9 +271,10 @@ class FirestoreRepositoryImpl {
                 return null
             }
             
-            val settingsPath = getSettingsDocumentPath(userId)
+            val userCollectionPath = getUserCollectionPath(userId)
             
-            val document = firestore.document(settingsPath)
+            val document = firestore.collection(userCollectionPath)
+                .document("settings")
                 .get()
                 .await()
             
@@ -318,19 +320,19 @@ class FirestoreRepositoryImpl {
      * @return Firestore collection path
      */
     private fun getCollectionPath(userId: String): String {
-        return "/artifacts/$appId/users/$userId/recorded_notifications"
+        return "artifacts/$appId/users/$userId/recorded_notifications"
     }
     
     /**
-     * Gets the Firestore document path for user's settings.
+     * Gets the Firestore collection path for user's data.
      * 
-     * FR 4.1.2: Private user settings document path
+     * FR 4.1.2: Private user collection path
      * 
      * @param userId User ID
-     * @return Firestore document path
+     * @return Firestore collection path
      */
-    private fun getSettingsDocumentPath(userId: String): String {
-        return "/artifacts/$appId/users/$userId/settings"
+    private fun getUserCollectionPath(userId: String): String {
+        return "artifacts/$appId/users/$userId"
     }
     
     /**
