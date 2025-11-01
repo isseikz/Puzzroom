@@ -1,14 +1,27 @@
 package tokyo.isseikuzumaki.nolotracker
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import tokyo.isseikuzumaki.nlt.ui.pages.NotificationsListPage
+import tokyo.isseikuzumaki.nlt.ui.pages.PermissionsSetupPage
+import tokyo.isseikuzumaki.nlt.ui.pages.SettingsPage
+import tokyo.isseikuzumaki.nlt.ui.pages.SignInPage
+import tokyo.isseikuzumaki.nlt.ui.state.NLTUiState
+import tokyo.isseikuzumaki.nlt.ui.viewmodel.NLTViewModelImpl
 import tokyo.isseikuzumaki.shared.ui.theme.AppTheme
 
 /**
@@ -18,6 +31,16 @@ import tokyo.isseikuzumaki.shared.ui.theme.AppTheme
  * Compose Multiplatform and the shared theme.
  */
 class MainActivity : ComponentActivity() {
+    
+    private val locationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        // Permission result will be handled by the ViewModel
+        viewModelInstance?.refreshPermissions()
+    }
+    
+    private var viewModelInstance: NLTViewModelImpl? = null
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
@@ -27,58 +50,104 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    NLTApp()
+                    NLTApp(
+                        onRequestLocationPermission = {
+                            requestLocationPermission()
+                        }
+                    )
                 }
+            }
+        }
+    }
+    
+    private fun requestLocationPermission() {
+        when {
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                viewModelInstance?.refreshPermissions()
+            }
+            else -> {
+                locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
             }
         }
     }
 }
 
 /**
- * Main composable for NLT application.
- * 
- * Displays placeholder UI until full implementation is complete.
+ * Main composable for NLT application with navigation
  */
 @Composable
-fun NLTApp() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+fun NLTApp(
+    onRequestLocationPermission: () -> Unit
+) {
+    val navController = rememberNavController()
+    val viewModel: NLTViewModelImpl = viewModel { NLTViewModelImpl(navController.context) }
+    val uiState by viewModel.uiState.collectAsState()
+    
+    // Determine start destination based on UI state
+    val startDestination = when (uiState) {
+        is NLTUiState.NotAuthenticated -> "signin"
+        is NLTUiState.Authenticated -> "notifications"
+        else -> "signin"
+    }
+    
+    NavHost(
+        navController = navController,
+        startDestination = startDestination
     ) {
-        Text(
-            text = "NLT (Notification & Location Tracker)",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
+        composable("signin") {
+            SignInPage(
+                viewModel = viewModel
+            )
+            
+            // Navigate to permissions when authenticated
+            LaunchedEffect(uiState) {
+                if (uiState is NLTUiState.Authenticated) {
+                    navController.navigate("permissions") {
+                        popUpTo("signin") { inclusive = true }
+                    }
+                }
+            }
+        }
         
-        Spacer(modifier = Modifier.height(16.dp))
+        composable("permissions") {
+            PermissionsSetupPage(
+                viewModel = viewModel,
+                onContinue = {
+                    navController.navigate("notifications") {
+                        popUpTo("permissions") { inclusive = true }
+                    }
+                }
+            )
+        }
         
-        Text(
-            text = "通知と位置情報トラッカー",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.secondary
-        )
+        composable("notifications") {
+            NotificationsListPage(
+                viewModel = viewModel,
+                onNavigateToSettings = {
+                    navController.navigate("settings")
+                }
+            )
+            
+            // Navigate back to signin if logged out
+            LaunchedEffect(uiState) {
+                if (uiState is NLTUiState.NotAuthenticated) {
+                    navController.navigate("signin") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            }
+        }
         
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        Text(
-            text = "Setup Required:",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Text(
-            text = "1. Grant notification access permission\n" +
-                  "2. Grant location permission\n" +
-                  "3. Sign in with Firebase Auth\n" +
-                  "4. Configure target apps and keywords",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground
-        )
+        composable("settings") {
+            SettingsPage(
+                viewModel = viewModel,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 }
