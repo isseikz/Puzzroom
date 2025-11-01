@@ -180,7 +180,7 @@ private fun NotificationRecordCard(
             // Payment info if parsed
             if (notification.isParsed && notification.parsedAmount != null) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Divider()
+                HorizontalDivider()
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 Row(

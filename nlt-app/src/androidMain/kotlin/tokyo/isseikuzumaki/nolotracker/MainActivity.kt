@@ -11,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
@@ -82,8 +83,9 @@ class MainActivity : ComponentActivity() {
 fun NLTApp(
     onRequestLocationPermission: () -> Unit
 ) {
+    val context = LocalContext.current
     val navController = rememberNavController()
-    val viewModel: NLTViewModelImpl = viewModel { NLTViewModelImpl(navController.context) }
+    val viewModel: NLTViewModelImpl = viewModel { NLTViewModelImpl(context) }
     val uiState by viewModel.uiState.collectAsState()
     
     // Determine start destination based on UI state

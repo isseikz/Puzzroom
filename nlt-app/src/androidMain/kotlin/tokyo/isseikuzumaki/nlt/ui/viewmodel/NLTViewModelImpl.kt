@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import tokyo.isseikuzumaki.nlt.ui.state.AuthState
 import tokyo.isseikuzumaki.nlt.ui.state.NLTUiState
 import tokyo.isseikuzumaki.nlt.ui.state.PermissionState
@@ -71,7 +72,7 @@ class NLTViewModelImpl(
         _authState.value = AuthState.Loading
         
         try {
-            val result = firebaseAuth.signInWithEmailAndPassword(email, password)
+            val result = firebaseAuth.signInWithEmailAndPassword(email, password).await()
             val user = result.user
             
             if (user != null) {

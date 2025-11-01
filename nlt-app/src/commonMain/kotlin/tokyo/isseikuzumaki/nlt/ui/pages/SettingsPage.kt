@@ -104,7 +104,7 @@ fun SettingsPage(
                         }
                     }
                     
-                    Divider()
+                    HorizontalDivider()
                     
                     // Location permission
                     Row(
