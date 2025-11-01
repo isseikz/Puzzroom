@@ -4,10 +4,17 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
+import android.util.Log
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.IntentSenderRequest
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.gms.auth.api.identity.BeginSignInRequest
+import com.google.android.gms.auth.api.identity.Identity
+import com.google.android.gms.auth.api.identity.SignInClient
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,6 +35,15 @@ class NLTViewModelImpl(
     
     private val firebaseAuth = FirebaseAuth.getInstance()
     private val repository = FirestoreRepositoryImpl()
+    private val oneTapClient: SignInClient = Identity.getSignInClient(context)
+    
+    private var googleSignInLauncher: ActivityResultLauncher<IntentSenderRequest>? = null
+    
+    companion object {
+        private const val TAG = "NLTViewModel"
+        // Replace with your actual Web Client ID from Firebase Console
+        private const val WEB_CLIENT_ID = "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com"
+    }
     
     private val _uiState = MutableStateFlow<NLTUiState>(NLTUiState.Loading)
     override val uiState: StateFlow<NLTUiState> = _uiState.asStateFlow()
@@ -68,30 +84,77 @@ class NLTViewModelImpl(
         }
     }
     
-    override suspend fun signIn(email: String, password: String) {
-        _authState.value = AuthState.Loading
-        
-        try {
-            val result = firebaseAuth.signInWithEmailAndPassword(email, password).await()
-            val user = result.user
+    /**
+     * Set the Google Sign-in launcher
+     */
+    fun setGoogleSignInLauncher(launcher: ActivityResultLauncher<IntentSenderRequest>) {
+        googleSignInLauncher = launcher
+    }
+    
+    override fun signInWithGoogle() {
+        viewModelScope.launch {
+            _authState.value = AuthState.Loading
             
-            if (user != null) {
-                _authState.value = AuthState.Success(
-                    userId = user.uid,
-                    email = user.email
-                )
-                _uiState.value = NLTUiState.Authenticated(
-                    userId = user.uid,
-                    userEmail = user.email
-                )
-                loadNotifications()
+            try {
+                val signInRequest = BeginSignInRequest.builder()
+                    .setGoogleIdTokenRequestOptions(
+                        BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
+                            .setSupported(true)
+                            .setServerClientId(WEB_CLIENT_ID)
+                            .setFilterByAuthorizedAccounts(false)
+                            .build()
+                    )
+                    .setAutoSelectEnabled(true)
+                    .build()
+                
+                val result = oneTapClient.beginSignIn(signInRequest).await()
+                
+                val intentSenderRequest = IntentSenderRequest.Builder(result.pendingIntent).build()
+                googleSignInLauncher?.launch(intentSenderRequest)
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "Google Sign-in failed", e)
+                _authState.value = AuthState.Error(e.message ?: "Google Sign-in failed")
+                _uiState.value = NLTUiState.NotAuthenticated
+            }
+        }
+    }
+    
+    /**
+     * Handle Google Sign-in result
+     */
+    suspend fun handleGoogleSignInResult(data: Intent?) {
+        try {
+            val credential = oneTapClient.getSignInCredentialFromIntent(data)
+            val idToken = credential.googleIdToken
+            
+            if (idToken != null) {
+                val firebaseCredential = GoogleAuthProvider.getCredential(idToken, null)
+                val result = firebaseAuth.signInWithCredential(firebaseCredential).await()
+                val user = result.user
+                
+                if (user != null) {
+                    _authState.value = AuthState.Success(
+                        userId = user.uid,
+                        email = user.email
+                    )
+                    _uiState.value = NLTUiState.Authenticated(
+                        userId = user.uid,
+                        userEmail = user.email
+                    )
+                    loadNotifications()
+                } else {
+                    _authState.value = AuthState.Error("Sign in failed")
+                    _uiState.value = NLTUiState.NotAuthenticated
+                }
             } else {
-                _authState.value = AuthState.Error("Sign in failed")
+                _authState.value = AuthState.Error("No ID token received")
                 _uiState.value = NLTUiState.NotAuthenticated
             }
         } catch (e: Exception) {
-            _authState.value = AuthState.Error(e.message ?: "Unknown error")
-            _uiState.value = NLTUiState.Error(e.message ?: "Authentication failed")
+            Log.e(TAG, "Google Sign-in credential handling failed", e)
+            _authState.value = AuthState.Error(e.message ?: "Authentication failed")
+            _uiState.value = NLTUiState.NotAuthenticated
         }
     }
     

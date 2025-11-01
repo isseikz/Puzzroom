@@ -1,21 +1,20 @@
 package tokyo.isseikuzumaki.nlt.ui.pages
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import tokyo.isseikuzumaki.nlt.ui.state.AuthState
 import tokyo.isseikuzumaki.nlt.ui.viewmodel.NLTViewModel
 import tokyo.isseikuzumaki.shared.ui.atoms.AppButton
 import tokyo.isseikuzumaki.shared.ui.atoms.AppText
-import tokyo.isseikuzumaki.shared.ui.atoms.AppTextField
 
 /**
- * Sign-in page for authentication
+ * Sign-in page for authentication with Google
  */
 @Composable
 fun SignInPage(
@@ -23,10 +22,6 @@ fun SignInPage(
     modifier: Modifier = Modifier
 ) {
     val authState by viewModel.authState.collectAsState()
-    val scope = rememberCoroutineScope()
-    
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
     
     Column(
         modifier = modifier
@@ -52,40 +47,14 @@ fun SignInPage(
         
         Spacer(modifier = Modifier.height(48.dp))
         
-        // Email field
-        AppTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = "Email",
-            modifier = Modifier.fillMaxWidth(),
-            enabled = authState !is AuthState.Loading
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Password field
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { AppText("Password") },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = authState !is AuthState.Loading,
-            visualTransformation = PasswordVisualTransformation(),
-            singleLine = true
-        )
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // Sign in button
+        // Google Sign-in button
         AppButton(
-            text = if (authState is AuthState.Loading) "サインイン中..." else "サインイン",
+            text = if (authState is AuthState.Loading) "サインイン中..." else "Googleでサインイン",
             onClick = {
-                scope.launch {
-                    viewModel.signIn(email, password)
-                }
+                viewModel.signInWithGoogle()
             },
             modifier = Modifier.fillMaxWidth(),
-            enabled = authState !is AuthState.Loading && email.isNotBlank() && password.isNotBlank()
+            enabled = authState !is AuthState.Loading
         )
         
         // Error message
@@ -102,7 +71,7 @@ fun SignInPage(
         
         // Help text
         AppText(
-            text = "Firebase Authenticationでサインインしてください",
+            text = "Googleアカウントでサインインしてください",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

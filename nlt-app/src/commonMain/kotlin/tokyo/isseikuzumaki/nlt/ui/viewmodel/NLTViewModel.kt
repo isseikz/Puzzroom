@@ -33,9 +33,9 @@ interface NLTViewModel {
     val settingsState: StateFlow<SettingsState>
     
     /**
-     * Sign in with email and password
+     * Sign in with Google
      */
-    suspend fun signIn(email: String, password: String)
+    fun signInWithGoogle()
     
     /**
      * Sign out the current user

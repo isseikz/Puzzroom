@@ -37,6 +37,9 @@ kotlin {
             
             // Location Services
             implementation(libs.playServices.location)
+            
+            // Google Sign-in
+            implementation(libs.playServices.auth)
         }
         
         commonMain.dependencies {
