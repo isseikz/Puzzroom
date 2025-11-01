@@ -31,8 +31,7 @@ kotlin {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             
-            // Firebase
-            implementation(platform(libs.firebase.bom))
+            // Firebase - BOM is in dependencies block below
             implementation(libs.firebase.firestore)
             implementation(libs.firebase.auth)
             
@@ -97,4 +96,7 @@ android {
 
 dependencies {
     debugImplementation(compose.uiTooling)
+    
+    // Firebase BOM - platform dependency for version management
+    implementation(platform(libs.firebase.bom))
 }
