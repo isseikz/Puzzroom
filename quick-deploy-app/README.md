@@ -4,6 +4,8 @@
 
 Quick Deploy is a streamlined deployment tool designed for the Puzzroom ecosystem. It provides a fast and efficient way to deploy and manage Puzzroom applications.
 
+**Firebase Functions Support**: This module includes Firebase Cloud Functions for server-side logic. See [FIREBASE_SETUP.md](FIREBASE_SETUP.md) for detailed setup instructions.
+
 ## Features
 
 ### Planned Features
@@ -82,12 +84,45 @@ This is a new module in active development. Features and capabilities will be ad
 - [x] Basic project structure
 - [x] Android and iOS support
 - [x] Shared UI integration
+- [x] Firebase Functions setup with Kotlin/JS support
+- [x] Shared data structures between client and server
 - [ ] Core deployment workflow
 
 ### Phase 2: Features (Planned)
 - [ ] Deployment automation
 - [ ] Configuration management
 - [ ] Integration with CI/CD
+- [ ] Firebase Cloud Functions implementation
+
+## Firebase Functions
+
+This module includes Firebase Cloud Functions for server-side logic. The implementation supports:
+
+- **Shared Data Structures**: Data models defined in Kotlin can be used on both client (Android/iOS) and server (Firebase Functions)
+- **Kotlin/JS Option**: Functions can be written in Kotlin and compiled to JavaScript
+- **Standard JavaScript**: Functions can also be written in standard JavaScript/TypeScript
+
+### Quick Start
+
+1. **Setup Firebase**:
+   ```bash
+   cd quick-deploy-app
+   # Edit .firebaserc and add your Firebase project ID
+   cd functions
+   npm install
+   ```
+
+2. **Deploy Functions**:
+   ```bash
+   npm run deploy
+   ```
+
+3. **Local Testing**:
+   ```bash
+   npm run serve
+   ```
+
+See [FIREBASE_SETUP.md](FIREBASE_SETUP.md) for complete documentation.
 
 ## License
 

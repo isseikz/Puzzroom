@@ -25,6 +25,12 @@ kotlin {
         }
     }
     
+    // JavaScript target for Firebase Functions
+    js(IR) {
+        nodejs()
+        binaries.executable()
+    }
+    
     sourceSets {
         androidMain.dependencies {
             implementation(compose.preview)
@@ -47,6 +53,10 @@ kotlin {
             implementation(libs.navigation.compose)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.datetime)
+        }
+        
+        jsMain.dependencies {
+            implementation(libs.kotlinx.serialization.json)
         }
         
         commonTest.dependencies {
