@@ -9,12 +9,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import tokyo.isseikuzumaki.nolotracker.data.model.NotificationRecord
+import tokyo.isseikuzumaki.nolotracker.data.model.UserSettings
 
 /**
- * Repository for managing NotificationRecord data in Firestore.
+ * Repository for managing NotificationRecord and UserSettings data in Firestore.
  * 
  * Implements FR 3.0 (data persistence), FR 3.1 (Firestore storage),
- * and FR 3.2 (secure user-specific collections).
+ * FR 3.2 (secure user-specific collections), and FR 4.1.2 (filtering and analysis).
  */
 class FirestoreRepositoryImpl {
     
@@ -215,6 +216,98 @@ class FirestoreRepositoryImpl {
     }
     
     /**
+     * Saves user settings to Firestore.
+     * 
+     * FR 4.1.2: Persist target applications list and keyword filters
+     * Stores in First Normal Form (1NF) - all fields are atomic
+     * 
+     * @param settings User settings to save
+     */
+    suspend fun saveUserSettings(settings: UserSettings) {
+        try {
+            val userId = getCurrentUserId()
+            if (userId.isEmpty()) {
+                Log.e(tag, "Cannot save settings: user not authenticated")
+                return
+            }
+            
+            // Convert to map for Firestore (First Normal Form)
+            // Follow Firestore Console structure: users collection with userId as document ID
+            val data = mapOf(
+                "packages" to settings.targetPackages,
+                "keywords" to settings.keywords
+            )
+            
+            // Save to Firestore: users/{userId}
+            firestore.collection("users")
+                .document(userId)
+                .set(data)
+                .await()
+            
+            Log.d(tag, "User settings saved successfully for user: $userId")
+            
+        } catch (e: Exception) {
+            Log.e(tag, "Error saving user settings", e)
+            throw e
+        }
+    }
+    
+    /**
+     * Loads user settings from Firestore.
+     * 
+     * FR 4.1.2: Load target applications list and keyword filters on app start
+     * 
+     * @return UserSettings or null if not found
+     */
+    suspend fun getUserSettings(): UserSettings? {
+        try {
+            val userId = getCurrentUserId()
+            if (userId.isEmpty()) {
+                Log.e(tag, "Cannot load settings: user not authenticated")
+                return null
+            }
+            
+            // Load from Firestore: users/{userId}
+            val document = firestore.collection("users")
+                .document(userId)
+                .get()
+                .await()
+            
+            if (!document.exists()) {
+                Log.d(tag, "No settings found for user: $userId")
+                return null
+            }
+            
+            // Parse from Firestore document with type safety
+            // Field names: "packages" and "keywords" as defined in Firestore Console
+            return UserSettings(
+                userId = userId,
+                targetPackages = parseStringList(document, "packages"),
+                keywords = parseStringList(document, "keywords")
+            )
+            
+        } catch (e: Exception) {
+            Log.e(tag, "Error loading user settings", e)
+            throw e
+        }
+    }
+    
+    /**
+     * Helper method to safely parse a list of strings from Firestore document.
+     * 
+     * @param document Firestore document snapshot
+     * @param field Field name to parse
+     * @return List of strings, or empty list if field is missing or invalid
+     */
+    private fun parseStringList(
+        document: com.google.firebase.firestore.DocumentSnapshot,
+        field: String
+    ): List<String> {
+        val rawList = document.get(field) as? List<*>
+        return rawList?.mapNotNull { it as? String } ?: emptyList()
+    }
+    
+    /**
      * Gets the Firestore collection path for user's notification records.
      * 
      * FR 3.2: Private user collection path
@@ -223,7 +316,7 @@ class FirestoreRepositoryImpl {
      * @return Firestore collection path
      */
     private fun getCollectionPath(userId: String): String {
-        return "/artifacts/$appId/users/$userId/recorded_notifications"
+        return "artifacts/$appId/users/$userId/recorded_notifications"
     }
     
     /**
