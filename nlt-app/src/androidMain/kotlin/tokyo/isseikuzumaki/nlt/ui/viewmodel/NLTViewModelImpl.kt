@@ -111,6 +111,11 @@ class NLTViewModelImpl(
                 // Handle the credential
                 handleSignIn(result)
                 
+            } catch (e: androidx.credentials.exceptions.GetCredentialCancellationException) {
+                // User cancelled the sign-in flow - this is normal, just reset to idle state
+                Log.d(TAG, "Google Sign-in cancelled by user")
+                _authState.value = AuthState.Idle
+                _uiState.value = NLTUiState.NotAuthenticated
             } catch (e: GetCredentialException) {
                 Log.e(TAG, "Google Sign-in failed", e)
                 _authState.value = AuthState.Error(e.message ?: "Google Sign-in failed")
