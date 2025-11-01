@@ -9,12 +9,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import tokyo.isseikuzumaki.nolotracker.data.model.NotificationRecord
+import tokyo.isseikuzumaki.nolotracker.data.model.UserSettings
 
 /**
- * Repository for managing NotificationRecord data in Firestore.
+ * Repository for managing NotificationRecord and UserSettings data in Firestore.
  * 
  * Implements FR 3.0 (data persistence), FR 3.1 (Firestore storage),
- * and FR 3.2 (secure user-specific collections).
+ * FR 3.2 (secure user-specific collections), and FR 4.1.2 (filtering and analysis).
  */
 class FirestoreRepositoryImpl {
     
@@ -215,6 +216,86 @@ class FirestoreRepositoryImpl {
     }
     
     /**
+     * Saves user settings to Firestore.
+     * 
+     * FR 4.1.2: Persist target applications list and keyword filters
+     * Stores in First Normal Form (1NF) - all fields are atomic
+     * 
+     * @param settings User settings to save
+     */
+    suspend fun saveUserSettings(settings: UserSettings) {
+        try {
+            val userId = getCurrentUserId()
+            if (userId.isEmpty()) {
+                Log.e(tag, "Cannot save settings: user not authenticated")
+                return
+            }
+            
+            val settingsPath = getSettingsDocumentPath(userId)
+            
+            // Convert to map for Firestore (First Normal Form)
+            val data = mapOf(
+                "userId" to userId,
+                "targetPackages" to settings.targetPackages,
+                "keywords" to settings.keywords
+            )
+            
+            // Save to Firestore
+            firestore.document(settingsPath)
+                .set(data)
+                .await()
+            
+            Log.d(tag, "User settings saved successfully for user: $userId")
+            
+        } catch (e: Exception) {
+            Log.e(tag, "Error saving user settings", e)
+            throw e
+        }
+    }
+    
+    /**
+     * Loads user settings from Firestore.
+     * 
+     * FR 4.1.2: Load target applications list and keyword filters on app start
+     * 
+     * @return UserSettings or null if not found
+     */
+    suspend fun getUserSettings(): UserSettings? {
+        try {
+            val userId = getCurrentUserId()
+            if (userId.isEmpty()) {
+                Log.e(tag, "Cannot load settings: user not authenticated")
+                return null
+            }
+            
+            val settingsPath = getSettingsDocumentPath(userId)
+            
+            val document = firestore.document(settingsPath)
+                .get()
+                .await()
+            
+            if (!document.exists()) {
+                Log.d(tag, "No settings found for user: $userId")
+                return null
+            }
+            
+            // Parse from Firestore document
+            val targetPackages = document.get("targetPackages") as? List<*>
+            val keywords = document.get("keywords") as? List<*>
+            
+            return UserSettings(
+                userId = userId,
+                targetPackages = targetPackages?.mapNotNull { it as? String } ?: emptyList(),
+                keywords = keywords?.mapNotNull { it as? String } ?: emptyList()
+            )
+            
+        } catch (e: Exception) {
+            Log.e(tag, "Error loading user settings", e)
+            throw e
+        }
+    }
+    
+    /**
      * Gets the Firestore collection path for user's notification records.
      * 
      * FR 3.2: Private user collection path
@@ -224,6 +305,18 @@ class FirestoreRepositoryImpl {
      */
     private fun getCollectionPath(userId: String): String {
         return "/artifacts/$appId/users/$userId/recorded_notifications"
+    }
+    
+    /**
+     * Gets the Firestore document path for user's settings.
+     * 
+     * FR 4.1.2: Private user settings document path
+     * 
+     * @param userId User ID
+     * @return Firestore document path
+     */
+    private fun getSettingsDocumentPath(userId: String): String {
+        return "/artifacts/$appId/users/$userId/settings"
     }
     
     /**

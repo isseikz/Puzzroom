@@ -77,6 +77,8 @@ class NLTViewModelImpl(
                     userEmail = currentUser.email
                 )
                 loadNotifications()
+                // FR 4.1.2: Load user settings from Firestore on app start
+                loadUserSettings()
             } else {
                 _authState.value = AuthState.Idle
                 _uiState.value = NLTUiState.NotAuthenticated
@@ -176,6 +178,8 @@ class NLTViewModelImpl(
                     userEmail = user.email
                 )
                 loadNotifications()
+                // FR 4.1.2: Load user settings from Firestore after sign-in
+                loadUserSettings()
             } else {
                 Log.w(TAG, "signInWithCredential:failure - user is null")
                 _authState.value = AuthState.Error("Sign in failed")
@@ -233,12 +237,72 @@ class NLTViewModelImpl(
     
     override fun updateTargetPackages(packages: Set<String>) {
         _settingsState.value = _settingsState.value.copy(targetPackages = packages)
-        // TODO: Save to SharedPreferences
+        // FR 4.1.2: Save to Firestore when user presses save button
+        saveUserSettings()
     }
     
     override fun updateKeywords(keywords: Set<String>) {
         _settingsState.value = _settingsState.value.copy(keywords = keywords)
-        // TODO: Save to SharedPreferences
+        // FR 4.1.2: Save to Firestore when user presses save button
+        saveUserSettings()
+    }
+    
+    /**
+     * Load user settings from Firestore.
+     * 
+     * FR 4.1.2: Load application list and keyword filters on app start
+     */
+    private fun loadUserSettings() {
+        viewModelScope.launch {
+            try {
+                val currentUser = firebaseAuth.currentUser
+                if (currentUser == null) {
+                    Log.d(TAG, "Cannot load settings: user not authenticated")
+                    return@launch
+                }
+                
+                val settings = repository.getUserSettings()
+                if (settings != null) {
+                    _settingsState.value = SettingsState(
+                        targetPackages = settings.getTargetPackagesSet(),
+                        keywords = settings.getKeywordsSet()
+                    )
+                    Log.d(TAG, "User settings loaded from Firestore")
+                } else {
+                    Log.d(TAG, "No settings found in Firestore, using defaults")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading user settings", e)
+            }
+        }
+    }
+    
+    /**
+     * Save user settings to Firestore.
+     * 
+     * FR 4.1.2: Update Firestore when user presses save button
+     */
+    private fun saveUserSettings() {
+        viewModelScope.launch {
+            try {
+                val currentUser = firebaseAuth.currentUser
+                if (currentUser == null) {
+                    Log.d(TAG, "Cannot save settings: user not authenticated")
+                    return@launch
+                }
+                
+                val settings = tokyo.isseikuzumaki.nolotracker.data.model.UserSettings.fromSets(
+                    userId = currentUser.uid,
+                    targetPackages = _settingsState.value.targetPackages,
+                    keywords = _settingsState.value.keywords
+                )
+                
+                repository.saveUserSettings(settings)
+                Log.d(TAG, "User settings saved to Firestore")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error saving user settings", e)
+            }
+        }
     }
     
     override fun refreshPermissions() {
