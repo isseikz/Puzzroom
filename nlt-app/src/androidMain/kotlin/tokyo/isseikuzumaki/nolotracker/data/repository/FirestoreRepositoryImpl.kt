@@ -231,20 +231,16 @@ class FirestoreRepositoryImpl {
                 return
             }
             
-            val userCollectionPath = getUserCollectionPath(userId)
-            
             // Convert to map for Firestore (First Normal Form)
-            // Manual mapping ensures 1NF compliance and explicit field control
-            // rather than relying on automatic serialization which could add extra fields
+            // Follow Firestore Console structure: users collection with userId as document ID
             val data = mapOf(
-                "userId" to userId,
-                "targetPackages" to settings.targetPackages,
+                "packages" to settings.targetPackages,
                 "keywords" to settings.keywords
             )
             
-            // Save to Firestore
-            firestore.collection(userCollectionPath)
-                .document("settings")
+            // Save to Firestore: users/{userId}
+            firestore.collection("users")
+                .document(userId)
                 .set(data)
                 .await()
             
@@ -271,10 +267,9 @@ class FirestoreRepositoryImpl {
                 return null
             }
             
-            val userCollectionPath = getUserCollectionPath(userId)
-            
-            val document = firestore.collection(userCollectionPath)
-                .document("settings")
+            // Load from Firestore: users/{userId}
+            val document = firestore.collection("users")
+                .document(userId)
                 .get()
                 .await()
             
@@ -284,9 +279,10 @@ class FirestoreRepositoryImpl {
             }
             
             // Parse from Firestore document with type safety
+            // Field names: "packages" and "keywords" as defined in Firestore Console
             return UserSettings(
                 userId = userId,
-                targetPackages = parseStringList(document, "targetPackages"),
+                targetPackages = parseStringList(document, "packages"),
                 keywords = parseStringList(document, "keywords")
             )
             
@@ -321,18 +317,6 @@ class FirestoreRepositoryImpl {
      */
     private fun getCollectionPath(userId: String): String {
         return "artifacts/$appId/users/$userId/recorded_notifications"
-    }
-    
-    /**
-     * Gets the Firestore collection path for user's data.
-     * 
-     * FR 4.1.2: Private user collection path
-     * 
-     * @param userId User ID
-     * @return Firestore collection path
-     */
-    private fun getUserCollectionPath(userId: String): String {
-        return "artifacts/$appId/users/$userId"
     }
     
     /**
