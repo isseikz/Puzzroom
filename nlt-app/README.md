@@ -170,22 +170,24 @@ NLT shares UI components with the main Puzzroom app following Atomic Design prin
 
 ## Roadmap
 
-### Phase 1: Core Features (Current)
+### Phase 1: Core Features ✅ (Completed)
 - [x] Notification monitoring
 - [x] Location capture
 - [x] Firestore persistence
 - [x] Payment parsing
-- [ ] Firebase Authentication
-- [ ] Basic UI
+- [x] Firebase Authentication
+- [x] Basic UI
+- [x] Sign-in/Sign-out
+- [x] Permissions management UI
+- [x] Settings UI
 
-### Phase 2: Visualization
+### Phase 2: Visualization (Next)
 - [ ] Calendar view
 - [ ] Map view
 - [ ] Filtering UI
 
 ### Phase 3: Advanced Features
 - [ ] iOS support
-- [ ] Settings UI
 - [ ] Export functionality
 - [ ] Analytics
 
