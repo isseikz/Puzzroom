@@ -42,9 +42,7 @@ class NLTViewModelImpl(
     
     companion object {
         private const val TAG = "NLTViewModel"
-        // Replace with your actual Web Client ID from Firebase Console
-        // This should be the "Web application" type client ID, not Android client ID
-        private const val WEB_CLIENT_ID = "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com"
+        private const val WEB_CLIENT_ID = "484163018959-oso7q6ajebc6dqjkrfr24ni5fccjern7.apps.googleusercontent.com"
     }
     
     private val _uiState = MutableStateFlow<NLTUiState>(NLTUiState.Loading)
