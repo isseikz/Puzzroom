@@ -34,14 +34,14 @@ import tokyo.isseikuzumaki.shared.ui.theme.AppTheme
  */
 class MainActivity : ComponentActivity() {
     
+    private var refreshPermissionsCallback: (() -> Unit)? = null
+    
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         // Permission result will be handled by the ViewModel
-        viewModelInstance?.refreshPermissions()
+        refreshPermissionsCallback?.invoke()
     }
-    
-    private var viewModelInstance: NLTViewModelImpl? = null
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,6 +55,9 @@ class MainActivity : ComponentActivity() {
                     NLTApp(
                         onRequestLocationPermission = {
                             requestLocationPermission()
+                        },
+                        onViewModelCreated = { viewModel ->
+                            refreshPermissionsCallback = { viewModel.refreshPermissions() }
                         }
                     )
                 }
@@ -68,7 +71,7 @@ class MainActivity : ComponentActivity() {
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED -> {
-                viewModelInstance?.refreshPermissions()
+                refreshPermissionsCallback?.invoke()
             }
             else -> {
                 locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -82,12 +85,18 @@ class MainActivity : ComponentActivity() {
  */
 @Composable
 fun NLTApp(
-    onRequestLocationPermission: () -> Unit
+    onRequestLocationPermission: () -> Unit,
+    onViewModelCreated: (NLTViewModel) -> Unit = {}
 ) {
     val context = LocalContext.current
     val navController = rememberNavController()
     val viewModel: NLTViewModel = viewModel { NLTViewModelImpl(context) }
     val uiState by viewModel.uiState.collectAsState()
+    
+    // Notify the Activity that ViewModel is created
+    LaunchedEffect(viewModel) {
+        onViewModelCreated(viewModel)
+    }
     
     // Determine start destination based on UI state
     val startDestination = when (uiState) {
