@@ -234,6 +234,8 @@ class FirestoreRepositoryImpl {
             val settingsPath = getSettingsDocumentPath(userId)
             
             // Convert to map for Firestore (First Normal Form)
+            // Manual mapping ensures 1NF compliance and explicit field control
+            // rather than relying on automatic serialization which could add extra fields
             val data = mapOf(
                 "userId" to userId,
                 "targetPackages" to settings.targetPackages,
@@ -279,20 +281,32 @@ class FirestoreRepositoryImpl {
                 return null
             }
             
-            // Parse from Firestore document
-            val targetPackages = document.get("targetPackages") as? List<*>
-            val keywords = document.get("keywords") as? List<*>
-            
+            // Parse from Firestore document with type safety
             return UserSettings(
                 userId = userId,
-                targetPackages = targetPackages?.mapNotNull { it as? String } ?: emptyList(),
-                keywords = keywords?.mapNotNull { it as? String } ?: emptyList()
+                targetPackages = parseStringList(document, "targetPackages"),
+                keywords = parseStringList(document, "keywords")
             )
             
         } catch (e: Exception) {
             Log.e(tag, "Error loading user settings", e)
             throw e
         }
+    }
+    
+    /**
+     * Helper method to safely parse a list of strings from Firestore document.
+     * 
+     * @param document Firestore document snapshot
+     * @param field Field name to parse
+     * @return List of strings, or empty list if field is missing or invalid
+     */
+    private fun parseStringList(
+        document: com.google.firebase.firestore.DocumentSnapshot,
+        field: String
+    ): List<String> {
+        val rawList = document.get(field) as? List<*>
+        return rawList?.mapNotNull { it as? String } ?: emptyList()
     }
     
     /**
