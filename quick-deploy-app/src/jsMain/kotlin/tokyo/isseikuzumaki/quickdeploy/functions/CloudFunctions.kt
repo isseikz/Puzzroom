@@ -6,67 +6,78 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 
 /**
- * Firebase Cloud Functions implementation using Kotlin/JS.
- * This file demonstrates how to share data structures between client and server.
+ * Firebase Cloud Functions implementation using Kotlin/JS (Optional).
+ * 
+ * This file provides examples of how to implement Cloud Functions in Kotlin/JS
+ * to enable full type safety and code sharing with the client.
+ * 
+ * To use Kotlin/JS functions:
+ * 1. Implement your functions here using the external declarations
+ * 2. Build with: ./gradlew :quick-deploy-app:jsBrowserProductionWebpack
+ * 3. Copy output to functions/dist/
+ * 4. Import in functions/index.js
+ * 
+ * Example implementations below are commented out - uncomment and modify as needed.
  */
 
 // Initialize Firebase Admin
-private val app = initializeApp()
-private val db = getFirestore()
+// private val app = initializeApp()
+// private val db = getFirestore()
 
 /**
- * HTTP Cloud Function that converts text to uppercase.
- * Example: https://us-central1-<project-id>.cloudfunctions.net/makeUppercase?text=hello
+ * Example: HTTP Cloud Function
+ * 
+ * Uncomment and modify this example to create an HTTP endpoint.
  */
+/*
 @JsExport
-val makeUppercase = https.onRequest { req, res ->
+val myHttpFunction = https.onRequest { req, res ->
     try {
-        val text = req.asDynamic().query.text as? String ?: ""
-        val uppercase = text.uppercase()
+        // Use shared data structures from commonMain
+        val inputData = req.asDynamic().body
         
-        logger.info("Converting text to uppercase: $text -> $uppercase")
+        // Your logic here
         
-        res.json(js("""{ "result": "$uppercase" }"""))
+        res.json(js("""{ "message": "Success" }"""))
     } catch (e: Exception) {
-        logger.error("Error in makeUppercase: ${e.message}")
+        logger.error("Error: ${e.message}")
         res.status(500).send("Internal Server Error")
     }
 }
+*/
 
 /**
- * Firestore-triggered Cloud Function that processes new messages.
- * Triggered when a new document is created in the 'messages' collection.
+ * Example: Firestore-triggered Cloud Function
+ * 
+ * Uncomment and modify this example to react to Firestore events.
  */
+/*
 @JsExport
-val addMessage = firestore.onDocumentCreated("messages/{messageId}") { event ->
+val myFirestoreTrigger = firestore.onDocumentCreated("collection/{docId}") { event ->
     try {
         val snapshot = event.asDynamic().data as DocumentSnapshot
-        val original = snapshot.get("original") as? String ?: ""
+        val data = snapshot.get("fieldName") as? String ?: ""
         
-        logger.info("Processing new message: $original")
+        logger.info("Processing document: $data")
         
-        // Create a Message object using shared data structure
+        // Use shared data structures
         val message = Message(
-            text = original.uppercase(),
+            text = data,
             timestamp = js("Date.now()") as Long
         )
         
-        // Serialize to JSON using kotlinx.serialization
-        val messageJson = Json.encodeToString(message)
-        logger.info("Created message: $messageJson")
+        // Serialize using kotlinx.serialization
+        val json = Json.encodeToString(message)
+        logger.info("Serialized: $json")
         
-        // Store the uppercase version back to Firestore
-        val messageId = event.asDynamic().params.messageId as String
-        db.collection("messages")
-            .doc(messageId)
-            .set(js("""{ "uppercase": "${message.text}", "timestamp": ${message.timestamp} }"""))
+        // Your logic here
         
-        logger.info("Message processed successfully")
     } catch (e: Exception) {
-        logger.error("Error in addMessage: ${e.message}")
+        logger.error("Error: ${e.message}")
         throw e
     }
 }
+*/
 
 /**
  * Main entry point for the functions module.

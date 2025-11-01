@@ -132,16 +132,21 @@ npm run logs
 
 ## Testing
 
-### Test HTTP Function
-```bash
-# Using curl
-curl "http://localhost:5001/<project-id>/us-central1/makeUppercase?text=hello"
+### Test Your Functions
 
-# Expected response
-{"result":"HELLO"}
+```bash
+# Start emulator
+cd functions
+npm run serve
+
+# Test HTTP functions using curl
+curl "http://localhost:5001/<project-id>/us-central1/yourFunctionName"
+
+# Or use the Emulator UI
+# Open http://localhost:4000
 ```
 
-### Test Firestore Trigger
+### Test Firestore Triggers
 1. Start emulator: `npm run serve`
 2. Open http://localhost:4000
 3. Go to Firestore tab

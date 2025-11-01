@@ -2,7 +2,7 @@
 
 ## Overview
 
-This directory contains Firebase Cloud Functions implementation for the Quick Deploy App. The functions are implemented using a hybrid approach that allows sharing data structures between the Kotlin Multiplatform client code and the Node.js Firebase Functions.
+This directory contains Firebase Cloud Functions infrastructure for the Quick Deploy App. The setup enables sharing data structures between the Kotlin Multiplatform client code and the Node.js Firebase Functions.
 
 ## Architecture
 
@@ -21,13 +21,11 @@ These models use `@Serializable` annotation from kotlinx.serialization and can b
 1. Used directly in Android/iOS code
 2. Compiled to JavaScript for use in Firebase Functions (optional)
 
-### Current Implementation
+### Implementation Options
 
-The current implementation uses **JavaScript/TypeScript** for Firebase Functions (as recommended in the issue). The Kotlin/JS compilation capability is configured but the actual functions are implemented in JavaScript for simplicity and better Firebase tooling support.
+You can choose either approach for implementing Cloud Functions:
 
-You can choose either approach:
-
-#### Option 1: JavaScript/TypeScript Functions (Current)
+#### Option 1: JavaScript/TypeScript Functions
 - Functions implemented in `functions/index.js`
 - Standard Firebase tooling and workflows
 - Data structures defined in Kotlin for client, manually mirrored in JS
@@ -87,56 +85,60 @@ When prompted:
 - Select JavaScript or TypeScript
 - Install dependencies with npm
 
-### 4. Deploy Functions
+### 4. Implement Your Functions
+
+Add your Cloud Functions to `functions/index.js`. See the file comments for examples.
+
+### 5. Deploy Functions
 
 Deploy all functions:
 ```bash
 npm run deploy
 ```
 
-Or deploy specific functions:
-```bash
-firebase deploy --only functions:makeUppercase
-firebase deploy --only functions:addMessage
-```
+## Implementing Your Functions
 
-## Available Functions
+### Adding Cloud Functions
 
-### 1. makeUppercase (HTTP Function)
+Edit `functions/index.js` to add your Cloud Functions. Here are common patterns:
 
-Converts text to uppercase via HTTP request.
-
-**Endpoint:**
-```
-https://us-central1-<project-id>.cloudfunctions.net/makeUppercase?text=hello
-```
-
-**Usage:**
-```bash
-curl "https://us-central1-<project-id>.cloudfunctions.net/makeUppercase?text=hello"
-# Response: {"result":"HELLO"}
-```
-
-### 2. addMessage (Firestore Trigger)
-
-Automatically processes new messages added to the `messages` collection.
-
-**Trigger:** Document created in `messages/{messageId}`
-
-**Behavior:**
-1. Reads the `original` field from the new document
-2. Converts it to uppercase
-3. Writes back `uppercase` and `timestamp` fields
-
-**Usage:**
+#### HTTP Function Example
 ```javascript
-// Add a document to trigger the function
-await firebase.firestore()
-  .collection('messages')
-  .add({ original: 'hello world' });
+import { onRequest } from "firebase-functions/https";
 
-// The function will automatically add:
-// { uppercase: 'HELLO WORLD', timestamp: 1234567890 }
+export const myHttpFunction = onRequest(async (req, res) => {
+  // Your logic here
+  res.json({ message: "Hello from Firebase!" });
+});
+```
+
+#### Firestore Trigger Example
+```javascript
+import { onDocumentCreated } from "firebase-functions/firestore";
+import { getFirestore } from "firebase-admin/firestore";
+
+export const onNewDocument = onDocumentCreated("collection/{docId}", async (event) => {
+  const snapshot = event.data;
+  const data = snapshot.data();
+  
+  // Your logic here
+  console.log("New document:", data);
+});
+```
+
+### Using Shared Data Structures
+
+Leverage the Kotlin data models defined in `src/commonMain/kotlin/.../data/`:
+
+```javascript
+// Client (Kotlin) sends:
+// { "text": "hello", "timestamp": 1234567890 }
+
+// Server (JavaScript) processes:
+export const processMessage = onRequest(async (req, res) => {
+  const data = req.body; // Matches Kotlin @Serializable structure
+  res.json({ result: data.text.toUpperCase() });
+});
 ```
 
 ## Local Testing
@@ -150,15 +152,14 @@ npm run serve
 
 This starts the Firebase Emulator Suite on http://localhost:4000
 
-### Test HTTP Function
+### Test Your Functions
 
 ```bash
-curl "http://localhost:5001/<project-id>/us-central1/makeUppercase?text=hello"
+# Test HTTP functions
+curl "http://localhost:5001/<project-id>/us-central1/myHttpFunction"
+
+# Or use the Emulator UI at http://localhost:4000
 ```
-
-### Test Firestore Trigger
-
-Use the Emulator UI at http://localhost:4000 to add documents to the `messages` collection.
 
 ## Using Kotlin/JS (Optional Advanced Setup)
 
@@ -184,9 +185,9 @@ cp -r build/dist/js/productionExecutable/* functions/dist/
 Import and use the compiled Kotlin/JS functions:
 
 ```javascript
-import { makeUppercase, addMessage } from './dist/quick-deploy-app.js';
+import { myKotlinFunction } from './dist/quick-deploy-app.js';
 
-export { makeUppercase, addMessage };
+export { myKotlinFunction };
 ```
 
 ## Project Structure
