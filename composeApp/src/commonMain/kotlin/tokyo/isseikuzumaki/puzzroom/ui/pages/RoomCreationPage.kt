@@ -57,8 +57,7 @@ fun RoomCreationPage(
     }
 
     var showNameDialog by remember { mutableStateOf(false) }
-    var pendingShapes by remember { mutableStateOf<List<PlacedShape>?>(null) }
-    
+
     // Auto-show dialog when room list becomes empty (first-time user experience)
     LaunchedEffect(rooms.isEmpty()) {
         if (rooms.isEmpty()) {
@@ -103,65 +102,51 @@ fun RoomCreationPage(
                 backgroundImageUrl = backgroundImageUrl,
                 placedShapes = existingShapes,
                 onShapesChanged = { shapes ->
-                    pendingShapes = shapes
-                    showNameDialog = true
+                    // Update the room immediately when shapes change
+                    selectedRoom?.let { currentRoom ->
+                        project?.let { currentProject ->
+                            val updatedRoom = convertPlacedShapesToRoom(shapes, currentRoom.name)
+                                .copy(id = currentRoom.id) // Preserve room ID
+
+                            val currentFloorPlan = currentProject.floorPlans.firstOrNull() ?: FloorPlan()
+                            val updatedRooms = currentFloorPlan.rooms.map { room ->
+                                if (room.id == currentRoom.id) updatedRoom else room
+                            }
+
+                            val updatedFloorPlan = currentFloorPlan.copy(rooms = updatedRooms)
+                            val updatedProject = currentProject.copy(floorPlans = listOf(updatedFloorPlan))
+
+                            viewModel.updateProject(updatedProject)
+                        }
+                    }
                 },
                 modifier = Modifier.weight(1f)
             )
         }
     }
 
-    // Room name dialog
+    // Room name dialog - only for creating NEW rooms
     if (showNameDialog) {
         RoomNameDialog(
             onConfirm = { roomName ->
-                // Create room from shapes (if available) or empty list (for first-time users)
-                // pendingShapes is null when dialog is auto-shown for empty room list,
-                // and contains shapes when triggered from RoomCreationTemplate
-                val newRoom = convertPlacedShapesToRoom(pendingShapes ?: emptyList(), roomName)
+                // Create a new empty room (shapes are auto-saved via onShapesChanged)
+                val newRoom = convertPlacedShapesToRoom(emptyList(), roomName)
                 project?.let { currentProject ->
                     val currentFloorPlan = currentProject.floorPlans.firstOrNull() ?: FloorPlan()
-                    
-                    // Store the ID to track which room to update/select after save
-                    val currentRoomId = selectedRoom?.id
-                    
-                    // If editing an existing room, update it; otherwise add a new room
-                    val updatedRooms = if (currentRoomId != null) {
-                        // Update existing room by replacing it with the edited version
-                        val roomIndex = currentFloorPlan.rooms.indexOfFirst { it.id == currentRoomId }
-                        if (roomIndex >= 0) {
-                            // Preserve the ID of the existing room
-                            val updatedRoom = newRoom.copy(id = currentRoomId)
-                            currentFloorPlan.rooms.mapIndexed { index, room ->
-                                if (index == roomIndex) updatedRoom else room
-                            }
-                        } else {
-                            // Room not found, add as new
-                            currentFloorPlan.rooms + newRoom
-                        }
-                    } else {
-                        // Creating a new room
-                        currentFloorPlan.rooms + newRoom
-                    }
-                    
-                    val updatedFloorPlan = currentFloorPlan.copy(
-                        rooms = updatedRooms
-                    )
-                    val updatedProject = currentProject.copy(
-                        floorPlans = listOf(updatedFloorPlan)
-                    )
+
+                    val updatedRooms = currentFloorPlan.rooms + newRoom
+                    val updatedFloorPlan = currentFloorPlan.copy(rooms = updatedRooms)
+                    val updatedProject = currentProject.copy(floorPlans = listOf(updatedFloorPlan))
+
                     viewModel.updateProject(updatedProject)
-                    
-                    // Update selectedRoom to point to the saved room
-                    val targetId = currentRoomId ?: newRoom.id
-                    selectedRoom = updatedRooms.find { it.id == targetId }
+
+                    // Select the newly created room
+                    selectedRoom = newRoom
                 }
                 showNameDialog = false
-                pendingShapes = null
             },
             onDismiss = {
                 showNameDialog = false
-                pendingShapes = null
             }
         )
     }

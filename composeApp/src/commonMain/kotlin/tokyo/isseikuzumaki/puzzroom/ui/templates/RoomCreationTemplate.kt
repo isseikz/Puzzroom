@@ -10,6 +10,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,64 +40,37 @@ import tokyo.isseikuzumaki.puzzroom.ui.molecules.ZoomSlider
 import tokyo.isseikuzumaki.puzzroom.ui.state.SliderState
 import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
 
+private fun PlacedShape.toData(): PlacedShapeData {
+    return PlacedShapeData(
+        shape = this.shape,
+        position = this.position,
+        rotation = this.rotation,
+        colorArgb = (this.color.value and 0xFFFFFFFFu).toInt(), // Extract ARGB as Int
+        name = this.name
+    )
+}
+
 /**
  * Convert a list of PlacedShape (walls/doors) to a Room
  *
  * This function accepts any layout of shapes (walls/doors) and creates a room from them.
- * The polygon does NOT need to be closed - users can save incomplete layouts.
+ * The room does NOT need to be closed - users can save incomplete layouts.
  *
- * The resulting room polygon contains all points from all placed shapes,
- * translated to their absolute positions. The individual shapes are also stored
- * in the room for later editing.
+ * The individual shapes are stored in the room for later editing.
  *
  * @param shapes List of walls/doors that make up the room layout
  * @param roomName Name for the created room
- * @return Room with polygon containing all shape points and individual shapes stored
+ * @return Room with individual shapes stored
  */
 fun convertPlacedShapesToRoom(
     shapes: List<PlacedShape>,
     roomName: String = "New Room"
 ): Room {
-    // Collect all points from all shapes, translated to absolute positions
-    val allPoints = mutableListOf<Point>()
-
-    shapes.forEach { placedShape ->
-        placedShape.shape.points.forEach { point ->
-            // Translate point by the shape's position
-            val translatedPoint = Point(
-                x = Centimeter(point.x.value + placedShape.position.x.value),
-                y = Centimeter(point.y.value + placedShape.position.y.value)
-            )
-            allPoints.add(translatedPoint)
-        }
-    }
-
-    // If no shapes provided, create a minimal polygon with at least 3 points
-    // to satisfy the Room data structure
-    val finalPoints = if (allPoints.isEmpty()) {
-        listOf(
-            Point(Centimeter(0), Centimeter(0)),
-            Point(Centimeter(100), Centimeter(0)),
-            Point(Centimeter(100), Centimeter(100))
-        )
-    } else {
-        allPoints
-    }
-
     // Convert PlacedShape (UI) to PlacedShapeData (domain) for storage
-    val shapesData = shapes.map { placedShape ->
-        PlacedShapeData(
-            shape = placedShape.shape,
-            position = placedShape.position,
-            rotation = placedShape.rotation,
-            colorArgb = (placedShape.color.value and 0xFFFFFFFFu).toInt(), // Extract ARGB as Int
-            name = placedShape.name
-        )
-    }
+    val shapesData = shapes.map { it.toData() }
 
     return Room(
         name = roomName,
-        shape = Polygon(points = finalPoints),
         shapes = shapesData
     )
 }
@@ -113,6 +87,7 @@ data class PlacedShape(
 ) {
     fun normalize(spaceSize: IntSize): NormalizedPlacedShape {
         return NormalizedPlacedShape(
+            name = this.name,
             shape = NormalizedShape(
                 points = this.shape.points.map { point ->
                     NormalizedPoint(
@@ -124,7 +99,8 @@ data class PlacedShape(
             position = NormalizedPoint(
                 x = this.position.x.value / spaceSize.width.toFloat(),
                 y = this.position.y.value / spaceSize.height.toFloat()
-            )
+            ),
+            rotation = this.rotation.value,
         )
     }
 
@@ -197,8 +173,8 @@ fun RoomCreationTemplate(
 ) {
     var spaceSize by remember { mutableStateOf(IntSize(1000, 1000)) }
 
-    var currentShapes by remember(placedShapes, spaceSize) { 
-        mutableStateOf(placedShapes.map { it.normalize(spaceSize) }) 
+    var currentShapes by remember(placedShapes, spaceSize) {
+        mutableStateOf(placedShapes.map { it.normalize(spaceSize) })
     }
     var data by remember { mutableStateOf(RoomCreationUiState()) }
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -216,6 +192,40 @@ fun RoomCreationTemplate(
         )
     }
 
+    // Helper function to denormalize shapes and notify parent
+    fun notifyShapesChanged(normalizedShapes: List<NormalizedPlacedShape>) {
+        val denormalizedShapes = normalizedShapes.map { normalizedShape ->
+            PlacedShape(
+                shape = Polygon(
+                    points = normalizedShape.shape.points.map { point ->
+                        Point(
+                            Centimeter((point.x * spaceSize.width).toInt()),
+                            Centimeter((point.y * spaceSize.height).toInt())
+                        )
+                    }
+                ),
+                position = Point(
+                    Centimeter((normalizedShape.position.x * spaceSize.width).toInt()),
+                    Centimeter((normalizedShape.position.y * spaceSize.height).toInt())
+                ),
+                rotation = Degree(normalizedShape.rotation),
+                color = normalizedShape.color,
+                name = normalizedShape.name
+            )
+        }
+        onShapesChanged(denormalizedShapes)
+    }
+
+    // Auto-notify parent when shape state changes
+    LaunchedEffect(data.editingShape) {
+        val allShapes = if (currentShapes.isNotEmpty() && data.editingShape != null) {
+            currentShapes - currentShapes.last() + data.editingShape!!
+        } else {
+            currentShapes
+        }
+        notifyShapesChanged(allShapes)
+    }
+
     Column(
         verticalArrangement = Arrangement.Bottom
     ) {
@@ -231,12 +241,7 @@ fun RoomCreationTemplate(
             },
             onShapeSelected = { selectedIndex ->
                 val newSelectedShape = currentShapes.getOrNull(selectedIndex)
-                val newUnselectedShapes = currentShapes.toMutableList()
-                    .apply {
-                        removeAt(selectedIndex)
-                        data.editingShape?.let { add(it) }
-                    }
-                currentShapes = newUnselectedShapes
+                data.editingShape?.let { currentShapes = currentShapes + it }
                 data = data.copy(
                     shapeTypeToPlace = null,
                     editingShape = newSelectedShape
@@ -278,37 +283,11 @@ fun RoomCreationTemplate(
         
         ButtonToCreate(
             onClick = {
-                // Add current editing shape to the list (if any)
-                val shapesToSave = if (data.editingShape != null) {
-                    currentShapes + data.editingShape!!
-                } else {
-                    currentShapes
+                // Finalize current editing shape by adding it to the list
+                data.editingShape?.let { editingShape ->
+                    currentShapes = currentShapes + editingShape
+                    data = data.copy(editingShape = null, shapeTypeToPlace = null)
                 }
-
-                // Convert normalized shapes back to PlacedShape and notify parent
-                // This works even if shapesToSave is empty - users can save an empty room layout
-                val denormalizedShapes = shapesToSave.map { normalizedShape ->
-                    PlacedShape(
-                        shape = Polygon(
-                            points = normalizedShape.shape.points.map { point ->
-                                Point(
-                                    Centimeter((point.x * spaceSize.width).toInt()),
-                                    Centimeter((point.y * spaceSize.height).toInt())
-                                )
-                            }
-                        ),
-                        position = Point(
-                            Centimeter((normalizedShape.position.x * spaceSize.width).toInt()),
-                            Centimeter((normalizedShape.position.y * spaceSize.height).toInt())
-                        ),
-                        rotation = Degree(normalizedShape.rotation),
-                        color = normalizedShape.color,
-                        name = normalizedShape.name
-                    )
-                }
-
-                // Notify parent to save current layout (even if incomplete/empty)
-                onShapesChanged(denormalizedShapes)
             },
             modifier = Modifier.fillMaxWidth().height(56.dp)
                 .background(color = MaterialTheme.colorScheme.secondaryContainer)

@@ -69,7 +69,29 @@ data class NormalizedPlacedShape(
     val rotation: Float = 0f,       // Rotation in degrees
     val color: Color = Color.Green,
     val name: String = ""
-)
+) {
+    fun toOffsets(canvasSize: IntSize): List<Offset> {
+        val width = canvasSize.width.toFloat()
+        val height = canvasSize.height.toFloat()
+        return shape.points.map { point ->
+            val centerX = position.x * width
+            val centerY = position.y * height
+
+            // Apply rotation
+            val angleRad = rotation * (kotlin.math.PI / 180.0)
+            val cos = kotlin.math.cos(angleRad)
+            val sin = kotlin.math.sin(angleRad)
+
+            val x = point.x * width
+            val y = point.y * height
+
+            val rotatedX = x * cos - y * sin
+            val rotatedY = x * sin + y * cos
+
+            Offset(centerX + rotatedX.toFloat(), centerY + rotatedY.toFloat())
+        }
+    }
+}
 
 /**
  * Calculate the shortest distance from a point to a line segment
@@ -172,6 +194,7 @@ internal fun isPointNearShape(
 fun ShapeLayoutCanvas(
     backgroundImageUrl: String? = null,
     backgroundShape: NormalizedShape? = null,
+    backgroundShapes: List<NormalizedPlacedShape> = emptyList(),
     selectedShape: NormalizedPlacedShape? = null,
     unselectedShapes: List<NormalizedPlacedShape> = emptyList(),
     onSelectedShapePosition: (NormalizedPoint) -> Unit = { _ -> },
@@ -268,64 +291,36 @@ fun ShapeLayoutCanvas(
                         }
                     }
 
-                    // Draw unselected shapes
-                    unselectedShapes.forEach { placedShape ->
-                        val shapeOffsets = placedShape.shape.points.map { point ->
-                            val centerX = placedShape.position.x * width
-                            val centerY = placedShape.position.y * height
-
-                            // Apply rotation
-                            val angleRad = placedShape.rotation * (kotlin.math.PI / 180.0)
-                            val cos = kotlin.math.cos(angleRad)
-                            val sin = kotlin.math.sin(angleRad)
-
-                            val x = point.x * width
-                            val y = point.y * height
-
-                            val rotatedX = x * cos - y * sin
-                            val rotatedY = x * sin + y * cos
-
-                            Offset(centerX + rotatedX.toFloat(), centerY + rotatedY.toFloat())
-                        }
-
-                        if (shapeOffsets.isNotEmpty()) {
+                    // Draw additional background shapes
+                    backgroundShapes.map { it.toOffsets(canvasSize) }
+                        .forEach { shapeOffsets ->
                             drawPoints(
                                 points = shapeOffsets + shapeOffsets.first(),
                                 pointMode = PointMode.Polygon,
-                                color = placedShape.color,
-                                strokeWidth = placedShape.shape.strokeWidth
+                                color = Color.LightGray,
+                                strokeWidth = 2f
                             )
                         }
-                    }
+
+                    // Draw unselected shapes
+                    unselectedShapes.map { it.toOffsets(canvasSize) }
+                        .forEach { shapeOffsets ->
+                            drawPoints(
+                                points = shapeOffsets + shapeOffsets.first(),
+                                pointMode = PointMode.Polygon,
+                                color = Color.Gray,
+                                strokeWidth = 3f
+                            )
+                        }
 
                     // Draw selected shape (highlighted)
-                    selectedShape?.let { placedShape ->
-                        val shapeOffsets = placedShape.shape.points.map { point ->
-                            val centerX = sliderPosition.x * width
-                            val centerY = sliderPosition.y * height
-
-                            // Apply rotation
-                            val angleRad = placedShape.rotation * (kotlin.math.PI / 180.0)
-                            val cos = kotlin.math.cos(angleRad)
-                            val sin = kotlin.math.sin(angleRad)
-
-                            val x = point.x * width
-                            val y = point.y * height
-
-                            val rotatedX = x * cos - y * sin
-                            val rotatedY = x * sin + y * cos
-
-                            Offset(centerX + rotatedX.toFloat(), centerY + rotatedY.toFloat())
-                        }
-
-                        if (shapeOffsets.isNotEmpty()) {
-                            drawPoints(
-                                points = shapeOffsets + shapeOffsets.first(),
-                                pointMode = PointMode.Polygon,
-                                color = Color.Blue,  // Highlight selected shape
-                                strokeWidth = 5f
-                            )
-                        }
+                    selectedShape?.toOffsets(canvasSize)?.let { shapeOffsets ->
+                        drawPoints(
+                            points = shapeOffsets + shapeOffsets.first(),
+                            pointMode = PointMode.Polygon,
+                            color = Color.Blue,  // Highlight selected shape
+                            strokeWidth = 5f
+                        )
                     }
                 }
             },
@@ -368,7 +363,7 @@ private fun ShapeLayoutCanvasPreview() {
             color = Color.Green,
             name = "Shape 1"
         )
-        
+
         val shape2 = NormalizedPlacedShape(
             shape = NormalizedShape(
                 points = listOf(
@@ -383,7 +378,20 @@ private fun ShapeLayoutCanvasPreview() {
             color = Color.Red,
             name = "Shape 2"
         )
-        
+
+        val backgroundShape1 = NormalizedPlacedShape(
+            shape = NormalizedShape(
+                points = listOf(
+                    NormalizedPoint(0f, 0f),
+                    NormalizedPoint(0.1f, 0f)
+                ),
+                color = Color.Blue
+            ),
+            position = NormalizedPoint(0.2f, 0.7f),
+            color = Color.Blue,
+            name = "Background Shape 1"
+        )
+
         ShapeLayoutCanvas(
             selectedShape = shape1,
             unselectedShapes = listOf(shape2),
@@ -397,6 +405,7 @@ private fun ShapeLayoutCanvasPreview() {
                 color = Color.Gray,
                 strokeWidth = 2f
             ),
+            backgroundShapes = listOf(backgroundShape1),
         )
     }
 }

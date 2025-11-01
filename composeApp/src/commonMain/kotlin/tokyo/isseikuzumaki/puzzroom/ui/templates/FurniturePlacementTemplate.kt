@@ -8,9 +8,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,9 +25,11 @@ import tokyo.isseikuzumaki.puzzroom.domain.Centimeter.Companion.cm
 import tokyo.isseikuzumaki.puzzroom.domain.Degree
 import tokyo.isseikuzumaki.puzzroom.domain.Degree.Companion.degree
 import tokyo.isseikuzumaki.puzzroom.domain.Furniture
+import tokyo.isseikuzumaki.puzzroom.domain.PlacedShapeData
 import tokyo.isseikuzumaki.puzzroom.domain.Point
 import tokyo.isseikuzumaki.puzzroom.domain.Polygon
 import tokyo.isseikuzumaki.puzzroom.domain.Room
+import tokyo.isseikuzumaki.puzzroom.ui.molecules.ZoomSlider
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.ButtonToCreate
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.FurnitureCreationForm
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.FurnitureSelector
@@ -35,7 +37,6 @@ import tokyo.isseikuzumaki.puzzroom.ui.organisms.NormalizedPlacedShape
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.NormalizedPoint
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.NormalizedShape
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.ShapeLayoutCanvas
-import tokyo.isseikuzumaki.puzzroom.ui.molecules.ZoomSlider
 import tokyo.isseikuzumaki.puzzroom.ui.state.PlacedFurniture
 import tokyo.isseikuzumaki.puzzroom.ui.state.SliderState
 import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
@@ -101,20 +102,6 @@ fun FurniturePlacementTemplate(
         onFurnitureChanged(denormalizedFurniture)
     }
 
-    // Convert room shape to normalized background shape
-    val backgroundShape = remember(room, spaceSize) {
-        NormalizedShape(
-            points = room.shape.points.map { point ->
-                NormalizedPoint(
-                    x = point.x.value / spaceSize.width.toFloat(),
-                    y = point.y.value / spaceSize.height.toFloat()
-                )
-            },
-            color = Color.Gray,
-            strokeWidth = 2f
-        )
-    }
-
     // Convert placed furniture to normalized shapes
     var currentShapes by remember(spaceSize) {
         mutableStateOf(
@@ -141,25 +128,68 @@ fun FurniturePlacementTemplate(
         )
     }
 
+    // Auto-notify parent when furniture state changes
+    LaunchedEffect(data.editingFurniture) {
+        val allShapes = if (currentShapes.isNotEmpty() && data.editingFurniture != null) {
+            currentShapes - currentShapes.last() + data.editingFurniture!!
+        } else {
+            currentShapes
+        }
+        notifyFurnitureChanged(allShapes)
+    }
+
     Column(
         verticalArrangement = Arrangement.Bottom
     ) {
         ShapeLayoutCanvas(
             backgroundImageUrl = backgroundImageUrl,
-            backgroundShape = backgroundShape,
+            backgroundShapes = room.shapes.map { (shape, position, rotation, colorArgb, name) ->
+                NormalizedPlacedShape(
+                    shape = NormalizedShape(
+                        shape.points.map { (x, y) ->
+                            NormalizedPoint(
+                                x = (x.value + position.x.value) / spaceSize.width.toFloat(),
+                                y = (y.value + position.y.value) / spaceSize.height.toFloat()
+                            )
+                        },
+                        color = Color.Gray,
+                        strokeWidth = 2f
+                    ),
+                    position = NormalizedPoint(
+                        x = position.x.value / spaceSize.width.toFloat(),
+                        y = position.y.value / spaceSize.height.toFloat()
+                    ),
+                    rotation = rotation.value,
+                    color = Color.Gray,
+                    name = name
+                )
+            },
             selectedShape = data.editingFurniture,
             unselectedShapes = currentShapes,
             onSelectedShapePosition = { newPosition ->
-                val updatedEditingFurniture = data.editingFurniture?.copy(
-                    position = newPosition
-                )
                 data = data.copy(
-                    editingFurniture = updatedEditingFurniture
+                    editingFurniture = data.editingFurniture?.copy(
+                        position = newPosition
+                    )
                 )
+            },
+            onShapeSelected = { index ->
+                // Save current editing furniture if any
+                val updatedShapes = if (data.editingFurniture != null) {
+                    currentShapes + data.editingFurniture!!
+                } else {
+                    currentShapes
+                }
 
-                // Notify parent of position change (for auto-save)
-                updatedEditingFurniture?.let {
-                    notifyFurnitureChanged(currentShapes + it)
+                // Select the tapped shape for editing
+                val selectedShape = currentShapes.getOrNull(index)
+                if (selectedShape != null) {
+                    // Remove the selected shape from currentShapes and set it as editingFurniture
+                    currentShapes = updatedShapes.filterIndexed { i, _ -> i != index }
+                    data = data.copy(
+                        editingFurniture = selectedShape,
+                        selectedFurnitureIndex = index
+                    )
                 }
             },
             modifier = modifier.weight(1f)
@@ -201,9 +231,6 @@ fun FurniturePlacementTemplate(
                     name = furniture.name
                 )
                 data = data.copy(editingFurniture = newShape)
-
-                // Notify parent that furniture was added
-                notifyFurnitureChanged(updatedShapes)
             },
             modifier = Modifier.fillMaxWidth().height(100.dp)
                 .background(color = MaterialTheme.colorScheme.secondaryContainer)
@@ -219,20 +246,36 @@ fun FurniturePlacementTemplate(
             ModalBottomSheet(
                 onDismissRequest = {
                     showBottomSheet = false
+                    // Finalize editing furniture when modal is dismissed
+                    data.editingFurniture?.let { editingFurniture ->
+                        currentShapes = currentShapes + editingFurniture
+                        data = data.copy(editingFurniture = null, selectedFurnitureIndex = null)
+                    }
                 },
                 sheetState = bottomSheetState
             ) {
                 FurnitureCreationForm(
                     onDismiss = {
                         showBottomSheet = false
+                        // Finalize editing furniture when form is dismissed
+                        data.editingFurniture?.let { editingFurniture ->
+                            currentShapes = currentShapes + editingFurniture
+                            data = data.copy(editingFurniture = null, selectedFurnitureIndex = null)
+                        }
                     },
                     onSave = { modalData ->
+                        // Update editing furniture with modal data
                         data = data.copy(
                             editingFurniture = data.editingFurniture?.copy(
                                 // TODO: update attributes based on modalData
                             )
                         )
                         showBottomSheet = false
+                        // Finalize editing furniture
+                        data.editingFurniture?.let { editingFurniture ->
+                            currentShapes = currentShapes + editingFurniture
+                            data = data.copy(editingFurniture = null, selectedFurnitureIndex = null)
+                        }
                     }
                 )
             }
@@ -248,14 +291,18 @@ private fun FurniturePlacementTemplatePreview() {
         FurniturePlacementTemplate(
             room = Room(
                 name = "Sample Room",
-                shape = Polygon(
-                    points = listOf(
-                        Point(100.cm(), 100.cm()),
-                        Point(900.cm(), 100.cm()),
-                        Point(900.cm(), 900.cm()),
-                        Point(100.cm(), 900.cm())
-                    )
-                )
+                shapes = listOf(PlacedShapeData(
+                    shape = Polygon(
+                        points = listOf(
+                            Point(0.cm(), 0.cm()),
+                            Point(800.cm(), 0.cm()),
+                            Point(800.cm(), 600.cm()),
+                            Point(0.cm(), 600.cm())
+                        )
+                    ),
+                    position = Point(0.cm(), 0.cm()),
+                    rotation = 0f.degree()
+                ))
             ),
             placeableItems = listOf(
                 Furniture(

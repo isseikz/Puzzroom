@@ -15,6 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import tokyo.isseikuzumaki.puzzroom.domain.Centimeter.Companion.cm
+import tokyo.isseikuzumaki.puzzroom.domain.Degree.Companion.degree
+import tokyo.isseikuzumaki.puzzroom.domain.PlacedShapeData
 import tokyo.isseikuzumaki.puzzroom.domain.Point
 import tokyo.isseikuzumaki.puzzroom.domain.Polygon
 import tokyo.isseikuzumaki.puzzroom.domain.Room
@@ -41,7 +43,7 @@ fun RoomSelectionItemCard(
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
-                "Number of vertices: ${room.shape.points.size}",
+                "Number of shapes: ${room.shapes.size}",
                 style = MaterialTheme.typography.bodySmall
             )
         }
@@ -82,12 +84,16 @@ fun RoomSelectionItemCardPreview() {
                 room = Room(
                     id = "room1",
                     name = "Living Room",
-                    shape = Polygon(
-                        points = listOf(
-                            Point(0.cm, 0.cm),
-                            Point(400.cm, 0.cm),
-                            Point(400.cm, 300.cm),
-                            Point(0.cm, 300.cm)
+                    shapes = listOf(
+                        PlacedShapeData(
+                            shape = Polygon(
+                                points = listOf(
+                                    Point(0.cm, 0.cm),
+                                    Point(400.cm, 0.cm),
+                                )
+                            ),
+                            position = Point(0.cm, 0.cm),
+                            rotation = 0f.degree()
                         )
                     )
                 )
@@ -105,24 +111,34 @@ fun RoomSelectionListPreview() {
                 Room(
                     id = "room1",
                     name = "Living Room",
-                    shape = Polygon(
-                        points = listOf(
-                            Point(0.cm, 0.cm),
-                            Point(400.cm, 0.cm),
-                            Point(400.cm, 300.cm),
-                            Point(0.cm, 300.cm)
+                    shapes = listOf(
+                        PlacedShapeData(
+                            shape = Polygon(
+                                points = listOf(
+                                    Point(0.cm, 0.cm),
+                                    Point(400.cm, 0.cm),
+                                )
+                            ),
+                            position = Point(0.cm, 0.cm),
+                            rotation = 0f.degree()
                         )
                     )
                 ),
                 Room(
                     id = "room2",
                     name = "Bedroom",
-                    shape = Polygon(
-                        points = listOf(
-                            Point(0.cm, 0.cm),
-                            Point(300.cm, 0.cm),
-                            Point(300.cm, 400.cm),
-                            Point(0.cm, 400.cm)
+                    shapes = listOf(
+                        PlacedShapeData(
+                            shape = Polygon(
+                                points = listOf(
+                                    Point(0.cm, 0.cm),
+                                    Point(300.cm, 0.cm),
+                                    Point(300.cm, 400.cm),
+                                    Point(0.cm, 400.cm),
+                                )
+                            ),
+                            position = Point(0.cm, 0.cm),
+                            rotation = 0f.degree()
                         )
                     )
                 )
