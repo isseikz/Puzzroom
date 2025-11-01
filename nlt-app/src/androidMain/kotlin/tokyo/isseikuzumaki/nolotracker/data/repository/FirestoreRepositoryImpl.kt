@@ -54,7 +54,10 @@ class FirestoreRepositoryImpl {
                 "text" to record.text,
                 "time" to com.google.firebase.firestore.FieldValue.serverTimestamp(),
                 "latitude" to record.latitude,
-                "longitude" to record.longitude
+                "longitude" to record.longitude,
+                "isParsed" to record.isParsed,
+                "parsedAmount" to record.parsedAmount,
+                "parsedMerchant" to record.parsedMerchant
             )
             
             // Save to Firestore
@@ -124,7 +127,10 @@ class FirestoreRepositoryImpl {
                                 kotlinx.datetime.Instant.fromEpochMilliseconds(it)
                             },
                             latitude = doc.getDouble("latitude"),
-                            longitude = doc.getDouble("longitude")
+                            longitude = doc.getDouble("longitude"),
+                            isParsed = doc.getBoolean("isParsed") ?: false,
+                            parsedAmount = doc.getString("parsedAmount"),
+                            parsedMerchant = doc.getString("parsedMerchant")
                         )
                     } catch (e: Exception) {
                         Log.e(tag, "Error parsing document ${doc.id}", e)
@@ -187,7 +193,10 @@ class FirestoreRepositoryImpl {
                                     kotlinx.datetime.Instant.fromEpochMilliseconds(it)
                                 },
                                 latitude = latitude,
-                                longitude = longitude
+                                longitude = longitude,
+                                isParsed = doc.getBoolean("isParsed") ?: false,
+                                parsedAmount = doc.getString("parsedAmount"),
+                                parsedMerchant = doc.getString("parsedMerchant")
                             )
                         } else null
                     } catch (e: Exception) {
