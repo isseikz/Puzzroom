@@ -7,7 +7,6 @@ import android.service.notification.StatusBarNotification
 import android.util.Log
 import kotlinx.coroutines.*
 import tokyo.isseikuzumaki.nolotracker.data.model.NotificationRecord
-import tokyo.isseikuzumaki.nolotracker.domain.parser.PaymentParser
 import java.util.UUID
 
 /**
@@ -101,9 +100,6 @@ class NLTNotificationListenerService : NotificationListenerService() {
         text: String
     ) {
         try {
-            // Parse payment information
-            val paymentInfo = PaymentParser.parse(text)
-            
             // FR 2.1: Trigger immediate location capture
             val location = captureLocation()
             
@@ -115,10 +111,7 @@ class NLTNotificationListenerService : NotificationListenerService() {
                 title = title,
                 text = text,
                 latitude = location?.latitude,
-                longitude = location?.longitude,
-                isParsed = paymentInfo != null,
-                parsedAmount = paymentInfo?.amount,
-                parsedMerchant = paymentInfo?.merchant
+                longitude = location?.longitude
             )
             
             // FR 3.1: Save to Firestore
