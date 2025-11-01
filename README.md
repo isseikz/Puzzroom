@@ -1,5 +1,15 @@
 This is a Kotlin Multiplatform project targeting Android, iOS, Web, Desktop (JVM).
 
+## 📦 Monorepo Structure
+
+This repository is organized as a monorepo containing multiple KMP applications that share common UI components:
+
+- **`composeApp`**: Main Puzzroom application for room layout planning
+- **`nlt-app`**: NLT (Notification & Location Tracker) application for tracking notifications with location
+- **`shared-ui`**: Shared UI components library (atoms, molecules, organisms, theme)
+
+All applications follow the **Atomic Design** methodology and share the same warm color theme.
+
 ## 🎨 UI Architecture - Atomic Design
 
 This project implements the **Atomic Design** methodology for UI components, providing a scalable and maintainable component hierarchy with a warm color theme.

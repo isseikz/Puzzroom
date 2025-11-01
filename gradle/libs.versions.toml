@@ -22,6 +22,10 @@ ktor = "3.3.0"
 imagepicker = "1.0.24-beta2"
 navigationCompose = "2.9.0"
 kover = "0.9.0"
+kotlinx-datetime = "0.6.1"
+firebase-bom = "33.7.0"
+playServices-location = "21.3.0"
+google-services = "4.4.2"
 
 [libraries]
 androidx-icons-core = { module = "androidx.compose.material.icons:material-icons-core", version.ref = "icons" }
@@ -46,6 +50,11 @@ coil-apple = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
 coil-jvm = { module = "io.ktor:ktor-client-java", version.ref = "ktor" }
 imagepicker = { module = "io.github.ismoy:imagepickerkmp", version.ref = "imagepicker" }
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
+firebase-firestore = { module = "com.google.firebase:firebase-firestore-ktx" }
+firebase-auth = { module = "com.google.firebase:firebase-auth-ktx" }
+playServices-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServices-location" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
@@ -56,3 +65,4 @@ composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "k
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
+google-services = { id = "com.google.gms.google-services", version.ref = "google-services" }
