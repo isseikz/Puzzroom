@@ -22,6 +22,7 @@ import tokyo.isseikuzumaki.nlt.ui.pages.PermissionsSetupPage
 import tokyo.isseikuzumaki.nlt.ui.pages.SettingsPage
 import tokyo.isseikuzumaki.nlt.ui.pages.SignInPage
 import tokyo.isseikuzumaki.nlt.ui.state.NLTUiState
+import tokyo.isseikuzumaki.nlt.ui.viewmodel.NLTViewModel
 import tokyo.isseikuzumaki.nlt.ui.viewmodel.NLTViewModelImpl
 import tokyo.isseikuzumaki.shared.ui.theme.AppTheme
 
@@ -85,7 +86,7 @@ fun NLTApp(
 ) {
     val context = LocalContext.current
     val navController = rememberNavController()
-    val viewModel: NLTViewModelImpl = viewModel { NLTViewModelImpl(context) }
+    val viewModel: NLTViewModel = viewModel { NLTViewModelImpl(context) }
     val uiState by viewModel.uiState.collectAsState()
     
     // Determine start destination based on UI state

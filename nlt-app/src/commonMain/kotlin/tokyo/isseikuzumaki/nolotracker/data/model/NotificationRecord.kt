@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
  * Core data class for storing notification records with location information.
  * 
  * This model represents a notification that has been captured by the NotificationListenerService,
- * along with its associated location data.
+ * along with its associated location data and parsed payment information.
  * 
  * @property id Unique identifier for this notification record
  * @property userId User ID of the authenticated user who owns this record
@@ -17,6 +17,9 @@ import kotlinx.serialization.Serializable
  * @property time UTC timestamp when the notification was posted (server timestamp from Firestore)
  * @property latitude Captured latitude coordinate (null if location unavailable)
  * @property longitude Captured longitude coordinate (null if location unavailable)
+ * @property isParsed Flag indicating whether payment parsing was successful
+ * @property parsedAmount Extracted payment amount with currency (e.g., "1500 JPY")
+ * @property parsedMerchant Extracted merchant/store name
  */
 @Serializable
 data class NotificationRecord(
@@ -31,7 +34,12 @@ data class NotificationRecord(
     
     // Location data
     val latitude: Double? = null,
-    val longitude: Double? = null
+    val longitude: Double? = null,
+    
+    // Payment parsing data
+    val isParsed: Boolean = false,
+    val parsedAmount: String? = null,
+    val parsedMerchant: String? = null
 ) {
     /**
      * Generates a summary text for map marker info windows.
