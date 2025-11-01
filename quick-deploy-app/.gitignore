@@ -4,3 +4,20 @@ build/
 .idea/
 local.properties
 *.log
+
+# Firebase
+.firebase/
+*-debug.log
+*-debug.*.log
+
+# Node.js / npm
+functions/node_modules/
+functions/dist/
+node_modules/
+package-lock.json
+npm-debug.log
+yarn-error.log
+
+# Environment
+.env
+.env.local
