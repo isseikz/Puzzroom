@@ -26,6 +26,8 @@ kotlinx-datetime = "0.6.1"
 firebase-bom = "33.7.0"
 playServices-location = "21.3.0"
 playServices-auth = "21.2.0"
+credentials = "1.5.0-beta01"
+credentials-play-services-auth = "1.5.0-beta01"
 google-services = "4.4.2"
 
 [libraries]
@@ -57,6 +59,8 @@ firebase-firestore = { module = "com.google.firebase:firebase-firestore-ktx" }
 firebase-auth = { module = "com.google.firebase:firebase-auth-ktx" }
 playServices-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServices-location" }
 playServices-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServices-auth" }
+credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }
+credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentials-play-services-auth" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

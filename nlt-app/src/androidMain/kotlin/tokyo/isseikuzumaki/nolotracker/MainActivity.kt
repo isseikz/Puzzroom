@@ -5,7 +5,6 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -18,7 +17,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import kotlinx.coroutines.launch
 import tokyo.isseikuzumaki.nlt.ui.pages.NotificationsListPage
 import tokyo.isseikuzumaki.nlt.ui.pages.PermissionsSetupPage
 import tokyo.isseikuzumaki.nlt.ui.pages.SettingsPage
@@ -37,19 +35,6 @@ import tokyo.isseikuzumaki.shared.ui.theme.AppTheme
 class MainActivity : ComponentActivity() {
     
     private var refreshPermissionsCallback: (() -> Unit)? = null
-    private var viewModelInstance: NLTViewModelImpl? = null
-    
-    private val googleSignInLauncher = registerForActivityResult(
-        ActivityResultContracts.StartIntentSenderForResult()
-    ) { result ->
-        if (result.resultCode == RESULT_OK) {
-            viewModelInstance?.let { vm ->
-                kotlinx.coroutines.GlobalScope.launch {
-                    vm.handleGoogleSignInResult(result.data)
-                }
-            }
-        }
-    }
     
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -73,10 +58,6 @@ class MainActivity : ComponentActivity() {
                         },
                         onViewModelCreated = { viewModel ->
                             refreshPermissionsCallback = { viewModel.refreshPermissions() }
-                            if (viewModel is NLTViewModelImpl) {
-                                viewModelInstance = viewModel
-                                viewModel.setGoogleSignInLauncher(googleSignInLauncher)
-                            }
                         }
                     )
                 }

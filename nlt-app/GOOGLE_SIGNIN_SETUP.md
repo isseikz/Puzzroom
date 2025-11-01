@@ -1,4 +1,4 @@
-# Google Sign-in Setup Instructions
+# Google Sign-in Setup Instructions (Credential Manager API)
 
 ## Prerequisites
 
@@ -15,6 +15,7 @@
 4. Scroll down to **Your apps** section
 5. Find your Android app
 6. Copy the **Web Client ID** (NOT Android Client ID)
+   - This is the "Web application" type OAuth 2.0 client ID
 
 ### 2. Update NLTViewModelImpl.kt
 
@@ -38,13 +39,23 @@ private const val WEB_CLIENT_ID = "123456789012-abcdefghijklmnopqrstuvwxyz123456
 2. Enable **Google** as a sign-in provider
 3. Configure the support email if required
 
+## What's Different (Credential Manager API)
+
+This implementation uses the **modern Credential Manager API** instead of the legacy One Tap Sign-in:
+
+- **No activity result handling needed** - Credential Manager handles the UI flow automatically
+- **Better UX** - Integrated with Android's system credential picker
+- **Future-proof** - Uses the recommended approach by Google
+- **Simpler code** - No need for IntentSenderRequest or activity result launchers
+
 ## Testing
 
 1. Build and run the app
 2. Click "Googleでサインイン" button
-3. Select your Google account
-4. Grant permissions if prompted
-5. You should be signed in successfully
+3. System credential picker will appear
+4. Select your Google account
+5. Grant permissions if prompted
+6. You should be signed in successfully
 
 ## Troubleshooting
 
@@ -53,12 +64,20 @@ private const val WEB_CLIENT_ID = "123456789012-abcdefghijklmnopqrstuvwxyz123456
 - Make sure the Web Client ID is correctly copied with no extra spaces
 - Ensure `google-services.json` is properly configured
 
-### Sign-in dialog doesn't appear
+### Credential picker doesn't appear
 - Check that Google Sign-in is enabled in Firebase Console
 - Verify that the app has internet permission in AndroidManifest.xml
-- Check Logcat for error messages
+- Check Logcat for error messages with tag "NLTViewModel"
+- Make sure Credential Manager dependencies are properly added
 
 ### "Sign-in failed" error
 - Check Logcat for detailed error messages
 - Ensure Firebase Authentication is properly set up
 - Verify SHA-1 fingerprint is registered in Firebase (if using release build)
+- Try clearing app data and signing in again
+
+### GetCredentialException
+- This usually indicates configuration issues
+- Check that the Web Client ID is correct
+- Verify Firebase Authentication is enabled
+- Make sure the app is properly registered in Firebase Console

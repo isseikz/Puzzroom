@@ -38,8 +38,9 @@ kotlin {
             // Location Services
             implementation(libs.playServices.location)
             
-            // Google Sign-in
-            implementation(libs.playServices.auth)
+            // Credential Manager for Google Sign-in
+            implementation(libs.credentials)
+            implementation(libs.credentials.play.services.auth)
         }
         
         commonMain.dependencies {
