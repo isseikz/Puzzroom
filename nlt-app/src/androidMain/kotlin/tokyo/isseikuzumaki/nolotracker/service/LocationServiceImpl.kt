@@ -12,6 +12,17 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
 /**
+ * Simple location data class.
+ * 
+ * @property latitude Latitude coordinate
+ * @property longitude Longitude coordinate
+ */
+data class LocationData(
+    val latitude: Double,
+    val longitude: Double
+)
+
+/**
  * Service for capturing device location using Google Play Services.
  * 
  * Implements FR 2.1 (immediate location capture), FR 2.2 (FusedLocationProviderClient),
