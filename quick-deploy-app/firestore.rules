@@ -2,8 +2,25 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read/write access to all documents for now
-    // TODO: Update these rules based on your security requirements
+    // ⚠️ WARNING: DEVELOPMENT-ONLY RULES ⚠️
+    // These rules allow unrestricted access for development and testing.
+    // They expire on 2025-12-31.
+    // 
+    // BEFORE PRODUCTION DEPLOYMENT:
+    // 1. Implement proper authentication (Firebase Auth)
+    // 2. Add role-based access control
+    // 3. Validate data types and required fields
+    // 4. Use security rules to protect sensitive data
+    //
+    // Example production rule:
+    // match /messages/{messageId} {
+    //   allow read: if request.auth != null;
+    //   allow create: if request.auth != null && 
+    //                    request.resource.data.userId == request.auth.uid;
+    //   allow update, delete: if request.auth != null && 
+    //                            resource.data.userId == request.auth.uid;
+    // }
+    
     match /{document=**} {
       allow read, write: if request.time < timestamp.date(2025, 12, 31);
     }

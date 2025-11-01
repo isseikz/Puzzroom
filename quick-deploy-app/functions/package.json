@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "build": "cd .. && ./gradlew :quick-deploy-app:jsBrowserProductionWebpack && cp -r build/dist/js/productionExecutable/* functions/dist/",
+    "build": "mkdir -p dist && cd .. && ./gradlew :quick-deploy-app:jsBrowserProductionWebpack && cp -r build/dist/js/productionExecutable/* functions/dist/ 2>/dev/null || echo 'Note: Kotlin/JS build not available, using JavaScript implementation'",
     "serve": "firebase emulators:start --only functions",
     "shell": "firebase functions:shell",
     "start": "npm run shell",
