@@ -9,7 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import tokyo.isseikuzumaki.puzzroom.shared.ui.theme.PuzzroomTheme
+import tokyo.isseikuzumaki.shared.ui.theme.AppTheme
 
 /**
  * Main entry point for Quick Deploy application.
@@ -18,7 +18,7 @@ import tokyo.isseikuzumaki.puzzroom.shared.ui.theme.PuzzroomTheme
  */
 @Composable
 fun App() {
-    PuzzroomTheme {
+    AppTheme {
         Scaffold { paddingValues ->
             Box(
                 modifier = Modifier
