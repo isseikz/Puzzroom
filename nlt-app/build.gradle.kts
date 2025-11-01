@@ -41,6 +41,7 @@ kotlin {
             // Credential Manager for Google Sign-in
             implementation(libs.credentials)
             implementation(libs.credentials.play.services.auth)
+            implementation(libs.googleid)
         }
         
         commonMain.dependencies {
