@@ -20,7 +20,7 @@ object PaymentParser {
         // After "at" or "で"
         Regex("""(?:at|で)\s+([A-Za-z0-9\s\p{L}]+)""", RegexOption.IGNORE_CASE),
         // Between quotes
-        Regex("""["""']([^"""']+)["""']"""),
+        Regex("""["']([^"']+)["']"""),
         // Store name pattern (capitalized words)
         Regex("""([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)""")
     )
