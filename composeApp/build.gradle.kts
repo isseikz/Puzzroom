@@ -46,7 +46,7 @@ kotlin {
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
-            implementation(libs.coil.android)
+            implementation(libs.ktor.client.android)
             implementation(libs.imagepicker)
         }
         commonMain.dependencies {

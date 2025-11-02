@@ -16,7 +16,6 @@ import {getFirestore, Timestamp} from "firebase-admin/firestore";
 import {getStorage} from "firebase-admin/storage";
 import {getMessaging} from "firebase-admin/messaging";
 import {logger} from "firebase-functions";
-import busboy from "busboy";
 import {v4 as uuidv4} from "uuid";
 import {
   RegisterRequest,
@@ -36,8 +35,9 @@ const messaging = getMessaging();
 // Constants
 const DEVICES_COLLECTION = "devices";
 const APK_STORAGE_PATH = "apks";
+const BUCKET_NAME = "gs://quick-deploy-3c0f0.firebasestorage.app";
+const NOTIFY_URL = "https://notifyuploadcomplete-o45ehp4r5q-uc.a.run.app/upload";
 const APK_EXPIRATION_MINUTES = 10;
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
 /**
  * A-001: Device Registration and URL Generation
@@ -127,15 +127,15 @@ export const register = onRequest(
 );
 
 /**
- * A-002, A-003, A-004: APK Upload, Storage, and Notification
+ * A-002: Get Signed Upload URL
  *
- * POST /upload/{deviceToken}
+ * POST /upload/{deviceToken}/url
  *
- * Accepts APK file upload via multipart/form-data.
- * Stores the APK in Firebase Storage and sends push notification to the device.
+ * Generates a signed URL for direct upload to Firebase Storage.
+ * This allows the build tool to upload APK directly to Storage without going through Functions.
  */
-export const upload = onRequest(
-  {cors: true, maxInstances: 10, timeoutSeconds: 540},
+export const getUploadUrl = onRequest(
+  {cors: true, maxInstances: 10},
   async (req, res) => {
     // Only allow POST requests
     if (req.method !== "POST") {
@@ -149,7 +149,84 @@ export const upload = onRequest(
     try {
       // Extract device token from path
       const pathParts = req.path.split("/");
-      const deviceToken = pathParts[pathParts.length - 1];
+      const deviceToken = pathParts[pathParts.length - 2]; // /upload/{token}/url
+
+      if (!deviceToken) {
+        res.status(400).json({
+          error: "Bad Request",
+          message: "Device token is required in the URL path",
+        } as ErrorResponse);
+        return;
+      }
+
+      // Verify device token exists
+      const deviceDoc = await db.collection(DEVICES_COLLECTION).doc(deviceToken).get();
+      if (!deviceDoc.exists) {
+        res.status(404).json({
+          error: "Not Found",
+          message: "Invalid device token",
+        } as ErrorResponse);
+        return;
+      }
+
+      // Delete old APK if exists
+      const bucket = storage.bucket(BUCKET_NAME);
+      const oldApkPath = `${APK_STORAGE_PATH}/${deviceToken}/app.apk`;
+      const [files] = await bucket.getFiles({prefix: oldApkPath});
+      await Promise.all(files.map((file) => file.delete()));
+      logger.info(`Deleted old APK files for device: ${deviceToken}`);
+
+      // Generate signed URL for upload (valid for 15 minutes)
+      const apkPath = `${APK_STORAGE_PATH}/${deviceToken}/app.apk`;
+      const file = bucket.file(apkPath);
+
+      const [signedUrl] = await file.getSignedUrl({
+        version: "v4",
+        action: "write",
+        expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+        contentType: "application/vnd.android.package-archive",
+      });
+
+      logger.info(`Generated signed upload URL for device: ${deviceToken}`);
+
+      res.status(200).json({
+        uploadUrl: signedUrl,
+        notifyUrl: `${NOTIFY_URL}/${deviceToken}/notify`,
+      });
+    } catch (error) {
+      logger.error("Error generating upload URL:", error);
+      res.status(500).json({
+        error: "Internal Server Error",
+        message: "Failed to generate upload URL",
+      } as ErrorResponse);
+    }
+  }
+);
+
+/**
+ * A-003, A-004: Notify Upload Complete and Send Push Notification
+ *
+ * POST /upload/{deviceToken}/notify
+ *
+ * Called after APK is uploaded directly to Storage.
+ * Sends push notification to the device.
+ */
+export const notifyUploadComplete = onRequest(
+  {cors: true, maxInstances: 10},
+  async (req, res) => {
+    // Only allow POST requests
+    if (req.method !== "POST") {
+      res.status(405).json({
+        error: "Method Not Allowed",
+        message: "Only POST requests are allowed",
+      } as ErrorResponse);
+      return;
+    }
+
+    try {
+      // Extract device token from path
+      const pathParts = req.path.split("/");
+      const deviceToken = pathParts[pathParts.length - 2]; // /upload/{token}/notify
 
       if (!deviceToken) {
         res.status(400).json({
@@ -171,147 +248,82 @@ export const upload = onRequest(
 
       const deviceData = deviceDoc.data() as DeviceDocument;
 
-      // Parse multipart form data
-      const bb = busboy({headers: req.headers, limits: {fileSize: MAX_FILE_SIZE}});
-      let fileProcessed = false;
-      let uploadError: Error | null = null;
+      // Set expiration time on the uploaded file (10 minutes from now)
+      const bucket = storage.bucket();
+      const apkPath = `${APK_STORAGE_PATH}/${deviceToken}/app.apk`;
+      const file = bucket.file(apkPath);
 
-      bb.on("file", async (
-        fieldname: string,
-        fileStream: NodeJS.ReadableStream,
-        info: {filename: string; encoding: string; mimeType: string}
-      ) => {
-        const {filename, mimeType} = info;
-
-        logger.info(`Uploading file: ${filename}, type: ${mimeType}`);
-
-        // Validate APK file (accept if filename ends with .apk OR has correct MIME type)
-        if (!filename.endsWith(".apk") && mimeType !== "application/vnd.android.package-archive") {
-          uploadError = new Error("Only APK files are allowed");
-          fileStream.resume();
-          return;
-        }
-
-        try {
-          // Delete old APK if exists
-          const bucket = storage.bucket();
-          const oldApkPath = `${APK_STORAGE_PATH}/${deviceToken}/`;
-          const [files] = await bucket.getFiles({prefix: oldApkPath});
-
-          await Promise.all(files.map((file) => file.delete()));
-
-          // Upload new APK
-          const apkPath = `${APK_STORAGE_PATH}/${deviceToken}/app.apk`;
-          const file = bucket.file(apkPath);
-
-          const writeStream = file.createWriteStream({
-            metadata: {
-              contentType: "application/vnd.android.package-archive",
-              metadata: {
-                uploadedAt: new Date().toISOString(),
-                originalFilename: filename,
-              },
-            },
-          });
-
-          fileStream.pipe(writeStream);
-
-          await new Promise((resolve, reject) => {
-            writeStream.on("finish", resolve);
-            writeStream.on("error", reject);
-          });
-
-          // Set expiration time (10 minutes from now)
-          const expirationTime = new Date();
-          expirationTime.setMinutes(expirationTime.getMinutes() + APK_EXPIRATION_MINUTES);
-
-          await file.setMetadata({
-            metadata: {
-              expiresAt: expirationTime.toISOString(),
-            },
-          });
-
-          logger.info(`APK uploaded successfully: ${apkPath}`);
-
-          // Update device document with last upload time
-          await db.collection(DEVICES_COLLECTION).doc(deviceToken).update({
-            lastApkUploadedAt: Timestamp.now(),
-            updatedAt: Timestamp.now(),
-          });
-
-          // Send FCM notification
-          // Note: Notification messages are in Japanese as per requirements (REQUIREMENTS.md)
-          // The target users are Japanese developers
-          const message = {
-            token: deviceData.fcmToken,
-            notification: {
-              title: "新しいAPKを受信しました",
-              body: "タップしてインストールします。",
-            },
-            data: {
-              deviceToken,
-              action: "apk_ready",
-            },
-            android: {
-              priority: "high" as const,
-            },
-          };
-
-          try {
-            await messaging.send(message);
-            logger.info(`FCM notification sent to device: ${deviceToken}`);
-          } catch (fcmError) {
-            logger.error("Failed to send FCM notification:", fcmError);
-            // Don't fail the upload if notification fails
-          }
-
-          fileProcessed = true;
-        } catch (error) {
-          logger.error("Error uploading file:", error);
-          uploadError = error as Error;
-        }
-      });
-
-      bb.on("finish", () => {
-        if (uploadError) {
-          res.status(500).json({
-            error: "Upload Failed",
-            message: uploadError.message,
-          } as ErrorResponse);
-          return;
-        }
-
-        if (!fileProcessed) {
-          res.status(400).json({
-            error: "Bad Request",
-            message: "No APK file found in the request",
-          } as ErrorResponse);
-          return;
-        }
-
-        const response: UploadResponse = {
-          status: "success",
-          message: "APK uploaded successfully and notification sent",
-          uploadedAt: new Date().toISOString(),
-        };
-
-        res.status(200).json(response);
-      });
-
-      bb.on("error", (error: Error) => {
-        logger.error("Busboy error:", error);
-        res.status(500).json({
-          error: "Upload Failed",
-          message: error.message,
+      // Verify file exists
+      const [exists] = await file.exists();
+      if (!exists) {
+        res.status(400).json({
+          error: "Bad Request",
+          message: "APK file not found. Please upload the file first.",
         } as ErrorResponse);
+        return;
+      }
+
+      const expirationTime = new Date();
+      expirationTime.setMinutes(expirationTime.getMinutes() + APK_EXPIRATION_MINUTES);
+
+      await file.setMetadata({
+        metadata: {
+          expiresAt: expirationTime.toISOString(),
+        },
       });
 
-      req.pipe(bb);
+      // Generate signed download URL (valid for 15 minutes)
+      const [downloadUrl] = await file.getSignedUrl({
+        version: "v4",
+        action: "read",
+        expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+      });
+
+      logger.info(`Generated signed download URL for device: ${deviceToken}`);
+
+      // Update device document with last upload time
+      await db.collection(DEVICES_COLLECTION).doc(deviceToken).update({
+        lastApkUploadedAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+
+      // Send FCM notification with download URL
+      const message = {
+        token: deviceData.fcmToken,
+        notification: {
+          title: "新しいAPKを受信しました",
+          body: "タップしてインストールします。",
+        },
+        data: {
+          deviceToken,
+          action: "apk_ready",
+          downloadUrl: downloadUrl, // Include download URL in notification
+        },
+        android: {
+          priority: "high" as const,
+        },
+      };
+
+      try {
+        await messaging.send(message);
+        logger.info(`FCM notification sent to device: ${deviceToken} with download URL`);
+      } catch (fcmError) {
+        logger.error("Failed to send FCM notification:", fcmError);
+        // Don't fail the request if notification fails
+      }
+
+      const response: UploadResponse = {
+        status: "success",
+        message: "APK uploaded successfully and notification sent",
+        uploadedAt: new Date().toISOString(),
+      };
+
+      res.status(200).json(response);
     } catch (error) {
-      logger.error("Error in upload function:", error);
+      logger.error("Error in notify function:", error);
       res.status(500).json({
         error: "Internal Server Error",
-        message: "Failed to upload APK",
+        message: "Failed to process upload notification",
       } as ErrorResponse);
     }
   }
