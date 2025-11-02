@@ -102,8 +102,9 @@ export const register = onRequest(
       logger.info(`Device registered: ${deviceToken}`);
 
       // Generate URLs
+      // Use Cloud Functions URL if FUNCTION_URL is set, otherwise construct from project region
       const baseUrl = process.env.FUNCTION_URL ||
-        `https://${process.env.GCLOUD_PROJECT}.web.app`;
+        `https://${process.env.GCLOUD_PROJECT}.cloudfunctions.net`;
       const uploadUrl = `${baseUrl}/upload/${deviceToken}`;
       const downloadUrl = `${baseUrl}/download/${deviceToken}`;
 
@@ -184,7 +185,7 @@ export const upload = onRequest(
 
         logger.info(`Uploading file: ${filename}, type: ${mimeType}`);
 
-        // Validate APK file
+        // Validate APK file (accept if filename ends with .apk OR has correct MIME type)
         if (!filename.endsWith(".apk") && mimeType !== "application/vnd.android.package-archive") {
           uploadError = new Error("Only APK files are allowed");
           fileStream.resume();
@@ -239,6 +240,8 @@ export const upload = onRequest(
           });
 
           // Send FCM notification
+          // Note: Notification messages are in Japanese as per requirements (REQUIREMENTS.md)
+          // The target users are Japanese developers
           const message = {
             token: deviceData.fcmToken,
             notification: {
