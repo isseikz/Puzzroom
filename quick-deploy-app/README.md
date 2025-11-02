@@ -4,6 +4,8 @@
 
 Quick Deploy is a streamlined deployment tool designed for the Puzzroom ecosystem. It provides a fast and efficient way to deploy and manage Puzzroom applications.
 
+For detailed system architecture and communication flow, see the [Sequence Diagram](docs/design/SequenceDiagram.md).
+
 ## Features
 
 ### Planned Features
@@ -73,6 +75,13 @@ Quick Deploy shares UI components with the main Puzzroom app following Atomic De
 - **Atoms**: AppButton, AppText, AppCard, AppSpacer, etc.
 - **Theme**: Warm color palette (terracotta, peach, beige)
 - Access via `shared-ui` module
+
+## Documentation
+
+### Design Documents
+
+- [Sequence Diagram](docs/design/SequenceDiagram.md) - System communication flow between server, API, and client devices
+- [Requirements](REQUIREMENTS.md) - Detailed project requirements (Japanese)
 
 ## Development Status
 
