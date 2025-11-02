@@ -121,6 +121,7 @@ Quick Deploy shares UI components with the main Puzzroom app following Atomic De
 - [Sequence Diagram](docs/design/SequenceDiagram.md) - System communication flow between server, API, and client devices
 - [Requirements](REQUIREMENTS.md) - Detailed project requirements (Japanese)
 - [Firebase Functions README](functions/README.md) - Backend API documentation
+- [Deployment Guide](DEPLOYMENT.md) - Complete deployment and setup guide
 
 ### API Endpoints
 
@@ -131,6 +132,11 @@ The Firebase backend provides the following REST API endpoints:
 - `GET /download/{deviceToken}` - APK download
 
 See [functions/README.md](functions/README.md) for detailed API documentation.
+
+### Integration Examples
+
+- [GitHub Actions Integration](examples/github-actions-integration.md) - Automate APK deployment with GitHub Actions
+- [Manual and SSH Server Integration](examples/manual-ssh-integration.md) - Deploy from command line or SSH servers
 
 ## Development Status
 
