@@ -83,6 +83,7 @@ Atoms → Molecules → Organisms → Templates → Pages
 - [Atomic Design Guide](./docs/design/AtomicDesignGuide.md) - Detailed implementation guide (Japanese)
 - [UI Structure README](./composeApp/src/commonMain/kotlin/tokyo/isseikuzumaki/puzzroom/ui/README.md) - Overview (English)
 - [Architecture Diagrams](./docs/design/AtomicDesignArchitecture.md) - Visual architecture
+- [Communication Sequence Diagrams](./docs/design/CommunicationSequenceDiagrams.md) - Server-client communication flows
 - [Migration Examples](./docs/design/ComponentMigrationExamples.md) - How to migrate existing components
 - [Implementation Summary](./docs/design/AtomicDesignImplementationSummary.md) - Complete summary
 

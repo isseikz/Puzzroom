@@ -19,6 +19,10 @@ Puzzroomアプリケーションのデータ永続化アーキテクチャ。プ
 
 永続化以外の以下のトピックは別ドキュメントを参照してください：
 
+- **通信シーケンス図**: [`CommunicationSequenceDiagrams.md`](./CommunicationSequenceDiagrams.md)
+  - サーバー・クライアント間の通信フロー
+  - 各フェーズでのシーケンス図
+  - 認証、同期、リアルタイム編集の詳細
 - **リアルタイム共同編集**: [`RealtimeCollaborationGuide.md`](./RealtimeCollaborationGuide.md)
   - Event Sourcing アーキテクチャ
   - WebSocket通信
