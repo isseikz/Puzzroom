@@ -75,7 +75,6 @@ All required API endpoints as specified in REQUIREMENTS.md:
 
 ```
 quick-deploy-app/
-├── .firebaserc               # Firebase project ID (root level)
 ├── .gitignore
 ├── DEPLOYMENT.md             # Deployment guide
 ├── IMPLEMENTATION_SUMMARY.md # This document
@@ -84,7 +83,7 @@ quick-deploy-app/
 ├── build.gradle.kts          # Kotlin Multiplatform build config
 │
 ├── firebase/                 # Firebase backend directory
-│   ├── .firebaserc          # Firebase project configuration
+│   ├── .firebaserc          # Firebase project ID
 │   ├── .gitignore
 │   ├── firebase.json        # Firebase services configuration
 │   ├── firestore.rules      # Firestore security rules
