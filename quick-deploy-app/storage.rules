@@ -1,0 +1,10 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // APK files - only server-side access
+    match /apks/{deviceToken}/{fileName} {
+      allow read, write: if false; // Only accessible via Firebase Admin SDK
+    }
+  }
+}

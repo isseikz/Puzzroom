@@ -1,0 +1,30 @@
+{
+  "parserOptions": {
+    "project": ["tsconfig.json"],
+    "sourceType": "module"
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:import/errors",
+    "plugin:import/warnings",
+    "plugin:import/typescript",
+    "google",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "plugins": [
+    "@typescript-eslint",
+    "import"
+  ],
+  "ignorePatterns": [
+    "lib/**/*"
+  ],
+  "rules": {
+    "quotes": ["error", "double"],
+    "import/no-unresolved": 0,
+    "indent": ["error", 2],
+    "max-len": ["error", {"code": 120}],
+    "object-curly-spacing": ["error", "never"],
+    "require-jsdoc": 0
+  }
+}
