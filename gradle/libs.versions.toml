@@ -30,11 +30,15 @@ credentials = "1.5.0-beta01"
 credentials-play-services-auth = "1.5.0-beta01"
 googleid = "1.1.1"
 google-services = "4.4.2"
+androidWork = "2.11.0"
 
 [libraries]
 androidx-icons-core = { module = "androidx.compose.material.icons:material-icons-core", version.ref = "icons" }
 androidx-icons-extended = { module = "androidx.compose.material.icons:material-icons-extended", version.ref = "icons" }
+androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "androidWork" }
 compose-multiplatform-material-icons-core-js = { module = "com.huanshankeji:compose-multiplatform-material-icons-core-js", version.ref = "composeMultiplatformMaterialIconsCoreJs" }
+firebase-analytics-ktx = { module = "com.google.firebase:firebase-analytics-ktx" }
+firebase-messaging-ktx = { module = "com.google.firebase:firebase-messaging-ktx" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { module = "junit:junit", version.ref = "junit" }
@@ -49,10 +53,13 @@ kotlinx-coroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-s
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
-coil-android = { module = "io.ktor:ktor-client-android", version.ref = "ktor" }
 coil-apple = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
 coil-jvm = { module = "io.ktor:ktor-client-java", version.ref = "ktor" }
 imagepicker = { module = "io.github.ismoy:imagepickerkmp", version.ref = "imagepicker" }
+ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-client-android = { module = "io.ktor:ktor-client-android", version.ref = "ktor" }
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }

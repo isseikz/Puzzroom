@@ -20,6 +20,7 @@ import tokyo.isseikuzumaki.puzzroom.ui.atoms.*
 import tokyo.isseikuzumaki.puzzroom.ui.molecules.*
 import tokyo.isseikuzumaki.puzzroom.ui.organisms.*
 import tokyo.isseikuzumaki.puzzroom.ui.theme.PuzzroomTheme
+import tokyo.isseikuzumaki.shared.ui.molecules.SectionTitle
 
 /**
  * Design system showcase page
@@ -67,15 +68,6 @@ fun DesignSystemShowcase() {
             OrganismsShowcase()
         }
     }
-}
-
-@Composable
-private fun SectionTitle(title: String) {
-    AppText(
-        text = title,
-        style = MaterialTheme.typography.headlineMedium,
-        color = MaterialTheme.colorScheme.onBackground
-    )
 }
 
 @Composable
