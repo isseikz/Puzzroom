@@ -78,7 +78,7 @@ fun GuideScreen(onNavigateBack: () -> Unit) {
             StepCard(
                 stepNumber = "2",
                 title = "URLをコピー",
-                content = "発行されたURLまたはcurlコマンドをコピーします。"
+                content = "発行されたアップロードURL取得エンドポイントをコピーします。このURLに対してPOSTリクエストを送ると、署名付きアップロードURLが取得できます。"
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -86,7 +86,7 @@ fun GuideScreen(onNavigateBack: () -> Unit) {
             StepCard(
                 stepNumber = "3",
                 title = "ビルドスクリプトに追加",
-                content = "GitHub ActionsやビルドスクリプトにAPKアップロード処理を追加します。"
+                content = "GitHub ActionsやビルドスクリプトにAPKアップロード処理を追加します。署名付きURL取得→APKアップロード→通知の3ステップで完了します。"
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -107,11 +107,21 @@ fun GuideScreen(onNavigateBack: () -> Unit) {
                 """
                 - name: Upload to Quick Deploy
                   env:
-                    QUICK_DEPLOY_URL: ${'$'}{{ secrets.QUICK_DEPLOY_URL }}
+                    UPLOAD_URL_ENDPOINT: ${'$'}{{ secrets.UPLOAD_URL_ENDPOINT }}
                   run: |
-                    curl -X POST \
-                      -F "file=@app/build/outputs/apk/debug/app-debug.apk" \
-                      "${'$'}QUICK_DEPLOY_URL"
+                    # Get signed upload URL
+                    RESPONSE=${'$'}(curl -s -X POST "${'$'}UPLOAD_URL_ENDPOINT")
+                    UPLOAD_URL=${'$'}(echo "${'$'}RESPONSE" | jq -r '.uploadUrl')
+                    NOTIFY_URL=${'$'}(echo "${'$'}RESPONSE" | jq -r '.notifyUrl')
+                    
+                    # Upload APK to signed URL
+                    curl -X PUT \
+                      -H "Content-Type: application/vnd.android.package-archive" \
+                      --upload-file app/build/outputs/apk/debug/app-debug.apk \
+                      "${'$'}UPLOAD_URL"
+                    
+                    # Notify backend
+                    curl -X POST "${'$'}NOTIFY_URL"
                 """.trimIndent()
             )
 
@@ -120,9 +130,19 @@ fun GuideScreen(onNavigateBack: () -> Unit) {
             SubsectionTitle("コマンドラインの場合")
             CodeBlock(
                 """
-                curl -X POST \
-                  -F "file=@path/to/your/app.apk" \
-                  "https://your-upload-url"
+                # 1. アップロードURLを取得
+                RESPONSE=${'$'}(curl -s -X POST "https://[region]-[project].cloudfunctions.net/getUploadUrl/[device-token]/url")
+                UPLOAD_URL=${'$'}(echo "${'$'}RESPONSE" | jq -r '.uploadUrl')
+                NOTIFY_URL=${'$'}(echo "${'$'}RESPONSE" | jq -r '.notifyUrl')
+                
+                # 2. APKをアップロード
+                curl -X PUT \
+                  -H "Content-Type: application/vnd.android.package-archive" \
+                  --upload-file path/to/your/app.apk \
+                  "${'$'}UPLOAD_URL"
+                
+                # 3. 完了を通知
+                curl -X POST "${'$'}NOTIFY_URL"
                 """.trimIndent()
             )
 
