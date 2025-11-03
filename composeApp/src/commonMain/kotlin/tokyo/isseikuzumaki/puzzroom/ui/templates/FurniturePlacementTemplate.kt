@@ -148,8 +148,8 @@ fun FurniturePlacementTemplate(
                     shape = NormalizedShape(
                         shape.points.map { (x, y) ->
                             NormalizedPoint(
-                                x = (x.value + position.x.value) / spaceSize.width.toFloat(),
-                                y = (y.value + position.y.value) / spaceSize.height.toFloat()
+                                x = x.value / spaceSize.width.toFloat(),
+                                y = y.value / spaceSize.height.toFloat()
                             )
                         },
                         color = Color.Gray,
