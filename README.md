@@ -80,11 +80,11 @@ Atoms → Molecules → Organisms → Templates → Pages
 ### Documentation
 
 - [**GitHub Copilot Instructions**](./.github/copilot-instructions.md) - **Read this for AI-assisted development**
-- [Atomic Design Guide](./docs/design/AtomicDesignGuide.md) - Detailed implementation guide (Japanese)
+- [Atomic Design Guide](./composeApp/docs/design/AtomicDesignGuide.md) - Detailed implementation guide (Japanese)
 - [UI Structure README](./composeApp/src/commonMain/kotlin/tokyo/isseikuzumaki/puzzroom/ui/README.md) - Overview (English)
-- [Architecture Diagrams](./docs/design/AtomicDesignArchitecture.md) - Visual architecture
-- [Migration Examples](./docs/design/ComponentMigrationExamples.md) - How to migrate existing components
-- [Implementation Summary](./docs/design/AtomicDesignImplementationSummary.md) - Complete summary
+- [Architecture Diagrams](./composeApp/docs/design/AtomicDesignArchitecture.md) - Visual architecture
+- [Migration Examples](./composeApp/docs/design/ComponentMigrationExamples.md) - How to migrate existing components
+- [Implementation Summary](./composeApp/docs/design/AtomicDesignImplementationSummary.md) - Complete summary
 
 ---
 
@@ -133,7 +133,7 @@ gitGraph
 
 この進化ツリーは、開発の段階的な進行とそれぞれのフェーズで達成されるユーザー価値を視覚的に表現しており、プロダクトロードマップの策定や、ステークホルダーへの説明に活用できます。
 
-詳細なユースケース分析については、[Use Case Analysis](./docs/design/UseCaseAnalysis.md) ドキュメントを参照してください。
+詳細なユースケース分析については、[Use Case Analysis](./composeApp/docs/design/UseCaseAnalysis.md) ドキュメントを参照してください。
 
 ---
 

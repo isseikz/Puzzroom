@@ -191,8 +191,8 @@ When creating new components:
 - Use remember/mutableStateOf for local UI state only
 
 ### Resources
-- See `/docs/design/AtomicDesignGuide.md` for detailed Japanese documentation
-- See `/docs/design/ComponentMigrationExamples.md` for migration examples
+- See `/composeApp/docs/design/AtomicDesignGuide.md` for detailed Japanese documentation
+- See `/composeApp/docs/design/ComponentMigrationExamples.md` for migration examples
 - See `/composeApp/src/commonMain/kotlin/tokyo/isseikuzumaki/puzzroom/ui/README.md` for UI structure
 
 ---
