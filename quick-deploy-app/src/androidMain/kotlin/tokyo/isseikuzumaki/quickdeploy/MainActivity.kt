@@ -63,10 +63,6 @@ class MainActivity : ComponentActivity() {
 
     private fun handleIntent(intent: Intent?) {
         intent?.let {
-            val autoDownload = it.getBooleanExtra(
-                QuickDeployMessagingService.EXTRA_AUTO_DOWNLOAD,
-                false
-            )
             val deviceToken = it.getStringExtra(
                 QuickDeployMessagingService.EXTRA_DEVICE_TOKEN
             )
@@ -74,7 +70,7 @@ class MainActivity : ComponentActivity() {
                 QuickDeployMessagingService.EXTRA_DOWNLOAD_URL
             )
 
-            if (autoDownload && deviceToken != null && url != null) {
+            if (deviceToken != null && url != null) {
                 Log.d(TAG, "Auto-download triggered from notification")
                 Log.d(TAG, "Download URL: $url")
                 shouldAutoDownload.value = true

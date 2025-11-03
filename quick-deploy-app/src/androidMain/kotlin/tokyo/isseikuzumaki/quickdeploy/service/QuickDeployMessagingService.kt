@@ -82,7 +82,6 @@ class QuickDeployMessagingService : FirebaseMessagingService() {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra(EXTRA_DEVICE_TOKEN, deviceToken)
             putExtra(EXTRA_DOWNLOAD_URL, downloadUrl)
-            putExtra(EXTRA_AUTO_DOWNLOAD, true)
         }
 
         val pendingIntent = PendingIntent.getActivity(
@@ -112,8 +111,7 @@ class QuickDeployMessagingService : FirebaseMessagingService() {
         private const val NOTIFICATION_ID = 1001
 
         const val ACTION_APK_AVAILABLE = "tokyo.isseikuzumaki.quickdeploy.APK_AVAILABLE"
-        const val EXTRA_DEVICE_TOKEN = "device_token"
-        const val EXTRA_DOWNLOAD_URL = "download_url"
-        const val EXTRA_AUTO_DOWNLOAD = "auto_download"
+        const val EXTRA_DEVICE_TOKEN = "deviceToken"
+        const val EXTRA_DOWNLOAD_URL = "downloadUrl"
     }
 }

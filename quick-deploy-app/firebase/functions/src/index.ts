@@ -37,6 +37,8 @@ const DEVICES_COLLECTION = "devices";
 const APK_STORAGE_PATH = "apks";
 const BUCKET_NAME = "gs://quick-deploy-3c0f0.firebasestorage.app";
 const NOTIFY_URL = "https://notifyuploadcomplete-o45ehp4r5q-uc.a.run.app/upload";
+const UPLOAD_URL = "https://getuploadurl-o45ehp4r5q-uc.a.run.app/upload";
+const DOWNLOAD_URL = "https://download-o45ehp4r5q-uc.a.run.app";
 const APK_EXPIRATION_MINUTES = 10;
 
 /**
@@ -80,6 +82,20 @@ export const register = onRequest(
         .where("deviceInfo.deviceId", "==", requestData.deviceInfo.deviceId)
         .get();
 
+      // Delete storage files associated with old tokens
+      const bucket = storage.bucket(BUCKET_NAME);
+      const deleteOldFilesPromises = existingDeviceQuery.docs.map(async (doc) => {
+        const oldDeviceToken = doc.id;
+        const oldApkPath = `${APK_STORAGE_PATH}/${oldDeviceToken}/app.apk`;
+        const file = bucket.file(oldApkPath);
+        const [exists] = await file.exists();
+        if (exists) {
+          await file.delete();
+          logger.info(`Deleted old APK file for device: ${oldDeviceToken}`);
+        }
+      });
+      await Promise.all(deleteOldFilesPromises);
+
       // Delete old device tokens for this device
       const batch = db.batch();
       existingDeviceQuery.docs.forEach((doc) => {
@@ -101,12 +117,8 @@ export const register = onRequest(
 
       logger.info(`Device registered: ${deviceToken}`);
 
-      // Generate URLs
-      // Use Cloud Functions URL if FUNCTION_URL is set, otherwise construct from project region
-      const baseUrl = process.env.FUNCTION_URL ||
-        `https://${process.env.GCLOUD_PROJECT}.cloudfunctions.net`;
-      const uploadUrl = `${baseUrl}/upload/${deviceToken}`;
-      const downloadUrl = `${baseUrl}/download/${deviceToken}`;
+      const uploadUrl = `${UPLOAD_URL}/${deviceToken}`;
+      const downloadUrl = `${DOWNLOAD_URL}/${deviceToken}`;
 
       // Return response
       const response: RegisterResponse = {
