@@ -50,6 +50,8 @@ kotlin {
             implementation(libs.imagepicker)
         }
         commonMain.dependencies {
+            implementation(project(":shared-ui"))
+
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
