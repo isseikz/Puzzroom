@@ -246,6 +246,83 @@ class FurniturePlacementTemplateScalingTest {
         }
     }
 
+    /**
+     * backgroundShapes (room.shapes) の正規化が PlacedShape の正規化と一貫していることを検証
+     * RoomCreation で配置された shapes が FurniturePlacement で backgroundShapes として
+     * 同じ位置に表示されることを保証する
+     */
+    @Test
+    fun testBackgroundShapesPlacementConsistency() {
+        val spaceSize = IntSize(1000, 1000)
+        
+        // RoomCreation で作成された PlacedShape (壁など)
+        val placedShape = PlacedShape(
+            shape = Polygon(
+                points = listOf(
+                    Point(0.cm(), 0.cm()),
+                    Point(200.cm(), 0.cm())
+                )
+            ),
+            position = Point(100.cm(), 150.cm()),
+            rotation = tokyo.isseikuzumaki.puzzroom.domain.Degree(45f),
+            name = "Wall 1"
+        )
+        
+        // RoomCreation での正規化 (PlacedShape.normalize と同じロジック)
+        val normalizedFromPlacedShape = placedShape.normalize(spaceSize)
+        
+        // Room に変換
+        val room = convertPlacedShapesToRoom(listOf(placedShape), "Test Room")
+        
+        // FurniturePlacement での正規化 (backgroundShapes として)
+        val normalizedFromRoomShapes = normalizeRoomShapes(room, spaceSize).first()
+        
+        // 両方の正規化結果が同じであることを確認
+        // 1. Position の一貫性
+        assertEquals(
+            normalizedFromPlacedShape.position.x,
+            normalizedFromRoomShapes.position.x,
+            0.001f,
+            "Background shape position.x should match PlacedShape position.x"
+        )
+        assertEquals(
+            normalizedFromPlacedShape.position.y,
+            normalizedFromRoomShapes.position.y,
+            0.001f,
+            "Background shape position.y should match PlacedShape position.y"
+        )
+        
+        // 2. Rotation の一貫性
+        assertEquals(
+            normalizedFromPlacedShape.rotation,
+            normalizedFromRoomShapes.rotation,
+            0.001f,
+            "Background shape rotation should match PlacedShape rotation"
+        )
+        
+        // 3. Shape points の一貫性
+        assertEquals(
+            normalizedFromPlacedShape.shape.points.size,
+            normalizedFromRoomShapes.shape.points.size,
+            "Background shape should have same number of points as PlacedShape"
+        )
+        
+        normalizedFromPlacedShape.shape.points.zip(normalizedFromRoomShapes.shape.points).forEachIndexed { index, (expected, actual) ->
+            assertEquals(
+                expected.x,
+                actual.x,
+                0.001f,
+                "Background shape point[$index].x should match PlacedShape point[$index].x"
+            )
+            assertEquals(
+                expected.y,
+                actual.y,
+                0.001f,
+                "Background shape point[$index].y should match PlacedShape point[$index].y"
+            )
+        }
+    }
+
     // ヘルパー関数: テスト用の Room を作成
     private fun createTestRoom(): Room {
         return Room(
@@ -343,5 +420,30 @@ class FurniturePlacementTemplateScalingTest {
             color = androidx.compose.ui.graphics.Color.Green,
             name = furniture.name
         )
+    }
+
+    // ヘルパー関数: Room.shapes を正規化（FurniturePlacementTemplate の backgroundShapes ロジックと同じ）
+    private fun normalizeRoomShapes(room: Room, spaceSize: IntSize): List<NormalizedPlacedShape> {
+        return room.shapes.map { (shape, position, rotation, colorArgb, name) ->
+            NormalizedPlacedShape(
+                shape = NormalizedShape(
+                    shape.points.map { (x, y) ->
+                        NormalizedPoint(
+                            x = x.value / spaceSize.width.toFloat(),
+                            y = y.value / spaceSize.height.toFloat()
+                        )
+                    },
+                    color = androidx.compose.ui.graphics.Color.Gray,
+                    strokeWidth = 2f
+                ),
+                position = NormalizedPoint(
+                    x = position.x.value / spaceSize.width.toFloat(),
+                    y = position.y.value / spaceSize.height.toFloat()
+                ),
+                rotation = rotation.value,
+                color = androidx.compose.ui.graphics.Color.Gray,
+                name = name
+            )
+        }
     }
 }
