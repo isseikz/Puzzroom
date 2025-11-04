@@ -100,4 +100,4 @@ To migrate existing screens to Atomic Design:
 4. Extract layout structure → Create Template
 5. Integrate with ViewModel → Create Page
 
-For detailed documentation in Japanese, see `docs/design/AtomicDesignGuide.md`.
+For detailed documentation in Japanese, see `../../../docs/design/AtomicDesignGuide.md`.

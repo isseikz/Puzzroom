@@ -9,11 +9,16 @@ This repository is organized as a **monorepo** containing multiple Kotlin Multip
 ```
 Puzzroom/
 ├── composeApp/           # Original Puzzroom application (room layout planning)
+│   └── docs/             # Puzzroom-specific documentation
+│       ├── design/       # Design documents
+│       ├── components/   # Component documentation
+│       └── implementation/ # Implementation guides
 ├── nlt-app/             # NLT application (notification & location tracker)
+│   └── docs/            # NLT-specific documentation
+├── quick-deploy-app/    # Quick Deploy tool
+│   └── docs/            # Quick Deploy documentation
 ├── shared-ui/           # Shared UI components library
-├── docs/                # Documentation
-│   ├── design/          # Design documents for Puzzroom
-│   └── nlt/             # Design documents for NLT
+├── docs/                # General monorepo documentation
 ├── gradle/              # Gradle configuration
 ├── settings.gradle.kts  # Multi-module project settings
 └── build.gradle.kts     # Root build configuration
@@ -48,7 +53,7 @@ Puzzroom/
 
 **Status**: Core features implemented, UI visualization pending
 
-**Documentation**: See [nlt-app/README.md](../nlt-app/README.md) and [docs/nlt/ImplementationSummary.md](../docs/nlt/ImplementationSummary.md)
+**Documentation**: See [nlt-app/README.md](../nlt-app/README.md) and [nlt-app/docs/ImplementationSummary.md](../nlt-app/docs/ImplementationSummary.md)
 
 ## Shared Components
 
