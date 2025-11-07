@@ -14,9 +14,33 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.Resource
+import org.jetbrains.compose.resources.stringResource
+import puzzroom.quick_deploy_app.generated.resources.Res
+import puzzroom.quick_deploy_app.generated.resources.action_close
+import puzzroom.quick_deploy_app.generated.resources.app_action_register_device
+import puzzroom.quick_deploy_app.generated.resources.app_description
+import puzzroom.quick_deploy_app.generated.resources.app_name_common
+import puzzroom.quick_deploy_app.generated.resources.app_status_downloading_apk
+import puzzroom.quick_deploy_app.generated.resources.app_status_registering_device
+import puzzroom.quick_deploy_app.generated.resources.error_title
+import puzzroom.quick_deploy_app.generated.resources.help_button_description
+import puzzroom.quick_deploy_app.generated.resources.registration_clear_registration
+import puzzroom.quick_deploy_app.generated.resources.registration_copy_curl
+import puzzroom.quick_deploy_app.generated.resources.registration_copy_url
+import puzzroom.quick_deploy_app.generated.resources.registration_device_registered
+import puzzroom.quick_deploy_app.generated.resources.registration_download_install
+import puzzroom.quick_deploy_app.generated.resources.registration_open_settings
+import puzzroom.quick_deploy_app.generated.resources.registration_permission_description
+import puzzroom.quick_deploy_app.generated.resources.registration_permission_required
+import puzzroom.quick_deploy_app.generated.resources.registration_ready_to_receive
+import puzzroom.quick_deploy_app.generated.resources.registration_upload_url_title
+import puzzroom.quick_deploy_app.generated.resources.toast_curl_copied
+import puzzroom.quick_deploy_app.generated.resources.toast_url_copied
 
 /**
  * Device registration screen (C-001)
@@ -33,10 +57,10 @@ fun RegistrationScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Quick Deploy") },
+                title = { Text(stringResource(Res.string.app_name_common)) },
                 actions = {
                     IconButton(onClick = onNavigateToGuide) {
-                        Icon(Icons.Default.Help, contentDescription = "使い方")
+                        Icon(Icons.Default.Help, contentDescription = stringResource(Res.string.help_button_description))
                     }
                 }
             )
@@ -54,16 +78,20 @@ fun RegistrationScreen(
                 )
                 is RegistrationUiState.Registering -> RegisteringContent()
                 is RegistrationUiState.Downloading -> DownloadingContent()
-                is RegistrationUiState.Registered -> RegisteredContent(
-                    uploadUrl = state.uploadUrl,
-                    downloadUrl = state.downloadUrl,
-                    canInstall = state.canInstall,
-                    onCopyUrl = { url -> copyToClipboard(context, url) },
-                    onCopyCurlCommand = { url -> copyCurlCommand(context, url) },
-                    onRequestPermission = { viewModel.requestInstallPermission() },
-                    onDownloadAndInstall = { viewModel.downloadAndInstall(state.downloadUrl) },
-                    onClearRegistration = { viewModel.clearRegistration() }
-                )
+                is RegistrationUiState.Registered -> {
+                    val urlCopiedMessage = stringResource(Res.string.toast_url_copied)
+                    val curlCopiedMessage = stringResource(Res.string.toast_curl_copied)
+                    RegisteredContent(
+                        uploadUrl = state.uploadUrl,
+                        downloadUrl = state.downloadUrl,
+                        canInstall = state.canInstall,
+                        onCopyUrl = { url -> copyToClipboard(context, url, urlCopiedMessage) },
+                        onCopyCurlCommand = { url -> copyCurlCommand(context, url, curlCopiedMessage) },
+                        onRequestPermission = { viewModel.requestInstallPermission() },
+                        onDownloadAndInstall = { viewModel.downloadAndInstall(state.downloadUrl) },
+                        onClearRegistration = { viewModel.clearRegistration() }
+                    )
+                }
                 is RegistrationUiState.Error -> ErrorContent(
                     message = state.message,
                     onDismiss = { viewModel.dismissError() }
@@ -102,7 +130,7 @@ private fun NotRegisteredContent(onRegister: () -> Unit) {
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Quick Deploy",
+            text = stringResource(Res.string.app_name_common),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold
         )
@@ -110,7 +138,7 @@ private fun NotRegisteredContent(onRegister: () -> Unit) {
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "APKを即座にデバイスに配信します",
+            text = stringResource(Res.string.app_description),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -123,7 +151,7 @@ private fun NotRegisteredContent(onRegister: () -> Unit) {
         ) {
             Icon(Icons.Default.AppRegistration, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
-            Text("デバイスを登録")
+            Text(stringResource(Res.string.app_action_register_device))
         }
     }
 }
@@ -137,7 +165,7 @@ private fun RegisteringContent() {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             CircularProgressIndicator()
             Spacer(modifier = Modifier.height(16.dp))
-            Text("デバイスを登録中...")
+            Text(stringResource(Res.string.app_status_registering_device))
         }
     }
 }
@@ -151,7 +179,7 @@ private fun DownloadingContent() {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             CircularProgressIndicator()
             Spacer(modifier = Modifier.height(16.dp))
-            Text("APKをダウンロード中...")
+            Text(stringResource(Res.string.app_status_downloading_apk))
         }
     }
 }
@@ -192,12 +220,12 @@ private fun RegisteredContent(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = "デバイス登録済み",
+                        text = stringResource(Res.string.registration_device_registered),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "APKの受信準備完了",
+                        text = stringResource(Res.string.registration_ready_to_receive),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -209,7 +237,7 @@ private fun RegisteredContent(
 
         // Upload URL section
         Text(
-            text = "APKアップロードURL",
+            text = stringResource(Res.string.registration_upload_url_title),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
@@ -236,7 +264,7 @@ private fun RegisteredContent(
                     ) {
                         Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("URLコピー", style = MaterialTheme.typography.bodySmall)
+                        Text(stringResource(Res.string.registration_copy_url), style = MaterialTheme.typography.bodySmall)
                     }
 
                     Button(
@@ -245,7 +273,7 @@ private fun RegisteredContent(
                     ) {
                         Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("curlコピー", style = MaterialTheme.typography.bodySmall)
+                        Text(stringResource(Res.string.registration_copy_curl), style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
@@ -270,7 +298,7 @@ private fun RegisteredContent(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "インストール権限が必要です",
+                            text = stringResource(Res.string.registration_permission_required),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onErrorContainer
@@ -280,7 +308,7 @@ private fun RegisteredContent(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "APKをインストールするには「提供元不明のアプリ」のインストールを許可してください。",
+                        text = stringResource(Res.string.registration_permission_description),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )
@@ -295,7 +323,7 @@ private fun RegisteredContent(
                     ) {
                         Icon(Icons.Default.Settings, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("設定を開く")
+                        Text(stringResource(Res.string.registration_open_settings))
                     }
                 }
             }
@@ -311,7 +339,7 @@ private fun RegisteredContent(
         ) {
             Icon(Icons.Default.Download, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
-            Text("最新APKをダウンロード＆インストール")
+            Text(stringResource(Res.string.registration_download_install))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -323,7 +351,7 @@ private fun RegisteredContent(
         ) {
             Icon(Icons.Default.Delete, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
-            Text("登録をクリア")
+            Text(stringResource(Res.string.registration_clear_registration))
         }
     }
 }
@@ -347,7 +375,7 @@ private fun ErrorContent(message: String, onDismiss: () -> Unit) {
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "エラー",
+            text = stringResource(Res.string.error_title),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
@@ -363,22 +391,22 @@ private fun ErrorContent(message: String, onDismiss: () -> Unit) {
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(onClick = onDismiss) {
-            Text("閉じる")
+            Text(stringResource(Res.string.action_close))
         }
     }
 }
 
-private fun copyToClipboard(context: Context, text: String) {
+private fun copyToClipboard(context: Context, text: String, message: String) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     val clip = ClipData.newPlainText("Upload URL", text)
     clipboard.setPrimaryClip(clip)
-    Toast.makeText(context, "URLをコピーしました", Toast.LENGTH_SHORT).show()
+    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 }
 
-private fun copyCurlCommand(context: Context, uploadUrl: String) {
+private fun copyCurlCommand(context: Context, uploadUrl: String, message: String) {
     val curlCommand = """curl -X POST -F "file=@/path/to/your/app.apk" "$uploadUrl""""
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     val clip = ClipData.newPlainText("cURL Command", curlCommand)
     clipboard.setPrimaryClip(clip)
-    Toast.makeText(context, "curlコマンドをコピーしました", Toast.LENGTH_SHORT).show()
+    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 }

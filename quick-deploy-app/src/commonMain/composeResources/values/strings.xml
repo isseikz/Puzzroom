@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name_common">Quick Deploy</string>
+    <string name="help_button_description">Guide</string>
+    <string name="app_description">Deploy apk to this device immediately.</string>
+    <string name="app_action_register_device">Register Device</string>
+    <string name="app_status_registering_device">Registering device...</string>
+    <string name="app_status_downloading_apk">Downloading apk...</string>
+    <string name="registration_device_registered">Device Registered</string>
+    <string name="registration_ready_to_receive">Ready to receive APK</string>
+    <string name="registration_upload_url_title">APK Upload URL</string>
+    <string name="registration_copy_url">Copy URL</string>
+    <string name="registration_copy_curl">Copy cURL</string>
+    <string name="registration_permission_required">Install Permission Required</string>
+    <string name="registration_permission_description">Please allow installation from unknown sources to install APK.</string>
+    <string name="registration_open_settings">Open Settings</string>
+    <string name="registration_download_install">Download &amp; Install Latest APK</string>
+    <string name="registration_clear_registration">Clear Registration</string>
+    <string name="error_title">Error</string>
+    <string name="action_close">Close</string>
+    <string name="toast_url_copied">URL copied</string>
+    <string name="toast_curl_copied">cURL command copied</string>
+</resources>

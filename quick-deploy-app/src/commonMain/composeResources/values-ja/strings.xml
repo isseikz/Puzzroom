@@ -1,0 +1,23 @@
+
+<resources>
+    <string name="app_name_common">Quick Deploy</string>
+    <string name="help_button_description">使い方</string>
+    <string name="app_description">`APKを即座にデバイスに配信します</string>
+    <string name="app_action_register_device">デバイスを登録</string>
+    <string name="app_status_registering_device">デバイスを登録中...</string>
+    <string name="app_status_downloading_apk">APKをダウンロード中...</string>
+    <string name="registration_device_registered">デバイス登録済み</string>
+    <string name="registration_ready_to_receive">APKの受信準備完了</string>
+    <string name="registration_upload_url_title">APKアップロードURL</string>
+    <string name="registration_copy_url">URLコピー</string>
+    <string name="registration_copy_curl">curlコピー</string>
+    <string name="registration_permission_required">インストール権限が必要です</string>
+    <string name="registration_permission_description">APKをインストールするには「提供元不明のアプリ」のインストールを許可してください。</string>
+    <string name="registration_open_settings">設定を開く</string>
+    <string name="registration_download_install">最新APKをダウンロード＆インストール</string>
+    <string name="registration_clear_registration">登録をクリア</string>
+    <string name="error_title">エラー</string>
+    <string name="action_close">閉じる</string>
+    <string name="toast_url_copied">URLをコピーしました</string>
+    <string name="toast_curl_copied">curlコマンドをコピーしました</string>
+</resources>
