@@ -105,7 +105,7 @@ The deployment script performs these 4 steps:
       
 [2/4] Getting upload URL...
       ↓
-      Requests: GET https://getuploadurl-o45ehp4r5q-uc.a.run.app/upload/{token}/url
+      Requests: POST https://getuploadurl-o45ehp4r5q-uc.a.run.app/upload/{token}/url
       Returns: Signed Firebase Storage URL
       
 [3/4] Uploading APK to Firebase Storage...
@@ -280,11 +280,12 @@ export SECRET_QUICK_DEPLOY_TOKEN="YOUR_TOKEN"
 
 ### Get Upload URL
 ```
-GET https://getuploadurl-o45ehp4r5q-uc.a.run.app/upload/{deviceToken}/url
+POST https://getuploadurl-o45ehp4r5q-uc.a.run.app/upload/{deviceToken}/url
 
 Response:
 {
-  "url": "https://storage.googleapis.com/..."
+  "uploadUrl": "https://storage.googleapis.com/...",
+  "notifyUrl": "https://..."
 }
 ```
 

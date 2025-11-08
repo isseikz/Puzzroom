@@ -32,7 +32,6 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # API endpoints
-REGISTER_URL="https://register-o45ehp4r5q-uc.a.run.app"
 GET_UPLOAD_URL_BASE="https://getuploadurl-o45ehp4r5q-uc.a.run.app/upload"
 NOTIFY_URL_BASE="https://notifyuploadcomplete-o45ehp4r5q-uc.a.run.app/upload"
 
@@ -100,7 +99,8 @@ echo -e "${YELLOW}[2/4] Getting upload URL...${NC}"
 UPLOAD_URL_ENDPOINT="${GET_UPLOAD_URL_BASE}/${DEVICE_TOKEN}/url"
 echo "Requesting: $UPLOAD_URL_ENDPOINT"
 
-UPLOAD_RESPONSE=$(curl -s -w "\n%{http_code}" "$UPLOAD_URL_ENDPOINT")
+# Use POST request as required by the API
+UPLOAD_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$UPLOAD_URL_ENDPOINT")
 HTTP_CODE=$(echo "$UPLOAD_RESPONSE" | tail -n 1)
 RESPONSE_BODY=$(echo "$UPLOAD_RESPONSE" | sed '$d')
 
@@ -110,10 +110,15 @@ if [ "$HTTP_CODE" -ne 200 ]; then
     exit 3
 fi
 
-# Extract the signed URL from JSON response
-SIGNED_URL=$(echo "$RESPONSE_BODY" | grep -o '"url":"[^"]*"' | sed 's/"url":"//;s/"$//')
+# Extract the signed URL from JSON response using jq if available, otherwise fallback to grep/sed
+if command -v jq &> /dev/null; then
+    SIGNED_URL=$(echo "$RESPONSE_BODY" | jq -r '.uploadUrl')
+else
+    # Fallback for systems without jq
+    SIGNED_URL=$(echo "$RESPONSE_BODY" | grep -o '"uploadUrl":"[^"]*"' | sed 's/"uploadUrl":"//;s/"$//')
+fi
 
-if [ -z "$SIGNED_URL" ]; then
+if [ -z "$SIGNED_URL" ] || [ "$SIGNED_URL" = "null" ]; then
     echo -e "${RED}ERROR: Could not extract signed URL from response${NC}"
     echo "Response: $RESPONSE_BODY"
     exit 3
