@@ -132,7 +132,9 @@ cd scripts
 ```
 
 **GitHub Actions:**
-- Automatically deploys on PR commits when `SECRET_QUICK_DEPLOY_TOKEN` is configured
+- Automatically deploys on PR commits when secrets are configured:
+  - `SECRET_QUICK_DEPLOY_TOKEN` - Your device token
+  - `QUICK_DEPLOY_GOOGLE_SERVICES_JSON_BASE64` - Base64-encoded google-services.json
 
 For complete documentation, see [DEPLOYMENT_AUTOMATION.md](DEPLOYMENT_AUTOMATION.md).
 

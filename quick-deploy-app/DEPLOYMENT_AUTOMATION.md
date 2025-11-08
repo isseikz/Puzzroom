@@ -2,6 +2,18 @@
 
 This directory contains automation tools for deploying Quick Deploy APKs to Android devices.
 
+## 📋 Prerequisites
+
+Before using the deployment automation, ensure you have:
+
+1. **Device Token**: A valid Quick Deploy device token (UUID format)
+2. **google-services.json**: Firebase configuration file for the quick-deploy-app
+   - Required for building the APK
+   - Must be placed in `quick-deploy-app/google-services.json`
+   - For GitHub Actions: Add as base64-encoded secret `QUICK_DEPLOY_GOOGLE_SERVICES_JSON_BASE64`
+3. **Gradle**: Gradle wrapper is included in the repository
+4. **Internet Connection**: For API calls to Firebase Cloud Functions
+
 ## 📁 Directory Structure
 
 ```
@@ -62,9 +74,14 @@ npm install
 
 ### Option 3: GitHub Actions (Auto-Deploy on PR)
 
-1. Add device token as a GitHub secret:
+1. Add required secrets to GitHub repository:
    - Go to repository Settings → Secrets and variables → Actions
    - Add secret: `SECRET_QUICK_DEPLOY_TOKEN` with your device token value
+   - Add secret: `QUICK_DEPLOY_GOOGLE_SERVICES_JSON_BASE64` with base64-encoded google-services.json
+     ```bash
+     # To create the secret value:
+     base64 -w 0 quick-deploy-app/google-services.json
+     ```
 
 2. Create or update PR with changes to `quick-deploy-app/`
    - The workflow will automatically deploy when commits are pushed
