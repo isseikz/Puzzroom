@@ -11,6 +11,11 @@ jobs:
     name: Build and Deploy APK
     runs-on: ubuntu-latest
     
+    # Explicit permissions for security
+    permissions:
+      contents: read
+      pull-requests: write
+    
     # Only run if the secret is configured
     if: ${{ secrets.SECRET_QUICK_DEPLOY_TOKEN != '' }}
     
