@@ -70,6 +70,14 @@ jobs:
           cd quick-deploy-app/scripts
           ./deploy.sh
       
+      - name: Upload APK artifact
+        if: success() && steps.check-secret.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: quick-deploy-apk
+          path: quick-deploy-app/build/outputs/apk/release/*.apk
+          retention-days: 7
+      
       - name: Upload build logs on failure
         if: failure() && steps.check-secret.outputs.skip != 'true'
         uses: actions/upload-artifact@v4
@@ -88,6 +96,7 @@ jobs:
             
             let message = '';
             if (status === 'success') {
+              const runUrl = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts";
               message = `✅ **Quick Deploy: Deployment Successful**
               
               The APK has been built and deployed to your device (${deviceTokenPrefix}...).
@@ -96,7 +105,9 @@ jobs:
               1. Check your Android device for a notification
               2. Tap the notification to download and install
               
-              The APK will be available for 10 minutes.`;
+              The APK will be available for 10 minutes.
+              
+              You can also download the APK from **[Artifacts](${runUrl})** (available for 7 days).`;
             } else {
               message = `❌ **Quick Deploy: Deployment Failed**
               
