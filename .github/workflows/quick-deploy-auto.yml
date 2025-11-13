@@ -75,7 +75,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: quick-deploy-apk
-          path: quick-deploy-app/build/outputs/apk/release/*.apk
+          path: quick-deploy-app/build/outputs/apk/debug/*.apk
           retention-days: 7
       
       - name: Upload build logs on failure

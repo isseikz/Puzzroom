@@ -100,8 +100,8 @@ The deployment script performs these 4 steps:
 ```
 [1/4] Building APK...
       ↓
-      Runs: ./gradlew :quick-deploy-app:clean :quick-deploy-app:assembleRelease
-      Output: quick-deploy-app/build/outputs/apk/release/*.apk
+      Runs: ./gradlew :quick-deploy-app:clean :quick-deploy-app:assembleDebug
+      Output: quick-deploy-app/build/outputs/apk/debug/*.apk
       
 [2/4] Getting upload URL...
       ↓
@@ -225,7 +225,7 @@ export SECRET_QUICK_DEPLOY_TOKEN="YOUR_TOKEN"
 **Solution:**
 1. Check `/tmp/build.log` for details
 2. Ensure Java/Gradle is properly configured
-3. Try manual build: `./gradlew :quick-deploy-app:assembleRelease`
+3. Try manual build: `./gradlew :quick-deploy-app:assembleDebug`
 
 ### "Failed to get upload URL"
 
@@ -313,7 +313,7 @@ Response:
 
 **Step 1: Build only**
 ```bash
-./gradlew :quick-deploy-app:assembleRelease
+./gradlew :quick-deploy-app:assembleDebug
 ```
 
 **Step 2: Get URL only**

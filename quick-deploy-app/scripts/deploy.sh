@@ -68,8 +68,8 @@ if [ ! -f "./gradlew" ]; then
     exit 2
 fi
 
-# Clean and build the release APK
-if ./gradlew :quick-deploy-app:clean :quick-deploy-app:assembleRelease --no-daemon --console=plain 2>&1 | tee /tmp/build.log | tail -20; then
+# Clean and build the debug APK
+if ./gradlew :quick-deploy-app:clean :quick-deploy-app:assembleDebug --no-daemon --console=plain 2>&1 | tee /tmp/build.log | tail -20; then
     echo -e "${GREEN}✓ Build successful${NC}"
 else
     echo -e "${RED}ERROR: Build failed${NC}"
@@ -78,11 +78,11 @@ else
 fi
 
 # Find the built APK
-APK_PATH=$(find "$QUICK_DEPLOY_DIR" -name "*.apk" -path "*/release/*" -type f | head -n 1)
+APK_PATH=$(find "$QUICK_DEPLOY_DIR" -name "*.apk" -path "*/debug/*" -type f | head -n 1)
 
 if [ -z "$APK_PATH" ] || [ ! -f "$APK_PATH" ]; then
     echo -e "${RED}ERROR: APK not found after build${NC}"
-    echo "Expected location: quick-deploy-app/build/outputs/apk/release/"
+    echo "Expected location: quick-deploy-app/build/outputs/apk/debug/"
     exit 2
 fi
 
