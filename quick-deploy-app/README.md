@@ -126,11 +126,6 @@ cd scripts
 ./deploy.sh YOUR_DEVICE_TOKEN
 ```
 
-**GitHub Copilot (via MCP Server):**
-```
-@workspace Deploy the Quick Deploy APK
-```
-
 **GitHub Actions:**
 - Automatically deploys on PR commits when secrets are configured:
   - `SECRET_QUICK_DEPLOY_TOKEN` - Your device token
@@ -141,7 +136,6 @@ For complete documentation, see [DEPLOYMENT_AUTOMATION.md](DEPLOYMENT_AUTOMATION
 ### Key Features
 
 - 🚀 One-command deployment (build → upload → notify)
-- 🤖 AI Agent integration via MCP server
 - ⚡ GitHub Actions auto-deploy on PR
 - 🔐 Secure token management
 - 📝 Clear English error messages
@@ -150,7 +144,7 @@ For complete documentation, see [DEPLOYMENT_AUTOMATION.md](DEPLOYMENT_AUTOMATION
 
 ### Design Documents
 
-- [Deployment Automation](DEPLOYMENT_AUTOMATION.md) - Automated deployment guide (scripts, MCP server, GitHub Actions)
+- [Deployment Automation](DEPLOYMENT_AUTOMATION.md) - Automated deployment guide (scripts, GitHub Actions)
 - [Sequence Diagram](docs/design/SequenceDiagram.md) - System communication flow between server, API, and client devices
 - [Requirements](REQUIREMENTS.md) - Detailed project requirements (Japanese)
 - [Firebase Functions README](functions/README.md) - Backend API documentation

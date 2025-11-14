@@ -20,10 +20,6 @@ Before using the deployment automation, ensure you have:
 quick-deploy-app/
 ├── scripts/
 │   └── deploy.sh          # Main deployment script
-├── mcp/
-│   ├── index.js           # MCP server for AI agents
-│   ├── package.json       # Node.js dependencies
-│   └── README.md          # MCP server documentation
 └── DEPLOYMENT_AUTOMATION.md  # This file
 ```
 
@@ -44,35 +40,7 @@ cd quick-deploy-app/scripts
 ./deploy.sh
 ```
 
-### Option 2: GitHub Copilot Agent (MCP Server)
-
-1. Install MCP server dependencies:
-```bash
-cd quick-deploy-app/mcp
-npm install
-```
-
-2. Configure in GitHub Copilot (add to MCP config):
-```json
-{
-  "mcpServers": {
-    "quick-deploy": {
-      "command": "node",
-      "args": ["/absolute/path/to/quick-deploy-app/mcp/index.js"],
-      "env": {
-        "SECRET_QUICK_DEPLOY_TOKEN": "your-device-token-here"
-      }
-    }
-  }
-}
-```
-
-3. Use with Copilot:
-```
-@workspace Deploy the Quick Deploy APK
-```
-
-### Option 3: GitHub Actions (Auto-Deploy on PR)
+### Option 2: GitHub Actions (Auto-Deploy on PR)
 
 1. Add required secrets to GitHub repository:
    - Go to repository Settings → Secrets and variables → Actions
@@ -137,16 +105,6 @@ The script checks for device token in this order:
 1. Command line argument (`./deploy.sh TOKEN`)
 2. Environment variable `SECRET_QUICK_DEPLOY_TOKEN`
 
-### MCP Server Configuration
-
-The MCP server additionally stores tokens in:
-- `~/.quick-deploy/device-token.txt` (via `set_device_token` tool)
-
-Priority order for MCP:
-1. Parameter to `deploy_apk` tool
-2. `SECRET_QUICK_DEPLOY_TOKEN` environment variable
-3. Saved file `~/.quick-deploy/device-token.txt`
-
 ## 🛠️ Usage Examples
 
 ### Command Line
@@ -165,22 +123,6 @@ export SECRET_QUICK_DEPLOY_TOKEN="7da00b5d-e281-45d2-a4ec-60fd37ddcf6f"
 **From repository root:**
 ```bash
 ./quick-deploy-app/scripts/deploy.sh 7da00b5d-e281-45d2-a4ec-60fd37ddcf6f
-```
-
-### GitHub Copilot Chat
-
-After configuring the MCP server:
-
-```
-Deploy the Quick Deploy APK to my device
-```
-
-```
-Deploy to device 7da00b5d-e281-45d2-a4ec-60fd37ddcf6f
-```
-
-```
-Save my device token: 7da00b5d-e281-45d2-a4ec-60fd37ddcf6f
 ```
 
 ### GitHub Actions
@@ -270,12 +212,6 @@ export SECRET_QUICK_DEPLOY_TOKEN="YOUR_TOKEN"
 - Automatic deletion after 10 minutes
 - Only accessible via signed URL with device token
 
-### MCP Server
-
-- Tokens saved locally in `~/.quick-deploy/device-token.txt`
-- File permissions: user-only read/write
-- Environment variables preferred for CI/CD
-
 ## 📖 API Endpoints
 
 ### Get Upload URL
@@ -337,7 +273,6 @@ curl -X POST "https://notifyuploadcomplete-o45ehp4r5q-uc.a.run.app/upload/YOUR_T
 
 - [`REQUIREMENTS.md`](./REQUIREMENTS.md) - System requirements specification
 - [`docs/design/SequenceDiagram.md`](./docs/design/SequenceDiagram.md) - Communication flow
-- [`mcp/README.md`](./mcp/README.md) - MCP server documentation
 - [`.github/workflows/quick-deploy-auto.yml`](../.github/workflows/quick-deploy-auto.yml) - GitHub Actions workflow
 
 ## 🎯 Design Goals
@@ -345,7 +280,7 @@ curl -X POST "https://notifyuploadcomplete-o45ehp4r5q-uc.a.run.app/upload/YOUR_T
 This automation was designed with these goals in mind:
 
 1. **Simplicity** - One command to deploy
-2. **AI Agent Friendly** - Clear English error messages
+2. **Clear Error Messages** - English error messages for easy debugging
 3. **CI/CD Ready** - Works in GitHub Actions
 4. **Reusable** - Same script for all contexts
 5. **Context Efficient** - Minimal token usage for AI agents
