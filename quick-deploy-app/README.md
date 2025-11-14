@@ -114,10 +114,37 @@ Quick Deploy shares UI components with the main Puzzroom app following Atomic De
 - **Theme**: Warm color palette (terracotta, peach, beige)
 - Access via `shared-ui` module
 
+## Deployment Automation
+
+Quick Deploy now includes automated deployment tools for building and deploying APKs:
+
+### Quick Start
+
+**Command Line:**
+```bash
+cd scripts
+./deploy.sh YOUR_DEVICE_TOKEN
+```
+
+**GitHub Actions:**
+- Automatically deploys on PR commits when secrets are configured:
+  - `SECRET_QUICK_DEPLOY_TOKEN` - Your device token
+  - `QUICK_DEPLOY_GOOGLE_SERVICES_JSON_BASE64` - Base64-encoded google-services.json
+
+For complete documentation, see [DEPLOYMENT_AUTOMATION.md](DEPLOYMENT_AUTOMATION.md).
+
+### Key Features
+
+- 🚀 One-command deployment (build → upload → notify)
+- ⚡ GitHub Actions auto-deploy on PR
+- 🔐 Secure token management
+- 📝 Clear English error messages
+
 ## Documentation
 
 ### Design Documents
 
+- [Deployment Automation](DEPLOYMENT_AUTOMATION.md) - Automated deployment guide (scripts, GitHub Actions)
 - [Sequence Diagram](docs/design/SequenceDiagram.md) - System communication flow between server, API, and client devices
 - [Requirements](REQUIREMENTS.md) - Detailed project requirements (Japanese)
 - [Firebase Functions README](functions/README.md) - Backend API documentation

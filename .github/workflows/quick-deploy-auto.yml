@@ -1,0 +1,131 @@
+name: Quick Deploy - Auto Deploy on PR
+
+on:
+  pull_request:
+    paths:
+      - 'quick-deploy-app/**'
+    types: [opened, synchronize, reopened]
+
+jobs:
+  auto-deploy:
+    name: Build and Deploy APK
+    runs-on: ubuntu-latest
+    
+    # Explicit permissions for security
+    permissions:
+      contents: read
+      pull-requests: write
+    
+    steps:
+      - name: Check if secret is configured
+        id: check-secret
+        run: |
+          if [ -z "${{ secrets.SECRET_QUICK_DEPLOY_TOKEN }}" ]; then
+            echo "Secret SECRET_QUICK_DEPLOY_TOKEN is not configured. Skipping deployment."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Checkout repository
+        if: steps.check-secret.outputs.skip != 'true'
+        uses: actions/checkout@v4
+      
+      - name: Set up JDK 17
+        if: steps.check-secret.outputs.skip != 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+      
+      - name: Grant execute permission for gradlew
+        if: steps.check-secret.outputs.skip != 'true'
+        run: chmod +x ./gradlew
+      
+      - name: Create google-services.json for quick-deploy-app
+        if: steps.check-secret.outputs.skip != 'true'
+        env:
+          QUICK_DEPLOY_GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.QUICK_DEPLOY_GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          if [ -n "$QUICK_DEPLOY_GOOGLE_SERVICES_JSON_BASE64" ]; then
+            echo "$QUICK_DEPLOY_GOOGLE_SERVICES_JSON_BASE64" | base64 -d > quick-deploy-app/google-services.json
+            echo "✅ google-services.json created for quick-deploy-app"
+          else
+            echo "❌ QUICK_DEPLOY_GOOGLE_SERVICES_JSON_BASE64 secret not found"
+            echo "Please add the google-services.json file as a base64-encoded secret"
+            echo "To create the secret, run: base64 -w 0 quick-deploy-app/google-services.json"
+            exit 1
+          fi
+      
+      - name: Grant execute permission for deploy script
+        if: steps.check-secret.outputs.skip != 'true'
+        run: chmod +x ./quick-deploy-app/scripts/deploy.sh
+      
+      - name: Deploy APK to device
+        if: steps.check-secret.outputs.skip != 'true'
+        env:
+          SECRET_QUICK_DEPLOY_TOKEN: ${{ secrets.SECRET_QUICK_DEPLOY_TOKEN }}
+        run: |
+          cd quick-deploy-app/scripts
+          ./deploy.sh
+      
+      - name: Upload APK artifact
+        if: success() && steps.check-secret.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: quick-deploy-apk
+          path: quick-deploy-app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+      
+      - name: Upload build logs on failure
+        if: failure() && steps.check-secret.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: /tmp/build.log
+          if-no-files-found: ignore
+      
+      - name: Comment on PR
+        if: always() && steps.check-secret.outputs.skip != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ job.status }}';
+            const deviceTokenPrefix = process.env.SECRET_QUICK_DEPLOY_TOKEN.substring(0, 8);
+            
+            let message = '';
+            if (status === 'success') {
+              const runUrl = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts";
+              message = `✅ **Quick Deploy: Deployment Successful**
+              
+              The APK has been built and deployed to your device (${deviceTokenPrefix}...).
+              
+              **Next steps:**
+              1. Check your Android device for a notification
+              2. Tap the notification to download and install
+              
+              The APK will be available for 10 minutes.
+              
+              You can also download the APK from **[Artifacts](${runUrl})** (available for 7 days).`;
+            } else {
+              message = `❌ **Quick Deploy: Deployment Failed**
+              
+              The deployment to device ${deviceTokenPrefix}... failed.
+              
+              Please check the workflow logs for details.
+              You can also manually deploy using:
+              \`\`\`bash
+              cd quick-deploy-app/scripts
+              ./deploy.sh YOUR_DEVICE_TOKEN
+              \`\`\``;
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message
+            });
+        env:
+          SECRET_QUICK_DEPLOY_TOKEN: ${{ secrets.SECRET_QUICK_DEPLOY_TOKEN }}
