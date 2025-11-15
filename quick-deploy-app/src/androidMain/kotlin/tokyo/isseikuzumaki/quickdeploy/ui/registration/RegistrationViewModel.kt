@@ -121,6 +121,21 @@ class RegistrationViewModel(
     fun dismissError() {
         loadRegistrationState()
     }
+
+    /**
+     * Refresh permission state when returning from settings
+     * This is called when the app comes to foreground
+     */
+    fun refreshPermissionState() {
+        val currentState = _uiState.value
+        if (currentState is RegistrationUiState.Registered) {
+            // Only update if we're in the Registered state
+            val newCanInstall = apkInstaller.canInstallPackages()
+            if (newCanInstall != currentState.canInstall) {
+                _uiState.value = currentState.copy(canInstall = newCanInstall)
+            }
+        }
+    }
 }
 
 /**
