@@ -1,5 +1,9 @@
 package tokyo.isseikuzumaki.quickdeploy.ui.guide
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,10 +21,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import tokyo.isseikuzumaki.shared.ui.PreviewTemplate
-import tokyo.isseikuzumaki.shared.ui.atoms.CodeBlock
+import tokyo.isseikuzumaki.shared.ui.molecules.CodeBlockWithCopy
 import tokyo.isseikuzumaki.shared.ui.molecules.SectionContent
 import tokyo.isseikuzumaki.shared.ui.molecules.SectionTitle
 import tokyo.isseikuzumaki.shared.ui.molecules.StepCard
@@ -33,6 +38,8 @@ import tokyo.isseikuzumaki.shared.ui.molecules.TipCard
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GuideScreen(onNavigateBack: () -> Unit) {
+    val context = LocalContext.current
+    
     Scaffold(
         topBar = {
             TopAppBar(
@@ -86,7 +93,7 @@ fun GuideScreen(onNavigateBack: () -> Unit) {
             StepCard(
                 stepNumber = "3",
                 title = "ビルドスクリプトに追加",
-                content = "GitHub ActionsやビルドスクリプトにAPKアップロード処理を追加します。署名付きURL取得→APKアップロード→通知の3ステップで完了します。"
+                content = "GitHub ActionsやビルドスクリプトにAPKアップロード処理を追加します。デバイストークンを使って署名付きURL取得→APKアップロード→通知の3ステップで完了します。"
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -103,47 +110,69 @@ fun GuideScreen(onNavigateBack: () -> Unit) {
             SectionTitle("使用例")
 
             SubsectionTitle("GitHub Actionsの場合")
-            CodeBlock(
-                """
-                - name: Upload to Quick Deploy
+            
+            val githubActionsCode = """
+                - name: Deploy APK to Quick Deploy
                   env:
-                    UPLOAD_URL_ENDPOINT: ${'$'}{{ secrets.UPLOAD_URL_ENDPOINT }}
+                    SECRET_QUICK_DEPLOY_TOKEN: ${'$'}{{ secrets.SECRET_QUICK_DEPLOY_TOKEN }}
                   run: |
-                    # Get signed upload URL
-                    RESPONSE=${'$'}(curl -s -X POST "${'$'}UPLOAD_URL_ENDPOINT")
-                    UPLOAD_URL=${'$'}(echo "${'$'}RESPONSE" | jq -r '.uploadUrl')
-                    NOTIFY_URL=${'$'}(echo "${'$'}RESPONSE" | jq -r '.notifyUrl')
+                    # Step 1: Build APK
+                    ./gradlew assembleDebug
                     
-                    # Upload APK to signed URL
-                    curl -X PUT \
+                    # Step 2: Get signed upload URL
+                    UPLOAD_URL_ENDPOINT="https://getuploadurl-o45ehp4r5q-uc.a.run.app/upload/${'$'}SECRET_QUICK_DEPLOY_TOKEN/url"
+                    UPLOAD_RESPONSE=${'$'}(curl -s -w "\n%{http_code}" -X POST "${'$'}UPLOAD_URL_ENDPOINT")
+                    SIGNED_URL=${'$'}(echo "${'$'}UPLOAD_RESPONSE" | sed '${'$'}d' | jq -r '.uploadUrl')
+                    
+                    # Step 3: Upload APK to Firebase Storage
+                    curl -s -w "\n%{http_code}" -X PUT \
                       -H "Content-Type: application/vnd.android.package-archive" \
-                      --upload-file app/build/outputs/apk/debug/app-debug.apk \
-                      "${'$'}UPLOAD_URL"
+                      --data-binary "@app/build/outputs/apk/debug/app-debug.apk" \
+                      "${'$'}SIGNED_URL"
                     
-                    # Notify backend
-                    curl -X POST "${'$'}NOTIFY_URL"
-                """.trimIndent()
+                    # Step 4: Notify device
+                    NOTIFY_URL="https://notifyuploadcomplete-o45ehp4r5q-uc.a.run.app/upload/${'$'}SECRET_QUICK_DEPLOY_TOKEN/notify"
+                    curl -s -X POST -H "Content-Type: application/json" "${'$'}NOTIFY_URL"
+            """.trimIndent()
+            
+            CodeBlockWithCopy(
+                code = githubActionsCode,
+                onCopy = { copyToClipboard(context, githubActionsCode, "GitHub Actionsのコードをコピーしました") }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             SubsectionTitle("コマンドラインの場合")
-            CodeBlock(
-                """
-                # 1. アップロードURLを取得
-                RESPONSE=${'$'}(curl -s -X POST "https://[region]-[project].cloudfunctions.net/getUploadUrl/[device-token]/url")
-                UPLOAD_URL=${'$'}(echo "${'$'}RESPONSE" | jq -r '.uploadUrl')
-                NOTIFY_URL=${'$'}(echo "${'$'}RESPONSE" | jq -r '.notifyUrl')
+            
+            val commandLineCode = """
+                #!/bin/bash
+                # Quick Deploy - Manual deployment script
                 
-                # 2. APKをアップロード
-                curl -X PUT \
+                # Set your device token
+                DEVICE_TOKEN="your-device-token-here"
+                APK_PATH="path/to/your/app.apk"
+                
+                # Step 1: Get signed upload URL
+                UPLOAD_URL_ENDPOINT="https://getuploadurl-o45ehp4r5q-uc.a.run.app/upload/${'$'}DEVICE_TOKEN/url"
+                UPLOAD_RESPONSE=${'$'}(curl -s -w "\n%{http_code}" -X POST "${'$'}UPLOAD_URL_ENDPOINT")
+                SIGNED_URL=${'$'}(echo "${'$'}UPLOAD_RESPONSE" | sed '${'$'}d' | jq -r '.uploadUrl')
+                
+                # Step 2: Upload APK to Firebase Storage
+                curl -s -w "\n%{http_code}" -X PUT \
                   -H "Content-Type: application/vnd.android.package-archive" \
-                  --upload-file path/to/your/app.apk \
-                  "${'$'}UPLOAD_URL"
+                  --data-binary "@${'$'}APK_PATH" \
+                  "${'$'}SIGNED_URL"
                 
-                # 3. 完了を通知
-                curl -X POST "${'$'}NOTIFY_URL"
-                """.trimIndent()
+                # Step 3: Notify device
+                NOTIFY_URL="https://notifyuploadcomplete-o45ehp4r5q-uc.a.run.app/upload/${'$'}DEVICE_TOKEN/notify"
+                curl -s -X POST -H "Content-Type: application/json" "${'$'}NOTIFY_URL"
+                
+                echo "✓ Deployment completed!"
+            """.trimIndent()
+            
+            CodeBlockWithCopy(
+                code = commandLineCode,
+                onCopy = { copyToClipboard(context, commandLineCode, "コマンドラインのコードをコピーしました") }
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -190,4 +219,14 @@ private fun GuideScreenPreview() {
     PreviewTemplate {
         GuideScreen(onNavigateBack = {})
     }
+}
+
+/**
+ * Helper function to copy text to clipboard
+ */
+private fun copyToClipboard(context: Context, text: String, message: String) {
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    val clip = ClipData.newPlainText("Code", text)
+    clipboard.setPrimaryClip(clip)
+    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 }
