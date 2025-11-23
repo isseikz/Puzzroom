@@ -37,6 +37,7 @@ local.properties
 .externalNativeBuild/
 .cxx/
 .kotlin/
+debug.keystore
 
 # This is an unusual rule. You may not need it.
 # It prevents ignoring 'build' folders inside 'src'.

@@ -33,6 +33,17 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Decode debug keystore
+        env:
+          DEBUG_KEYSTORE: ${{ secrets.DEBUG_KEYSTORE }}
+        run: |
+          if [ -n "$DEBUG_KEYSTORE" ]; then
+            echo "$DEBUG_KEYSTORE" | base64 -d > debug.keystore
+            echo "✅ debug.keystore decoded successfully"
+          else
+            echo "⚠️  DEBUG_KEYSTORE secret not found, using default Android debug keystore"
+          fi
+
       - name: Create google-services.json from secret
         env:
           GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}

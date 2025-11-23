@@ -42,7 +42,19 @@ jobs:
       - name: Grant execute permission for gradlew
         if: steps.check-secret.outputs.skip != 'true'
         run: chmod +x ./gradlew
-      
+
+      - name: Decode debug keystore
+        if: steps.check-secret.outputs.skip != 'true'
+        env:
+          DEBUG_KEYSTORE: ${{ secrets.DEBUG_KEYSTORE }}
+        run: |
+          if [ -n "$DEBUG_KEYSTORE" ]; then
+            echo "$DEBUG_KEYSTORE" | base64 -d > debug.keystore
+            echo "✅ debug.keystore decoded successfully"
+          else
+            echo "⚠️  DEBUG_KEYSTORE secret not found, using default Android debug keystore"
+          fi
+
       - name: Create google-services.json for quick-deploy-app
         if: steps.check-secret.outputs.skip != 'true'
         env:
