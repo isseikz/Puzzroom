@@ -18,7 +18,14 @@ val viewModelModule = module {
     factoryOf(::LibraryViewModel)
 
     // SessionViewModel - Scoped to navigation graph, heavy with audio data
-    factoryOf(::SessionViewModel)
+    // Accepts URI as a parameter
+    factory { (uri: String) ->
+        SessionViewModel(
+            uri = uri,
+            audioRepository = get(),
+            audioEngine = get()
+        )
+    }
 }
 
 fun initKoin() {

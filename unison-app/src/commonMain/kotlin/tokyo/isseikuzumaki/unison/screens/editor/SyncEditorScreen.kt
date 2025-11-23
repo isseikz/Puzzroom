@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 import tokyo.isseikuzumaki.unison.screens.session.SessionUiState
 import tokyo.isseikuzumaki.unison.screens.session.SessionViewModel
 
@@ -22,11 +23,12 @@ import tokyo.isseikuzumaki.unison.screens.session.SessionViewModel
  */
 @Composable
 fun SyncEditorScreen(
+    uri: String,
     onNavigateBack: () -> Unit,
     onNavigateToRecorder: () -> Unit,
     onFinish: () -> Unit
 ) {
-    val viewModel: SessionViewModel = koinViewModel()
+    val viewModel: SessionViewModel = koinViewModel { parametersOf(uri) }
     val uiState by viewModel.uiState.collectAsState()
     val offsetMs by viewModel.offsetMs.collectAsState()
     val balance by viewModel.balance.collectAsState()

@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 import tokyo.isseikuzumaki.unison.screens.session.SessionUiState
 import tokyo.isseikuzumaki.unison.screens.session.SessionViewModel
 
@@ -19,10 +20,11 @@ import tokyo.isseikuzumaki.unison.screens.session.SessionViewModel
  */
 @Composable
 fun RecorderScreen(
+    uri: String,
     onNavigateBack: () -> Unit,
     onNavigateToEditor: () -> Unit
 ) {
-    val viewModel: SessionViewModel = koinViewModel()
+    val viewModel: SessionViewModel = koinViewModel { parametersOf(uri) }
     val uiState by viewModel.uiState.collectAsState()
 
     // Auto-navigate to editor when recording is complete

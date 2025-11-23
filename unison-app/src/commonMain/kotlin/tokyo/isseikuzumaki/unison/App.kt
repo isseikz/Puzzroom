@@ -6,6 +6,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -58,8 +59,14 @@ fun App() {
                 navigation<SessionGraph>(
                     startDestination = RecorderDestination
                 ) {
-                    composable<RecorderDestination> {
+                    composable<RecorderDestination> { backStackEntry ->
+                        val parentEntry = remember(backStackEntry) {
+                            navController.getBackStackEntry<SessionGraph>()
+                        }
+                        val sessionGraph = parentEntry.toRoute<SessionGraph>()
+
                         RecorderScreen(
+                            uri = sessionGraph.uri,
                             onNavigateBack = {
                                 navController.popBackStack<LibraryDestination>(inclusive = false)
                             },
@@ -69,8 +76,14 @@ fun App() {
                         )
                     }
 
-                    composable<EditorDestination> {
+                    composable<EditorDestination> { backStackEntry ->
+                        val parentEntry = remember(backStackEntry) {
+                            navController.getBackStackEntry<SessionGraph>()
+                        }
+                        val sessionGraph = parentEntry.toRoute<SessionGraph>()
+
                         SyncEditorScreen(
+                            uri = sessionGraph.uri,
                             onNavigateBack = {
                                 navController.popBackStack()
                             },
