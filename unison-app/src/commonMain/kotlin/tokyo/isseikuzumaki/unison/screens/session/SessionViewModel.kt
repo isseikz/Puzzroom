@@ -61,20 +61,33 @@ class SessionViewModel(
         val pcm = originalPcmData ?: return
 
         viewModelScope.launch {
-            // Start playback of original audio
-            audioEngine.playOriginal(pcm)
-
-            // Start recording
-            recordingJob = launch {
-                audioEngine.startRecording().collect { chunk ->
-                    // Chunks are collected in the engine
+            try {
+                // Start playback of original audio
+                val playbackResult = audioEngine.playOriginal(pcm)
+                playbackResult.onFailure { error ->
+                    _uiState.value = SessionUiState.Error("Failed to start playback: ${error.message}")
+                    return@launch
                 }
-            }
 
-            _uiState.value = SessionUiState.Recording(
-                fileName = extractFileName(uri),
-                durationMs = audioEngine.getDurationMs(pcm)
-            )
+                // Update UI to recording state first
+                _uiState.value = SessionUiState.Recording(
+                    fileName = extractFileName(uri),
+                    durationMs = audioEngine.getDurationMs(pcm)
+                )
+
+                // Start recording
+                recordingJob = launch {
+                    try {
+                        audioEngine.startRecording().collect { chunk ->
+                            // Chunks are collected in the engine
+                        }
+                    } catch (e: Exception) {
+                        _uiState.value = SessionUiState.Error("Recording failed: ${e.message}")
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.value = SessionUiState.Error("Failed to start recording: ${e.message}")
+            }
         }
     }
 

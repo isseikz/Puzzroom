@@ -5,10 +5,12 @@ import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.AudioTrack
 import android.media.MediaRecorder
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 
@@ -77,7 +79,7 @@ class AndroidAudioEngine : AudioEngine {
         recorded: ByteArray,
         offsetMs: Int,
         balance: Float
-    ): Result<Unit> = withContext(Dispatchers.IO) {
+    ): Result<Unit> {
         try {
             stopPlayback()
 
@@ -113,15 +115,19 @@ class AndroidAudioEngine : AudioEngine {
                 .build()
 
             audioTrack?.play()
-            audioTrack?.write(mixedData, 0, mixedData.size)
 
-            Result.success(Unit)
+            // Write audio in a background thread to avoid blocking
+            CoroutineScope(Dispatchers.IO).launch {
+                audioTrack?.write(mixedData, 0, mixedData.size)
+            }
+
+            return Result.success(Unit)
         } catch (e: Exception) {
-            Result.failure(e)
+            return Result.failure(e)
         }
     }
 
-    override suspend fun playOriginal(pcmData: ByteArray): Result<Unit> = withContext(Dispatchers.IO) {
+    override suspend fun playOriginal(pcmData: ByteArray): Result<Unit> {
         try {
             stopPlayback()
 
@@ -150,11 +156,15 @@ class AndroidAudioEngine : AudioEngine {
                 .build()
 
             audioTrack?.play()
-            audioTrack?.write(pcmData, 0, pcmData.size)
 
-            Result.success(Unit)
+            // Write audio in a background thread to avoid blocking
+            CoroutineScope(Dispatchers.IO).launch {
+                audioTrack?.write(pcmData, 0, pcmData.size)
+            }
+
+            return Result.success(Unit)
         } catch (e: Exception) {
-            Result.failure(e)
+            return Result.failure(e)
         }
     }
 
