@@ -14,7 +14,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.navigation
 import androidx.navigation.toRoute
 import tokyo.isseikuzumaki.unison.screens.library.LibraryScreenPlatform
-import tokyo.isseikuzumaki.unison.screens.recorder.RecorderScreen
+import tokyo.isseikuzumaki.unison.screens.recorder.RecorderScreenPlatform
 import tokyo.isseikuzumaki.unison.screens.editor.SyncEditorScreen
 import kotlinx.serialization.Serializable
 import org.koin.compose.viewmodel.koinViewModel
@@ -65,7 +65,7 @@ fun App() {
                         }
                         val sessionGraph = parentEntry.toRoute<SessionGraph>()
 
-                        RecorderScreen(
+                        RecorderScreenPlatform(
                             uri = sessionGraph.uri,
                             onNavigateBack = {
                                 navController.popBackStack<LibraryDestination>(inclusive = false)

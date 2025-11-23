@@ -16,10 +16,20 @@ import tokyo.isseikuzumaki.unison.screens.session.SessionUiState
 import tokyo.isseikuzumaki.unison.screens.session.SessionViewModel
 
 /**
+ * Platform-specific recorder screen wrapper
+ */
+@Composable
+expect fun RecorderScreenPlatform(
+    uri: String,
+    onNavigateBack: () -> Unit,
+    onNavigateToEditor: () -> Unit
+)
+
+/**
  * Recorder Screen - Records user's voice while playing original audio
  */
 @Composable
-fun RecorderScreen(
+internal fun RecorderScreen(
     uri: String,
     onNavigateBack: () -> Unit,
     onNavigateToEditor: () -> Unit
