@@ -5,6 +5,7 @@ import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.AudioTrack
 import android.media.MediaRecorder
+import androidx.annotation.RequiresPermission
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
@@ -25,34 +26,37 @@ class AndroidAudioEngine : AudioEngine {
     private var isRecording = false
     private val recordedDataStream = ByteArrayOutputStream()
 
+    @RequiresPermission(android.Manifest.permission.RECORD_AUDIO)
     override fun startRecording(): Flow<ByteArray> = callbackFlow {
-        val bufferSize = AudioRecord.getMinBufferSize(
-            SAMPLE_RATE,
-            AudioFormat.CHANNEL_IN_MONO,
-            AudioFormat.ENCODING_PCM_16BIT
-        )
+        withContext(Dispatchers.IO) {
+            val bufferSize = AudioRecord.getMinBufferSize(
+                SAMPLE_RATE,
+                AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT
+            )
 
-        audioRecord = AudioRecord(
-            MediaRecorder.AudioSource.MIC,
-            SAMPLE_RATE,
-            AudioFormat.CHANNEL_IN_MONO,
-            AudioFormat.ENCODING_PCM_16BIT,
-            bufferSize
-        )
+            audioRecord = AudioRecord(
+                MediaRecorder.AudioSource.MIC,
+                SAMPLE_RATE,
+                AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT,
+                bufferSize
+            )
 
-        recordedDataStream.reset()
-        isRecording = true
+            recordedDataStream.reset()
+            isRecording = true
 
-        audioRecord?.startRecording()
+            audioRecord?.startRecording()
 
-        val buffer = ByteArray(bufferSize)
+            val buffer = ByteArray(bufferSize)
 
-        while (isRecording) {
-            val read = audioRecord?.read(buffer, 0, buffer.size) ?: 0
-            if (read > 0) {
-                val chunk = buffer.copyOf(read)
-                recordedDataStream.write(chunk)
-                trySend(chunk)
+            while (isRecording) {
+                val read = audioRecord?.read(buffer, 0, buffer.size) ?: 0
+                if (read > 0) {
+                    val chunk = buffer.copyOf(read)
+                    recordedDataStream.write(chunk)
+                    trySend(chunk)
+                }
             }
         }
 

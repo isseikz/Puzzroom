@@ -2,11 +2,13 @@ package tokyo.isseikuzumaki.unison.screens.session
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import tokyo.isseikuzumaki.unison.data.AudioEngine
 import tokyo.isseikuzumaki.unison.data.AudioRepository
 
@@ -75,17 +77,15 @@ class SessionViewModel(
                     durationMs = audioEngine.getDurationMs(pcm)
                 )
 
-                // TODO: Re-enable recording functionality after debugging microphone issues
-                // Start recording - COMMENTED OUT FOR DEBUGGING
-                // recordingJob = launch {
-                //     try {
-                //         audioEngine.startRecording().collect { chunk ->
-                //             // Chunks are collected in the engine
-                //         }
-                //     } catch (e: Exception) {
-                //         _uiState.value = SessionUiState.Error("Recording failed: ${e.message}")
-                //     }
-                // }
+                 recordingJob = launch {
+                     try {
+                         audioEngine.startRecording().collect { chunk ->
+                             // Chunks are collected in the engine
+                         }
+                     } catch (e: Exception) {
+                         _uiState.value = SessionUiState.Error("Recording failed: ${e.message}")
+                     }
+                 }
             } catch (e: Exception) {
                 _uiState.value = SessionUiState.Error("Failed to start recording: ${e.message}")
             }
@@ -93,22 +93,26 @@ class SessionViewModel(
     }
 
     fun stopRecording() {
-        audioEngine.stopRecording()
-        audioEngine.stopPlayback()
-        recordingJob?.cancel()
-        recordingJob = null
+        viewModelScope.launch {
+            withContext(Dispatchers.Default) {
+                audioEngine.stopRecording()
+                audioEngine.stopPlayback()
+                recordingJob?.cancel()
+                recordingJob = null
 
-        recordedPcmData = audioEngine.getRecordedData()
+                recordedPcmData = audioEngine.getRecordedData()
+            }
 
-        if (recordedPcmData != null) {
-            _uiState.value = SessionUiState.Editing(
-                fileName = extractFileName(uri),
-                durationMs = audioEngine.getDurationMs(originalPcmData!!),
-                offsetMs = _offsetMs.value,
-                balance = _balance.value
-            )
-        } else {
-            _uiState.value = SessionUiState.Error("No recording data")
+            if (recordedPcmData != null) {
+                _uiState.value = SessionUiState.Editing(
+                    fileName = extractFileName(uri),
+                    durationMs = audioEngine.getDurationMs(originalPcmData!!),
+                    offsetMs = _offsetMs.value,
+                    balance = _balance.value
+                )
+            } else {
+                _uiState.value = SessionUiState.Error("No recording data")
+            }
         }
     }
 
