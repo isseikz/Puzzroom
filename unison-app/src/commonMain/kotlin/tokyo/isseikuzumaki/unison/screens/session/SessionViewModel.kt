@@ -75,16 +75,17 @@ class SessionViewModel(
                     durationMs = audioEngine.getDurationMs(pcm)
                 )
 
-                // Start recording
-                recordingJob = launch {
-                    try {
-                        audioEngine.startRecording().collect { chunk ->
-                            // Chunks are collected in the engine
-                        }
-                    } catch (e: Exception) {
-                        _uiState.value = SessionUiState.Error("Recording failed: ${e.message}")
-                    }
-                }
+                // TODO: Re-enable recording functionality after debugging microphone issues
+                // Start recording - COMMENTED OUT FOR DEBUGGING
+                // recordingJob = launch {
+                //     try {
+                //         audioEngine.startRecording().collect { chunk ->
+                //             // Chunks are collected in the engine
+                //         }
+                //     } catch (e: Exception) {
+                //         _uiState.value = SessionUiState.Error("Recording failed: ${e.message}")
+                //     }
+                // }
             } catch (e: Exception) {
                 _uiState.value = SessionUiState.Error("Failed to start recording: ${e.message}")
             }
