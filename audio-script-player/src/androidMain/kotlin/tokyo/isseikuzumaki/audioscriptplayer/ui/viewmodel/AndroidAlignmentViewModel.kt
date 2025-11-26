@@ -1,6 +1,8 @@
 package tokyo.isseikuzumaki.audioscriptplayer.ui.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -10,6 +12,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import tokyo.isseikuzumaki.audioscriptplayer.audio.AudioPlayer
+import tokyo.isseikuzumaki.audioscriptplayer.audio.ExoAudioPlayer
+import tokyo.isseikuzumaki.audioscriptplayer.audio.MockAudioPlayer
 import tokyo.isseikuzumaki.audioscriptplayer.data.AlignmentState
 import tokyo.isseikuzumaki.audioscriptplayer.data.ModelState
 import tokyo.isseikuzumaki.audioscriptplayer.domain.MockWhisperWrapper
@@ -18,29 +23,55 @@ import tokyo.isseikuzumaki.audioscriptplayer.domain.WhisperWrapper
 import tokyo.isseikuzumaki.audioscriptplayer.ui.pages.AlignmentViewModelInterface
 import tokyo.isseikuzumaki.audioscriptplayer.ui.state.PlayerEvent
 import tokyo.isseikuzumaki.audioscriptplayer.ui.state.PlayerUiState
+import tokyo.isseikuzumaki.audioscriptplayer.whisper.WhisperJniWrapper
 
 /**
- * ViewModel for the Audio-Script Alignment Player.
- * Manages model loading, alignment processing, and playback state.
+ * Android-specific ViewModel with ExoPlayer and JNI Whisper integration.
  */
-class AlignmentViewModel(
-    private val whisperWrapper: WhisperWrapper = MockWhisperWrapper(),
-    private val textAligner: TextAligner = TextAligner()
+class AndroidAlignmentViewModel(
+    private val whisperWrapper: WhisperWrapper,
+    private val audioPlayer: AudioPlayer,
+    private val textAligner: TextAligner = TextAligner(),
+    private val modelFileName: String = DEFAULT_MODEL_FILENAME
 ) : ViewModel(), AlignmentViewModelInterface {
     
     companion object {
-        /** Update interval for playback position in milliseconds */
-        private const val PLAYBACK_UPDATE_INTERVAL_MS = 50L
+        private const val POSITION_UPDATE_INTERVAL_MS = 50L
+        
+        /** Default Whisper model file name */
+        const val DEFAULT_MODEL_FILENAME = "ggml-tiny.en.bin"
     }
     
     private val _uiState = MutableStateFlow(PlayerUiState())
     override val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
     
-    private var playbackJob: Job? = null
+    private var positionUpdateJob: Job? = null
     
-    /**
-     * Handle UI events.
-     */
+    init {
+        // Collect audio player state changes
+        viewModelScope.launch {
+            audioPlayer.playbackState.collect { playbackState ->
+                _uiState.update { 
+                    it.copy(
+                        isPlaying = playbackState.isPlaying,
+                        durationMs = if (playbackState.durationMs > 0) {
+                            playbackState.durationMs
+                        } else {
+                            it.durationMs
+                        }
+                    )
+                }
+                
+                // Start/stop position updates based on playback state
+                if (playbackState.isPlaying) {
+                    startPositionUpdates()
+                } else {
+                    stopPositionUpdates()
+                }
+            }
+        }
+    }
+    
     override fun onEvent(event: PlayerEvent) {
         when (event) {
             is PlayerEvent.LoadModel -> loadModel()
@@ -58,8 +89,7 @@ class AlignmentViewModel(
             _uiState.update { it.copy(modelState = ModelState.Loading, modelError = null) }
             
             try {
-                // In real implementation, would pass actual model path
-                val success = whisperWrapper.loadModel("ggml-tiny.en.bin")
+                val success = whisperWrapper.loadModel(modelFileName)
                 
                 if (success) {
                     _uiState.update { it.copy(modelState = ModelState.Ready) }
@@ -67,7 +97,7 @@ class AlignmentViewModel(
                     _uiState.update { 
                         it.copy(
                             modelState = ModelState.Error,
-                            modelError = "Failed to load model"
+                            modelError = "Failed to load model: $modelFileName"
                         )
                     }
                 }
@@ -98,15 +128,13 @@ class AlignmentViewModel(
             }
             
             try {
-                // Get transcription from Whisper (mock)
                 val audioPath = currentState.audioUri ?: "sample.wav"
                 val tokens = whisperWrapper.transcribe(audioPath)
-                
-                // Align with script
                 val alignedWords = textAligner.align(tokens, currentState.scriptText)
-                
-                // Calculate total duration from aligned words
                 val duration = alignedWords.lastOrNull()?.endTime ?: 0L
+                
+                // Prepare audio player
+                audioPlayer.prepare(audioPath)
                 
                 _uiState.update { 
                     it.copy(
@@ -135,40 +163,19 @@ class AlignmentViewModel(
         }
         
         if (currentState.isPlaying) {
-            // Pause
-            playbackJob?.cancel()
-            _uiState.update { it.copy(isPlaying = false) }
+            audioPlayer.pause()
         } else {
-            // Play
-            _uiState.update { it.copy(isPlaying = true) }
-            startPlaybackSimulation()
+            audioPlayer.play()
         }
     }
     
-    private fun startPlaybackSimulation() {
-        playbackJob?.cancel()
-        playbackJob = viewModelScope.launch {
-            val startPosition = _uiState.value.currentPositionMs
-            var elapsed = 0L
-            
+    private fun startPositionUpdates() {
+        positionUpdateJob?.cancel()
+        positionUpdateJob = viewModelScope.launch {
             while (isActive) {
-                val currentPosition = startPosition + elapsed
-                val duration = _uiState.value.durationMs
-                
-                if (currentPosition >= duration) {
-                    // Reached end
-                    _uiState.update { 
-                        it.copy(
-                            isPlaying = false,
-                            currentPositionMs = 0,
-                            currentWordIndex = -1
-                        )
-                    }
-                    break
-                }
-                
-                // Update position and find current word
+                val currentPosition = audioPlayer.getCurrentPosition()
                 val currentWordIndex = findWordAtPosition(currentPosition)
+                
                 _uiState.update { 
                     it.copy(
                         currentPositionMs = currentPosition,
@@ -176,10 +183,14 @@ class AlignmentViewModel(
                     )
                 }
                 
-                delay(PLAYBACK_UPDATE_INTERVAL_MS)
-                elapsed += PLAYBACK_UPDATE_INTERVAL_MS
+                delay(POSITION_UPDATE_INTERVAL_MS)
             }
         }
+    }
+    
+    private fun stopPositionUpdates() {
+        positionUpdateJob?.cancel()
+        positionUpdateJob = null
     }
     
     private fun findWordAtPosition(positionMs: Long): Int {
@@ -190,21 +201,13 @@ class AlignmentViewModel(
     }
     
     private fun seekTo(positionMs: Long) {
-        val wasPlaying = _uiState.value.isPlaying
-        
-        playbackJob?.cancel()
-        
+        audioPlayer.seekTo(positionMs)
         val currentWordIndex = findWordAtPosition(positionMs)
         _uiState.update { 
             it.copy(
                 currentPositionMs = positionMs,
                 currentWordIndex = currentWordIndex
             )
-        }
-        
-        if (wasPlaying) {
-            _uiState.update { it.copy(isPlaying = true) }
-            startPlaybackSimulation()
         }
     }
     
@@ -239,7 +242,43 @@ class AlignmentViewModel(
     
     override fun onCleared() {
         super.onCleared()
-        playbackJob?.cancel()
+        positionUpdateJob?.cancel()
+        audioPlayer.release()
         whisperWrapper.releaseModel()
+    }
+    
+    /**
+     * Factory for creating AndroidAlignmentViewModel with context.
+     * 
+     * @param context Android context for ExoPlayer and file access
+     * @param useRealImplementations Set to true for real Whisper + ExoPlayer, false for mock
+     * @param modelFileName Whisper model filename (default: ggml-tiny.en.bin)
+     */
+    class Factory(
+        private val context: Context,
+        private val useRealImplementations: Boolean = false,
+        private val modelFileName: String = DEFAULT_MODEL_FILENAME
+    ) : ViewModelProvider.Factory {
+        
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            val whisperWrapper: WhisperWrapper = if (useRealImplementations) {
+                WhisperJniWrapper(context)
+            } else {
+                MockWhisperWrapper()
+            }
+            
+            val audioPlayer: AudioPlayer = if (useRealImplementations) {
+                ExoAudioPlayer(context)
+            } else {
+                MockAudioPlayer()
+            }
+            
+            return AndroidAlignmentViewModel(
+                whisperWrapper = whisperWrapper,
+                audioPlayer = audioPlayer,
+                modelFileName = modelFileName
+            ) as T
+        }
     }
 }

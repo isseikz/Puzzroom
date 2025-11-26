@@ -23,26 +23,55 @@ This app demonstrates:
                               │
                               ▼
 ┌──────────────────────────────────────────────────────────────┐
-│                    AlignmentViewModel                        │
+│               AndroidAlignmentViewModel                      │
 │  - Model loading state                                       │
 │  - Alignment processing                                      │
-│  - Playback control (simulated)                             │
+│  - ExoPlayer integration for audio playback                  │
 └──────────────────────────────────────────────────────────────┘
                               │
-                    ┌─────────┴─────────┐
-                    ▼                   ▼
-        ┌───────────────────┐   ┌────────────────┐
-        │   WhisperWrapper  │   │   TextAligner  │
-        │  (Mock for now)   │   │  (Levenshtein) │
-        └───────────────────┘   └────────────────┘
+              ┌───────────────┼───────────────┐
+              ▼               ▼               ▼
+    ┌──────────────┐  ┌─────────────┐  ┌─────────────┐
+    │WhisperJniWrap│  │ TextAligner │  │ExoAudioPlayer
+    │   (JNI)      │  │ (Levenshtein)│  │ (Media3)    │
+    └──────────────┘  └─────────────┘  └─────────────┘
+              │
+              ▼
+    ┌──────────────┐
+    │native-lib.cpp│
+    │ (whisper.cpp)│
+    └──────────────┘
 ```
 
 ### Data Flow
 
-1. **Model Loading**: Load Whisper model (mock in prototype)
-2. **Transcription**: Get timestamped tokens from audio
-3. **Alignment**: Match tokens with script using edit distance
-4. **Playback**: Highlight words based on current position
+1. **Model Loading**: Load Whisper model via JNI (ggml-tiny.en.bin)
+2. **Transcription**: Get timestamped tokens from audio via whisper.cpp
+3. **Alignment**: Match tokens with script using Levenshtein distance
+4. **Playback**: ExoPlayer plays audio while highlighting words
+
+## Implementation Details
+
+### ExoPlayer Integration
+
+The `ExoAudioPlayer` class provides real audio playback:
+- Media3 ExoPlayer for efficient audio decoding
+- StateFlow-based playback state management
+- Support for file://, content://, and asset:// URIs
+
+### Whisper.cpp JNI Integration
+
+The `WhisperJniWrapper` provides:
+- Model loading from assets or internal storage
+- Transcription with `token_timestamps = true`
+- JSON-formatted results with word-level timing
+
+### Native Code (C++)
+
+The `native-lib.cpp` implements JNI methods:
+- `nativeLoadModel()` - Load ggml model file
+- `nativeTranscribeWithTimestamps()` - Run inference with timestamps
+- `nativeFreeModel()` - Release model memory
 
 ## Data Models
 
@@ -91,27 +120,58 @@ The `TextAligner` class implements a greedy forward-matching algorithm:
 ./gradlew :audio-script-player:assembleDebug
 ```
 
-## Future Work (JNI Integration)
+## Whisper.cpp Integration Steps
 
-To integrate real Whisper.cpp:
+To complete the whisper.cpp integration:
 
-1. Clone whisper.cpp repository
-2. Build native library for Android
-3. Implement JNI bindings in `WhisperWrapper`
-4. Add model file to assets
+### 1. Build whisper.cpp for Android
 
-### JNI Changes Required
-
-```cpp
-// native-lib.cpp
-whisper_full_params params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
-params.token_timestamps = true;  // Enable timestamps
+```bash
+git clone https://github.com/ggerganov/whisper.cpp
+cd whisper.cpp
+# Follow Android build instructions in whisper.cpp/examples/android
 ```
+
+### 2. Copy Native Libraries
+
+Copy the built `.so` files to:
+```
+audio-script-player/src/androidMain/jniLibs/
+├── arm64-v8a/
+│   └── libwhisper.so
+├── armeabi-v7a/
+│   └── libwhisper.so
+└── x86_64/
+    └── libwhisper.so
+```
+
+### 3. Add Model File
+
+Add the Whisper model to assets:
+```
+audio-script-player/src/androidMain/assets/
+└── ggml-tiny.en.bin
+```
+
+### 4. Enable Real Implementation
+
+In `MainActivity.kt`, set `useRealImplementations = true`:
+```kotlin
+AndroidAlignmentViewModel.Factory(
+    context = applicationContext,
+    useRealImplementations = true  // Enable real Whisper + ExoPlayer
+)
+```
+
+### 5. Uncomment Native Code
+
+Uncomment the whisper.cpp integration code in `native-lib.cpp`.
 
 ## Requirements
 
 - Android 8.0 (API 26) or higher
-- ARM64-v8a or x86_64 device for Whisper inference
+- ARM64-v8a, armeabi-v7a, or x86_64 device
+- ~75MB for ggml-tiny.en.bin model
 
 ## License
 

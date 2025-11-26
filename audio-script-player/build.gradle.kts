@@ -62,9 +62,25 @@ android {
         versionCode = 1
         versionName = "1.0"
         
-        // For whisper.cpp JNI support (placeholder for now)
+        // NDK configuration for whisper.cpp JNI
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+        }
+        
+        // CMake configuration for native build
+        externalNativeBuild {
+            cmake {
+                cppFlags += "-std=c++17"
+                arguments += "-DANDROID_STL=c++_shared"
+            }
+        }
+    }
+    
+    // External native build configuration
+    externalNativeBuild {
+        cmake {
+            path = file("src/androidMain/cpp/CMakeLists.txt")
+            version = "3.22.1"
         }
     }
     

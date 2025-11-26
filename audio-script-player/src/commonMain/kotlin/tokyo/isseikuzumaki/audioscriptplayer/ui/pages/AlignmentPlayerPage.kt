@@ -13,23 +13,37 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.flow.StateFlow
 import tokyo.isseikuzumaki.audioscriptplayer.data.AlignmentState
 import tokyo.isseikuzumaki.audioscriptplayer.ui.organisms.PlayerControls
 import tokyo.isseikuzumaki.audioscriptplayer.ui.organisms.PlayerHeader
 import tokyo.isseikuzumaki.audioscriptplayer.ui.organisms.ScriptView
 import tokyo.isseikuzumaki.audioscriptplayer.ui.state.PlayerEvent
+import tokyo.isseikuzumaki.audioscriptplayer.ui.state.PlayerUiState
 import tokyo.isseikuzumaki.audioscriptplayer.ui.viewmodel.AlignmentViewModel
+
+/**
+ * Interface for ViewModels that can be used with AlignmentPlayerPage.
+ * Both AlignmentViewModel (common) and AndroidAlignmentViewModel implement this interface.
+ */
+interface AlignmentViewModelInterface {
+    val uiState: StateFlow<PlayerUiState>
+    fun onEvent(event: PlayerEvent)
+}
 
 /**
  * Main page for the Audio-Script Alignment Player.
  * Composes header, script view, and player controls.
+ * 
+ * Accepts any ViewModel that implements AlignmentViewModelInterface.
  */
 @Composable
-fun AlignmentPlayerPage(
-    viewModel: AlignmentViewModel = viewModel { AlignmentViewModel() },
+fun <T> AlignmentPlayerPage(
+    viewModel: T,
     modifier: Modifier = Modifier
-) {
+) where T : ViewModel, T : AlignmentViewModelInterface {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     
@@ -83,4 +97,15 @@ fun AlignmentPlayerPage(
             )
         }
     }
+}
+
+/**
+ * Overload for default ViewModel (common/mock implementation).
+ */
+@Composable
+fun AlignmentPlayerPage(
+    modifier: Modifier = Modifier
+) {
+    val viewModel: AlignmentViewModel = viewModel { AlignmentViewModel() }
+    AlignmentPlayerPage(viewModel = viewModel, modifier = modifier)
 }
