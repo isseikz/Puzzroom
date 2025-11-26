@@ -27,6 +27,11 @@ class AlignmentViewModel(
     private val textAligner: TextAligner = TextAligner()
 ) : ViewModel() {
     
+    companion object {
+        /** Update interval for playback position in milliseconds */
+        private const val PLAYBACK_UPDATE_INTERVAL_MS = 50L
+    }
+    
     private val _uiState = MutableStateFlow(PlayerUiState())
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
     
@@ -170,8 +175,8 @@ class AlignmentViewModel(
                     )
                 }
                 
-                delay(50) // Update every 50ms
-                elapsed += 50
+                delay(PLAYBACK_UPDATE_INTERVAL_MS)
+                elapsed += PLAYBACK_UPDATE_INTERVAL_MS
             }
         }
     }

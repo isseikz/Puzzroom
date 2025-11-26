@@ -55,7 +55,9 @@ android {
 
     defaultConfig {
         applicationId = "tokyo.isseikuzumaki.audioscriptplayer"
-        minSdk = 26 // API 26 as per requirements
+        // API 26 (Android 8.0) minimum for whisper.cpp JNI and audio APIs
+        // See README.md section "Requirements" for details
+        minSdk = 26
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"

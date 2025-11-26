@@ -10,6 +10,14 @@ import kotlin.math.min
  */
 class TextAligner {
     
+    companion object {
+        /** Number of tokens to look ahead when searching for matches */
+        private const val DEFAULT_LOOKAHEAD_WINDOW = 5
+        
+        /** Divisor for calculating edit distance tolerance based on word length */
+        private const val DISTANCE_TOLERANCE_DIVISOR = 3
+    }
+    
     /**
      * Align Whisper output tokens with the correct script text.
      * Uses greedy matching with Levenshtein distance for fuzzy matching.
@@ -124,7 +132,7 @@ class TextAligner {
         normalizedScriptWord: String,
         whisperWords: List<TokenWithTime>,
         startIndex: Int,
-        lookAhead: Int = 5
+        lookAhead: Int = DEFAULT_LOOKAHEAD_WINDOW
     ): Pair<Int, TokenWithTime>? {
         if (startIndex >= whisperWords.size) return null
         
@@ -137,7 +145,7 @@ class TextAligner {
             val distance = levenshteinDistance(normalizedScriptWord, whisperWord.normalizedText)
             
             // Threshold: allow some tolerance based on word length
-            val maxDistance = (normalizedScriptWord.length / 3).coerceAtLeast(1)
+            val maxDistance = (normalizedScriptWord.length / DISTANCE_TOLERANCE_DIVISOR).coerceAtLeast(1)
             
             if (distance <= maxDistance && distance < bestDistance) {
                 bestDistance = distance
@@ -150,8 +158,9 @@ class TextAligner {
     
     /**
      * Calculate Levenshtein (edit) distance between two strings.
+     * Internal function exposed for testing purposes.
      */
-    fun levenshteinDistance(s1: String, s2: String): Int {
+    internal fun levenshteinDistance(s1: String, s2: String): Int {
         if (s1.isEmpty()) return s2.length
         if (s2.isEmpty()) return s1.length
         
