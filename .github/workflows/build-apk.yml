@@ -55,8 +55,11 @@ jobs:
             echo "⚠️  GOOGLE_SERVICES_JSON_BASE64 secret not found, skipping google-services.json creation"
           fi
 
-      - name: Build Android Debug APKs
-        run: ./gradlew assembleDebug --no-daemon
+      - name: Build composeApp Debug APK
+        run: ./gradlew :composeApp:assembleDebug --no-daemon
+
+      - name: Build audio-script-player Debug APK
+        run: ./gradlew :audio-script-player:assembleDebug --no-daemon
 
       - name: Upload composeApp APK
         uses: actions/upload-artifact@v4
