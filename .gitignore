@@ -39,6 +39,10 @@ local.properties
 .kotlin/
 debug.keystore
 
+# Large ML model files (use Git LFS or download separately)
+*.bin
+**/assets/*.bin
+
 # This is an unusual rule. You may not need it.
 # It prevents ignoring 'build' folders inside 'src'.
 !src/**/build/
