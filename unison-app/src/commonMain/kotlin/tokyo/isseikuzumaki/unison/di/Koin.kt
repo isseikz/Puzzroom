@@ -27,12 +27,3 @@ val viewModelModule = module {
         )
     }
 }
-
-fun initKoin() {
-    startKoin {
-        modules(
-            platformModule(),
-            viewModelModule,
-        )
-    }
-}
