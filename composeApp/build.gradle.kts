@@ -10,6 +10,11 @@ plugins {
     alias(libs.plugins.composeHotReload)
     alias(libs.plugins.kotlinx.serialization)
     alias(libs.plugins.kover)
+    alias(libs.plugins.androidGitVersion)
+}
+
+androidGitVersion {
+    format = "%tag%%-count%%-commit%"
 }
 
 kotlin {
@@ -89,8 +94,8 @@ android {
         applicationId = "tokyo.isseikuzumaki.puzzroom"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = androidGitVersion.code()
+        versionName = androidGitVersion.name()
     }
     packaging {
         resources {
