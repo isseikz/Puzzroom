@@ -12,6 +12,7 @@ import kotlinx.coroutines.withContext
 import tokyo.isseikuzumaki.unison.data.AudioEngine
 import tokyo.isseikuzumaki.unison.data.AudioRepository
 import com.puzzroom.whisper.TranscriptionSegment
+import io.github.aakira.napier.Napier
 
 /**
  * Heavy ViewModel scoped to Session Navigation Graph
@@ -73,7 +74,7 @@ class SessionViewModel(
                             },
                             onFailure = { error ->
                                 // Log error but don't fail the whole UI
-                                android.util.Log.e("SessionViewModel", "Transcription failed", error)
+                                Napier.e("Transcription failed", error)
                             }
                         )
                     }
@@ -167,10 +168,10 @@ class SessionViewModel(
                             recordedTranscription = segments
                         )
 
-                        android.util.Log.i("SessionViewModel", "Auto-calculated offset: ${calculatedOffset}ms")
+                        Napier.i("Auto-calculated offset: ${calculatedOffset}ms")
                     },
                     onFailure = { error ->
-                        android.util.Log.e("SessionViewModel", "Recorded transcription failed", error)
+                        Napier.e("Recorded transcription failed", error)
                         // Even if transcription fails, allow user to edit with default offset
                         _uiState.value = SessionUiState.Editing(
                             fileName = extractFileName(uri),
@@ -271,7 +272,7 @@ class SessionViewModel(
         recordedTranscription: List<TranscriptionSegment>
     ): Int {
         if (originalTranscription.isEmpty() || recordedTranscription.isEmpty()) {
-            android.util.Log.w("SessionViewModel", "Cannot calculate offset: empty transcriptions")
+            Napier.w("Cannot calculate offset: empty transcriptions")
             return 0
         }
 
@@ -291,18 +292,17 @@ class SessionViewModel(
                     val offset = recordedSeg.startTimeMs - originalSeg.startTimeMs
                     timeOffsets.add(offset)
 
-                    android.util.Log.d(
-                        "SessionViewModel",
+                    Napier.d(
                         "Match: '${originalSeg.text.take(30)}...' @ ${originalSeg.startTimeMs}ms " +
                         "vs '${recordedSeg.text.take(30)}...' @ ${recordedSeg.startTimeMs}ms " +
-                        "-> offset: ${offset}ms (similarity: ${"%.2f".format(similarity)})"
+                        "-> offset: ${offset}ms (similarity: ${similarity})"
                     )
                 }
             }
         }
 
         if (timeOffsets.isEmpty()) {
-            android.util.Log.w("SessionViewModel", "No matching segments found for alignment")
+            Napier.w("No matching segments found for alignment")
             return 0
         }
 
@@ -317,8 +317,7 @@ class SessionViewModel(
         // Negate the offset: if recorded is ahead, we need negative offset to delay it
         val correctionOffset = -medianOffset.toInt()
 
-        android.util.Log.i(
-            "SessionViewModel",
+        Napier.i(
             "Alignment complete: ${timeOffsets.size} matches, median offset: ${medianOffset}ms, " +
             "correction: ${correctionOffset}ms"
         )

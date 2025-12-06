@@ -66,6 +66,8 @@ kotlin {
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.koin.compose.viewmodel.navigation)
 
+            implementation(libs.napier.logger)
+
             implementation(project(":whisper-kmp"))
         }
     }
