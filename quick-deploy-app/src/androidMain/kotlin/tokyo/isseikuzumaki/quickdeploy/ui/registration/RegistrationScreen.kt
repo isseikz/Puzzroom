@@ -20,7 +20,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import org.jetbrains.compose.resources.Resource
 import org.jetbrains.compose.resources.stringResource
 import puzzroom.quick_deploy_app.generated.resources.Res
 import puzzroom.quick_deploy_app.generated.resources.action_close
@@ -43,6 +42,12 @@ import puzzroom.quick_deploy_app.generated.resources.registration_ready_to_recei
 import puzzroom.quick_deploy_app.generated.resources.registration_upload_url_title
 import puzzroom.quick_deploy_app.generated.resources.toast_curl_copied
 import puzzroom.quick_deploy_app.generated.resources.toast_url_copied
+import puzzroom.quick_deploy_app.generated.resources.download_progress_format
+import puzzroom.quick_deploy_app.generated.resources.download_remaining_time_format
+import tokyo.isseikuzumaki.quickdeploy.model.DownloadProgress
+import java.util.Locale
+
+private const val BYTES_PER_MB = 1024.0 * 1024.0
 
 /**
  * Device registration screen (C-001)
@@ -93,7 +98,7 @@ fun RegistrationScreen(
                     onRegister = { viewModel.registerDevice() }
                 )
                 is RegistrationUiState.Registering -> RegisteringContent()
-                is RegistrationUiState.Downloading -> DownloadingContent()
+                is RegistrationUiState.Downloading -> DownloadingContent(progress = state.progress)
                 is RegistrationUiState.Registered -> {
                     val urlCopiedMessage = stringResource(Res.string.toast_url_copied)
                     val curlCopiedMessage = stringResource(Res.string.toast_curl_copied)
@@ -187,15 +192,63 @@ private fun RegisteringContent() {
 }
 
 @Composable
-private fun DownloadingContent() {
+private fun DownloadingContent(progress: DownloadProgress? = null) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            CircularProgressIndicator()
-            Spacer(modifier = Modifier.height(16.dp))
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(horizontal = 32.dp)
+        ) {
             Text(stringResource(Res.string.app_status_downloading_apk))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (progress != null && progress.totalBytes > 0) {
+                // Show determinate progress
+                LinearProgressIndicator(
+                    progress = { progress.progress },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Show size progress
+                val downloadedMB = progress.bytesDownloaded / BYTES_PER_MB
+                val totalMB = progress.totalBytes / BYTES_PER_MB
+                val downloadedText = String.format(Locale.getDefault(), "%.1f MB", downloadedMB)
+                val totalText = String.format(Locale.getDefault(), "%.1f MB", totalMB)
+                Text(
+                    text = stringResource(
+                        Res.string.download_progress_format,
+                        downloadedText,
+                        totalText
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                // Show remaining time
+                val remainingTimeMs = progress.estimatedRemainingTimeMillis
+                if (remainingTimeMs > 0) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    val remainingSeconds = (remainingTimeMs / 1000).toInt()
+                    val remainingTimeText = if (remainingSeconds >= 60) {
+                        val minutes = remainingSeconds / 60
+                        val seconds = remainingSeconds % 60
+                        String.format(Locale.getDefault(), "%d:%02d", minutes, seconds)
+                    } else {
+                        "${remainingSeconds}s"
+                    }
+                    Text(
+                        text = stringResource(Res.string.download_remaining_time_format, remainingTimeText),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                // Show indeterminate progress
+                CircularProgressIndicator()
+            }
         }
     }
 }

@@ -10,6 +10,7 @@ import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import tokyo.isseikuzumaki.quickdeploy.api.QuickDeployApiClient
+import tokyo.isseikuzumaki.quickdeploy.model.DownloadProgress
 import java.io.File
 
 /**
@@ -47,7 +48,10 @@ class ApkInstaller(
     /**
      * Download APK from server (C-003)
      */
-    suspend fun downloadApk(downloadUrl: String): Result<File> = withContext(Dispatchers.IO) {
+    suspend fun downloadApk(
+        downloadUrl: String,
+        onProgress: ((DownloadProgress) -> Unit)? = null
+    ): Result<File> = withContext(Dispatchers.IO) {
         try {
             val apkDir = File(context.cacheDir, "apks")
             apkDir.mkdirs()
@@ -62,7 +66,11 @@ class ApkInstaller(
 
             // Download new APK
             Log.d(TAG, "Downloading APK from: $downloadUrl")
-            apiClient.downloadApk(downloadUrl, apkFile)
+            if (onProgress != null) {
+                apiClient.downloadApkWithProgress(downloadUrl, apkFile, onProgress)
+            } else {
+                apiClient.downloadApk(downloadUrl, apkFile)
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to download APK", e)
             Result.failure(e)
@@ -112,7 +120,10 @@ class ApkInstaller(
     /**
      * Download and install APK in one operation
      */
-    suspend fun downloadAndInstall(downloadUrl: String): Result<Unit> {
+    suspend fun downloadAndInstall(
+        downloadUrl: String,
+        onProgress: ((DownloadProgress) -> Unit)? = null
+    ): Result<Unit> {
         return try {
             // Check permission first
             if (!canInstallPackages()) {
@@ -120,7 +131,7 @@ class ApkInstaller(
             }
 
             // Download APK
-            val downloadResult = downloadApk(downloadUrl)
+            val downloadResult = downloadApk(downloadUrl, onProgress)
             if (downloadResult.isFailure) {
                 return Result.failure(downloadResult.exceptionOrNull()!!)
             }
