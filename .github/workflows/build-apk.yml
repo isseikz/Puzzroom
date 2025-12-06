@@ -65,6 +65,12 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Create Android debug keystore directory
+        run: |
+          mkdir -p $HOME/.android
+          chmod 755 $HOME/.android
+          echo "✅ Android directory created and writable"
+
       - name: Decode debug keystore
         env:
           DEBUG_KEYSTORE: ${{ secrets.DEBUG_KEYSTORE }}
@@ -120,6 +126,12 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+
+      - name: Create Android debug keystore directory
+        run: |
+          mkdir -p $HOME/.android
+          chmod 755 $HOME/.android
+          echo "✅ Android directory created and writable"
 
       - name: Decode debug keystore
         env:
@@ -194,6 +206,12 @@ jobs:
         run: |
           echo "y" | sudo ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --install "ndk;26.1.10909125"
           echo "y" | sudo ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --install "cmake;3.22.1"
+
+      - name: Create Android debug keystore directory
+        run: |
+          mkdir -p $HOME/.android
+          chmod 755 $HOME/.android
+          echo "✅ Android directory created and writable"
 
       - name: Decode debug keystore
         env:
