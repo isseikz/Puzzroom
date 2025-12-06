@@ -49,13 +49,21 @@ class WhisperContextImpl private constructor(private var ptr: Long) : WhisperCon
     ): TranscriptionResult = runBlocking {
         withContext(scope.coroutineContext) {
             checkNotClosed()
-            require(ptr != 0L)
+            require(ptr != 0L) { "Context pointer is 0!" }
 
             val numThreads = if (params.threads > 0) params.threads else WhisperCpuConfig.preferredThreadCount
-            Log.d(LOG_TAG, "Selecting $numThreads threads")
+            Log.i(LOG_TAG, "===== STARTING TRANSCRIPTION =====")
+            Log.i(LOG_TAG, "Context ptr: $ptr")
+            Log.i(LOG_TAG, "Audio data length: ${audioData.size} samples (${audioData.size / 16000.0f} seconds at 16kHz)")
+            Log.i(LOG_TAG, "Threads: $numThreads")
+            Log.i(LOG_TAG, "Language: ${params.language}")
 
+            Log.i(LOG_TAG, "Calling JNI fullTranscribe...")
             WhisperLib.fullTranscribe(ptr, numThreads, audioData)
+            Log.i(LOG_TAG, "JNI fullTranscribe returned")
+
             val textCount = WhisperLib.getTextSegmentCount(ptr)
+            Log.i(LOG_TAG, "Number of segments: $textCount")
 
             val segments = mutableListOf<TranscriptionSegment>()
             val fullTextBuilder = StringBuilder()
@@ -64,6 +72,8 @@ class WhisperContextImpl private constructor(private var ptr: Long) : WhisperCon
                 val text = WhisperLib.getTextSegment(ptr, i)
                 val startTime = WhisperLib.getTextSegmentT0(ptr, i)
                 val endTime = WhisperLib.getTextSegmentT1(ptr, i)
+
+                Log.d(LOG_TAG, "Segment $i: [$startTime-$endTime] '$text'")
 
                 segments.add(
                     TranscriptionSegment(
@@ -75,6 +85,9 @@ class WhisperContextImpl private constructor(private var ptr: Long) : WhisperCon
                 )
                 fullTextBuilder.append(text)
             }
+
+            Log.i(LOG_TAG, "===== TRANSCRIPTION COMPLETE =====")
+            Log.i(LOG_TAG, "Full text: ${fullTextBuilder.toString().take(100)}...")
 
             TranscriptionResult(
                 segments = segments,

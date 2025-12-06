@@ -85,9 +85,22 @@ JNIEXPORT void JNICALL
 Java_com_puzzroom_whisper_WhisperLib_00024Companion_fullTranscribe(
         JNIEnv *env, jobject thiz, jlong context_ptr, jint num_threads, jfloatArray audio_data) {
     UNUSED(thiz);
+    LOGI("fullTranscribe called - context_ptr=%ld, num_threads=%d", (long)context_ptr, num_threads);
+
     struct whisper_context *context = (struct whisper_context *) context_ptr;
+    if (context == NULL) {
+        LOGI("ERROR: context is NULL!");
+        return;
+    }
+
     jfloat *audio_data_arr = env->GetFloatArrayElements(audio_data, NULL);
+    if (audio_data_arr == NULL) {
+        LOGI("ERROR: Failed to get audio data array!");
+        return;
+    }
+
     const jsize audio_data_length = env->GetArrayLength(audio_data);
+    LOGI("Audio data length: %d samples (%.2f seconds at 16kHz)", audio_data_length, audio_data_length / 16000.0f);
 
     // The below adapted from the Objective-C iOS sample
     struct whisper_full_params params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
@@ -104,13 +117,19 @@ Java_com_puzzroom_whisper_WhisperLib_00024Companion_fullTranscribe(
 
     whisper_reset_timings(context);
 
-    LOGI("About to run whisper_full");
-    if (whisper_full(context, params, audio_data_arr, audio_data_length) != 0) {
-        LOGI("Failed to run the model");
+    LOGI("About to run whisper_full with %d threads", num_threads);
+    int result = whisper_full(context, params, audio_data_arr, audio_data_length);
+    LOGI("whisper_full returned: %d", result);
+
+    if (result != 0) {
+        LOGI("ERROR: Failed to run the model (error code: %d)", result);
     } else {
+        int n_segments = whisper_full_n_segments(context);
+        LOGI("SUCCESS: Whisper transcription completed! Segments: %d", n_segments);
         whisper_print_timings(context);
     }
     env->ReleaseFloatArrayElements(audio_data, audio_data_arr, JNI_ABORT);
+    LOGI("fullTranscribe finished");
 }
 
 JNIEXPORT jint JNICALL
