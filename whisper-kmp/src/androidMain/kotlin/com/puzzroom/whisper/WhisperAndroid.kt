@@ -1,115 +1,98 @@
 package com.puzzroom.whisper
 
+import android.content.res.AssetManager
+import android.os.Build
 import android.util.Log
+import kotlinx.coroutines.*
+import java.io.File
+import java.util.concurrent.Executors
 
-private const val TAG = "WhisperAndroid"
+private const val LOG_TAG = "WhisperAndroid"
 
-/**
- * Android implementation of Whisper interface
- */
 class WhisperAndroid : Whisper {
 
-    init {
-        try {
-            System.loadLibrary("whisper_android")
-            Log.i(TAG, "Whisper native library loaded successfully")
-        } catch (e: UnsatisfiedLinkError) {
-            Log.e(TAG, "Failed to load whisper_android library", e)
-            throw WhisperException("Failed to load native library", e)
-        }
-    }
-
     override fun getVersion(): String {
-        return WhisperContextImpl.nativeGetVersion()
+        return "whisper.cpp KMP" // Can be extended to get actual version
     }
 
     override fun initFromFile(modelPath: String): WhisperContext {
-        return WhisperContextImpl(modelPath)
+        return WhisperContextImpl.createContextFromFile(modelPath)
     }
 
     override fun isLanguageSupported(languageCode: String): Boolean {
-        return WhisperContextImpl.nativeIsLanguageSupported(languageCode)
+        // Basic language support check - can be extended
+        return true
+    }
+
+    /**
+     * Initialize Whisper context from Android assets
+     *
+     * @param assetManager Android AssetManager instance
+     * @param assetPath Path to model file in assets (e.g., "models/ggml-base.en.bin")
+     * @return WhisperContext instance for transcription
+     */
+    fun initFromAsset(assetManager: AssetManager, assetPath: String): WhisperContext {
+        return WhisperContextImpl.createContextFromAsset(assetManager, assetPath)
     }
 }
 
-/**
- * Android implementation of WhisperContext
- */
-internal class WhisperContextImpl(modelPath: String) : WhisperContext {
-
-    private var contextPtr: Long = 0L
+class WhisperContextImpl private constructor(private var ptr: Long) : WhisperContext {
+    // Meet Whisper C++ constraint: Don't access from more than one thread at a time.
+    private val scope: CoroutineScope = CoroutineScope(
+        Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+    )
     private var isClosed = false
-
-    init {
-        contextPtr = nativeInitFromFile(modelPath)
-        if (contextPtr == 0L) {
-            throw WhisperException("Failed to initialize Whisper context from: $modelPath")
-        }
-        Log.i(TAG, "Whisper context initialized from: $modelPath")
-    }
 
     override fun transcribe(
         audioData: FloatArray,
         params: TranscriptionParams
-    ): TranscriptionResult {
-        checkNotClosed()
+    ): TranscriptionResult = runBlocking {
+        withContext(scope.coroutineContext) {
+            checkNotClosed()
+            require(ptr != 0L)
 
-        // Create native params
-        val paramsPtr = nativeGetDefaultParams(contextPtr, params.samplingStrategy.value)
-        if (paramsPtr == 0L) {
-            throw WhisperException("Failed to create transcription parameters")
-        }
+            val numThreads = if (params.threads > 0) params.threads else WhisperCpuConfig.preferredThreadCount
+            Log.d(LOG_TAG, "Selecting $numThreads threads")
 
-        try {
-            // Set parameters
-            nativeSetLanguage(paramsPtr, params.language)
-            nativeSetTranslate(paramsPtr, params.translate)
-            nativeSetThreads(paramsPtr, params.threads)
+            WhisperLib.fullTranscribe(ptr, numThreads, audioData)
+            val textCount = WhisperLib.getTextSegmentCount(ptr)
 
-            // Perform transcription
-            val result = nativeTranscribe(contextPtr, paramsPtr, audioData)
-            if (result != 0) {
-                throw WhisperException("Transcription failed with error code: $result")
-            }
-
-            // Extract results
-            val segmentCount = nativeGetSegmentCount(contextPtr)
             val segments = mutableListOf<TranscriptionSegment>()
+            val fullTextBuilder = StringBuilder()
 
-            for (i in 0 until segmentCount) {
-                val text = nativeGetSegmentText(contextPtr, i)
-                val startTime = nativeGetSegmentT0(contextPtr, i)
-                val endTime = nativeGetSegmentT1(contextPtr, i)
+            for (i in 0 until textCount) {
+                val text = WhisperLib.getTextSegment(ptr, i)
+                val startTime = WhisperLib.getTextSegmentT0(ptr, i)
+                val endTime = WhisperLib.getTextSegmentT1(ptr, i)
 
                 segments.add(
                     TranscriptionSegment(
                         text = text,
-                        startTimeMs = startTime,
-                        endTimeMs = endTime,
+                        startTimeMs = startTime * 10, // Convert to milliseconds
+                        endTimeMs = endTime * 10,
                         index = i
                     )
                 )
+                fullTextBuilder.append(text)
             }
 
-            val fullText = nativeGetFullText(contextPtr)
-
-            Log.i(TAG, "Transcription completed: $segmentCount segments, ${fullText.length} chars")
-
-            return TranscriptionResult(
+            TranscriptionResult(
                 segments = segments,
-                fullText = fullText
+                fullText = fullTextBuilder.toString()
             )
-        } finally {
-            nativeFreeParams(paramsPtr)
         }
     }
 
     override fun close() {
-        if (!isClosed && contextPtr != 0L) {
-            nativeFree(contextPtr)
-            contextPtr = 0L
-            isClosed = true
-            Log.i(TAG, "Whisper context closed")
+        if (!isClosed && ptr != 0L) {
+            runBlocking {
+                withContext(scope.coroutineContext) {
+                    WhisperLib.freeContext(ptr)
+                    ptr = 0L
+                    isClosed = true
+                    Log.i(LOG_TAG, "Whisper context closed")
+                }
+            }
         }
     }
 
@@ -124,55 +107,105 @@ internal class WhisperContextImpl(modelPath: String) : WhisperContext {
     }
 
     companion object {
-        // Native method declarations
-        @JvmStatic
-        external fun nativeGetVersion(): String
+        fun createContextFromFile(filePath: String): WhisperContextImpl {
+            val ptr = WhisperLib.initContext(filePath)
+            if (ptr == 0L) {
+                throw WhisperException("Couldn't create context with path $filePath")
+            }
+            return WhisperContextImpl(ptr)
+        }
 
-        @JvmStatic
-        external fun nativeInitFromFile(modelPath: String): Long
+        fun createContextFromAsset(assetManager: AssetManager, assetPath: String): WhisperContextImpl {
+            val ptr = WhisperLib.initContextFromAsset(assetManager, assetPath)
+            if (ptr == 0L) {
+                throw WhisperException("Couldn't create context from asset $assetPath")
+            }
+            return WhisperContextImpl(ptr)
+        }
 
-        @JvmStatic
-        external fun nativeFree(contextPtr: Long)
+        fun getSystemInfo(): String {
+            return WhisperLib.getSystemInfo()
+        }
+    }
+}
 
-        @JvmStatic
-        external fun nativeGetDefaultParams(contextPtr: Long, strategy: Int): Long
+private class WhisperLib {
+    companion object {
+        init {
+            Log.d(LOG_TAG, "Primary ABI: ${Build.SUPPORTED_ABIS[0]}")
+            var loadVfpv4 = false
+            var loadV8fp16 = false
+            if (isArmEabiV7a()) {
+                // armeabi-v7a needs runtime detection support
+                val cpuInfo = cpuInfo()
+                cpuInfo?.let {
+                    Log.d(LOG_TAG, "CPU info: $cpuInfo")
+                    if (cpuInfo.contains("vfpv4")) {
+                        Log.d(LOG_TAG, "CPU supports vfpv4")
+                        loadVfpv4 = true
+                    }
+                }
+            } else if (isArmEabiV8a()) {
+                // ARMv8.2a needs runtime detection support
+                val cpuInfo = cpuInfo()
+                cpuInfo?.let {
+                    Log.d(LOG_TAG, "CPU info: $cpuInfo")
+                    if (cpuInfo.contains("fphp")) {
+                        Log.d(LOG_TAG, "CPU supports fp16 arithmetic")
+                        loadV8fp16 = true
+                    }
+                }
+            }
 
-        @JvmStatic
-        external fun nativeFreeParams(paramsPtr: Long)
+            if (loadVfpv4) {
+                Log.d(LOG_TAG, "Loading libwhisper_vfpv4.so")
+                System.loadLibrary("whisper_vfpv4")
+            } else if (loadV8fp16) {
+                Log.d(LOG_TAG, "Loading libwhisper_v8fp16_va.so")
+                System.loadLibrary("whisper_v8fp16_va")
+            } else {
+                Log.d(LOG_TAG, "Loading libwhisper.so")
+                System.loadLibrary("whisper")
+            }
+        }
 
-        @JvmStatic
-        external fun nativeSetLanguage(paramsPtr: Long, language: String)
+        // JNI methods
+        external fun initContext(modelPath: String): Long
+        external fun initContextFromAsset(assetManager: AssetManager, assetPath: String): Long
+        external fun freeContext(contextPtr: Long)
+        external fun fullTranscribe(contextPtr: Long, numThreads: Int, audioData: FloatArray)
+        external fun getTextSegmentCount(contextPtr: Long): Int
+        external fun getTextSegment(contextPtr: Long, index: Int): String
+        external fun getTextSegmentT0(contextPtr: Long, index: Int): Long
+        external fun getTextSegmentT1(contextPtr: Long, index: Int): Long
+        external fun getSystemInfo(): String
+        external fun benchMemcpy(nthread: Int): String
+        external fun benchGgmlMulMat(nthread: Int): String
+    }
+}
 
-        @JvmStatic
-        external fun nativeSetTranslate(paramsPtr: Long, translate: Boolean)
+private fun isArmEabiV7a(): Boolean {
+    return Build.SUPPORTED_ABIS[0].equals("armeabi-v7a")
+}
 
-        @JvmStatic
-        external fun nativeSetThreads(paramsPtr: Long, threads: Int)
+private fun isArmEabiV8a(): Boolean {
+    return Build.SUPPORTED_ABIS[0].equals("arm64-v8a")
+}
 
-        @JvmStatic
-        external fun nativeTranscribe(contextPtr: Long, paramsPtr: Long, audioData: FloatArray): Int
-
-        @JvmStatic
-        external fun nativeGetSegmentCount(contextPtr: Long): Int
-
-        @JvmStatic
-        external fun nativeGetSegmentText(contextPtr: Long, segmentIndex: Int): String
-
-        @JvmStatic
-        external fun nativeGetSegmentT0(contextPtr: Long, segmentIndex: Int): Long
-
-        @JvmStatic
-        external fun nativeGetSegmentT1(contextPtr: Long, segmentIndex: Int): Long
-
-        @JvmStatic
-        external fun nativeGetFullText(contextPtr: Long): String
-
-        @JvmStatic
-        external fun nativeIsLanguageSupported(language: String): Boolean
+private fun cpuInfo(): String? {
+    return try {
+        File("/proc/cpuinfo").inputStream().bufferedReader().use {
+            it.readText()
+        }
+    } catch (e: Exception) {
+        Log.w(LOG_TAG, "Couldn't read /proc/cpuinfo", e)
+        null
     }
 }
 
 /**
  * Actual implementation for Android platform
  */
-actual fun Whisper.Companion.create(): Whisper = WhisperAndroid()
+actual fun Whisper.Companion.create(): Whisper {
+    return WhisperAndroid()
+}

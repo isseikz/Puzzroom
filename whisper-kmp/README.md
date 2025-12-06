@@ -5,8 +5,10 @@ A Kotlin Multiplatform library that provides bindings to [whisper.cpp](https://g
 ## Features
 
 - **High Performance**: Direct bindings to whisper.cpp for efficient speech recognition
-- **Hardware Acceleration**: NNAPI support for Android devices
+- **CPU Optimization**: Automatic detection and loading of optimized libraries (NEON-VFPv4, ARMv8.2-FP16)
+- **Asset Loading**: Load models directly from Android assets (no need to copy to storage)
 - **Kotlin Multiplatform**: Clean, type-safe API for Android (iOS/JVM coming soon)
+- **Thread-Safe**: Coroutine-based API with automatic thread management
 - **Easy to Use**: Simple, intuitive API for speech transcription
 - **Flexible**: Support for multiple languages, translation, and custom parameters
 
@@ -43,7 +45,16 @@ Available models:
 
 ### 3. Place the model in your app
 
-Copy the model file to your Android app's assets or internal storage:
+**Option A: Android Assets (Recommended)**
+
+Place the model in your app's assets directory:
+```
+unison-app/src/androidMain/assets/models/ggml-base.en.bin
+```
+
+**Option B: Internal Storage**
+
+Copy the model file to internal storage:
 
 ```kotlin
 // Example: Copy from assets to internal storage
@@ -62,18 +73,21 @@ fun copyModelToInternalStorage(context: Context, assetFileName: String): String 
 
 ## Usage
 
-### Basic Transcription
+### Android - Load from Assets (Recommended)
 
 ```kotlin
 import com.puzzroom.whisper.Whisper
+import com.puzzroom.whisper.WhisperAndroid
 import com.puzzroom.whisper.TranscriptionParams
 
 // Initialize Whisper
-val whisper = Whisper.create()
+val whisper = Whisper.create() as WhisperAndroid
 
-// Load model
-val modelPath = "/path/to/ggml-base.en.bin"
-val context = whisper.initFromFile(modelPath)
+// Load model from assets
+val context = whisper.initFromAsset(
+    assetManager = context.assets,
+    assetPath = "models/ggml-base.en.bin"
+)
 
 // Prepare audio data (16kHz, mono, float32)
 val audioData: FloatArray = loadAudioData() // Your audio loading logic
@@ -93,13 +107,32 @@ result.segments.forEach { segment ->
 context.close()
 ```
 
+### Android - Load from File Path
+
+```kotlin
+import com.puzzroom.whisper.Whisper
+
+// Initialize Whisper
+val whisper = Whisper.create()
+
+// Load model from file path
+val modelPath = "/path/to/ggml-base.en.bin"
+val context = whisper.initFromFile(modelPath)
+
+// Transcribe
+val result = context.transcribe(audioData)
+
+// Clean up
+context.close()
+```
+
 ### Advanced Parameters
 
 ```kotlin
 val params = TranscriptionParams(
     language = "en",           // Target language (ISO 639-1 code)
     translate = false,         // Translate to English
-    threads = 4,               // Number of threads
+    threads = 0,               // Number of threads (0 = auto-detect)
     samplingStrategy = SamplingStrategy.GREEDY, // or BEAM_SEARCH
     printProgress = false,     // Print progress to console
     printTimestamps = true     // Include timestamps in output
@@ -107,6 +140,37 @@ val params = TranscriptionParams(
 
 val result = context.transcribe(audioData, params)
 ```
+
+### CPU Optimization
+
+The library automatically detects your device's CPU capabilities and loads the optimal native library:
+
+```kotlin
+import com.puzzroom.whisper.WhisperCpuConfig
+
+// Get device info
+println(WhisperCpuConfig.deviceInfo)
+// Output:
+// Device: Google Pixel 6
+// Android: 13 (API 33)
+// ABI: arm64-v8a, armeabi-v7a, armeabi
+// Cores: 8
+// Preferred threads: 7
+
+// Get recommended thread count
+val threads = WhisperCpuConfig.preferredThreadCount
+
+// Use in transcription
+val result = context.transcribe(
+    audioData,
+    TranscriptionParams(threads = threads) // or threads = 0 for auto
+)
+```
+
+**Optimized Libraries:**
+- ARMv7 with VFPv4: Loads `libwhisper_vfpv4.so` (NEON optimizations)
+- ARMv8.2+ with FP16: Loads `libwhisper_v8fp16_va.so` (FP16 arithmetic)
+- Default: Loads `libwhisper.so` (standard build)
 
 ### Supported Languages
 

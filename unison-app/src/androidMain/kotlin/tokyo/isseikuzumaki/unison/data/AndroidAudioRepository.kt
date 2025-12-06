@@ -9,6 +9,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import com.puzzroom.whisper.Whisper
+import com.puzzroom.whisper.WhisperAndroid
+import com.puzzroom.whisper.WhisperContext
+import com.puzzroom.whisper.TranscriptionParams
+import com.puzzroom.whisper.TranscriptionSegment
 
 /**
  * Android implementation of AudioRepository
@@ -17,6 +23,22 @@ import java.nio.ByteBuffer
 class AndroidAudioRepository(
     private val context: Context
 ) : AudioRepository {
+
+    private var whisperContext: WhisperContext? = null
+
+    init {
+        // Initialize Whisper model on creation
+        try {
+            val whisper = WhisperAndroid()
+            whisperContext = whisper.initFromAsset(
+                assetManager = context.assets,
+                assetPath = "models/ggml-base.en.bin"
+            )
+        } catch (e: Exception) {
+            // Log error but don't crash - transcription will fail gracefully
+            android.util.Log.e("AndroidAudioRepository", "Failed to initialize Whisper", e)
+        }
+    }
 
     override suspend fun validateAudioFile(uri: String): Boolean = withContext(Dispatchers.IO) {
         try {
@@ -124,6 +146,79 @@ class AndroidAudioRepository(
         }
 
         return outputStream.toByteArray()
+    }
+
+    override suspend fun transcribeAudio(
+        pcmData: ByteArray,
+        sampleRate: Int
+    ): Result<List<TranscriptionSegment>> = withContext(Dispatchers.IO) {
+        try {
+            val context = whisperContext
+                ?: return@withContext Result.failure(Exception("Whisper not initialized"))
+
+            // Convert PCM16 to Float32 for Whisper
+            val audioFloat = convertPcm16ToFloat32(pcmData)
+
+            // Resample to 16kHz if needed (Whisper requirement)
+            val audioResampled = if (sampleRate != 16000) {
+                resampleTo16kHz(audioFloat, sampleRate)
+            } else {
+                audioFloat
+            }
+
+            // Transcribe with timestamps
+            val result = context.transcribe(
+                audioData = audioResampled,
+                params = TranscriptionParams(
+                    language = "en",
+                    threads = 0, // Auto-detect
+                    printTimestamps = true
+                )
+            )
+
+            Result.success(result.segments)
+        } catch (e: Exception) {
+            android.util.Log.e("AndroidAudioRepository", "Transcription failed", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Convert PCM16 to Float32 format required by Whisper
+     */
+    private fun convertPcm16ToFloat32(pcm16: ByteArray): FloatArray {
+        val shorts = ShortArray(pcm16.size / 2)
+        ByteBuffer.wrap(pcm16)
+            .order(ByteOrder.LITTLE_ENDIAN)
+            .asShortBuffer()
+            .get(shorts)
+
+        return FloatArray(shorts.size) { i ->
+            shorts[i] / 32768.0f  // Normalize to [-1.0, 1.0]
+        }
+    }
+
+    /**
+     * Resample audio to 16kHz (Whisper requirement)
+     * Uses simple linear interpolation
+     */
+    private fun resampleTo16kHz(audioData: FloatArray, originalSampleRate: Int): FloatArray {
+        if (originalSampleRate == 16000) {
+            return audioData
+        }
+
+        val ratio = originalSampleRate / 16000.0
+        val newSize = (audioData.size / ratio).toInt()
+
+        return FloatArray(newSize) { i ->
+            val srcIndex = (i * ratio).toInt()
+            if (srcIndex < audioData.size) audioData[srcIndex] else 0f
+        }
+    }
+
+    fun cleanup() {
+        whisperContext?.close()
+        whisperContext = null
     }
 
     companion object {

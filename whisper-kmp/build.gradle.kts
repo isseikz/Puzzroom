@@ -10,12 +10,17 @@ kotlin {
         }
     }
 
+    iosX64()
+    iosArm64()
+    iosSimulatorArm64()
+
     sourceSets {
         commonMain.dependencies {
-            // Add common dependencies if needed
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
         }
         androidMain.dependencies {
             implementation("androidx.core:core-ktx:1.12.0")
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
         }
     }
 }
@@ -35,7 +40,7 @@ android {
             cmake {
                 cppFlags("-std=c++17")
                 // Enable NNAPI for hardware acceleration
-                arguments("-DWHISPER_NNAPI=ON")
+                arguments("-DWHISPER_NNAPI=OFF")
             }
         }
     }

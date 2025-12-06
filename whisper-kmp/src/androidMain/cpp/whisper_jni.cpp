@@ -1,272 +1,181 @@
 #include <jni.h>
-#include <string>
-#include <vector>
+#include <android/asset_manager.h>
+#include <android/asset_manager_jni.h>
 #include <android/log.h>
+#include <stdlib.h>
+#include <string.h>
 #include "whisper.h"
 
+#define UNUSED(x) (void)(x)
 #define TAG "WhisperJNI"
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, TAG, __VA_ARGS__)
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
+
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO,     TAG, __VA_ARGS__)
+#define LOGW(...) __android_log_print(ANDROID_LOG_WARN,     TAG, __VA_ARGS__)
 
 extern "C" {
 
-// Get Whisper version
-JNIEXPORT jstring JNICALL
-Java_com_puzzroom_whisper_WhisperContext_nativeGetVersion(JNIEnv *env, jclass) {
-    const char* version = whisper_version();
-    return env->NewStringUTF(version);
+// Asset loading helpers
+static size_t asset_read(void *ctx, void *output, size_t read_size) {
+    return AAsset_read((AAsset *) ctx, output, read_size);
 }
 
-// Initialize whisper context from file
+static bool asset_is_eof(void *ctx) {
+    return AAsset_getRemainingLength64((AAsset *) ctx) <= 0;
+}
+
+static void asset_close(void *ctx) {
+    AAsset_close((AAsset *) ctx);
+}
+
+static struct whisper_context *whisper_init_from_asset(
+        JNIEnv *env,
+        jobject assetManager,
+        const char *asset_path
+) {
+    LOGI("Loading model from asset '%s'\n", asset_path);
+    AAssetManager *asset_manager = AAssetManager_fromJava(env, assetManager);
+    AAsset *asset = AAssetManager_open(asset_manager, asset_path, AASSET_MODE_STREAMING);
+    if (!asset) {
+        LOGW("Failed to open '%s'\n", asset_path);
+        return NULL;
+    }
+
+    whisper_model_loader loader = {
+            .context = asset,
+            .read = &asset_read,
+            .eof = &asset_is_eof,
+            .close = &asset_close
+    };
+
+    return whisper_init_with_params(&loader, whisper_context_default_params());
+}
+
 JNIEXPORT jlong JNICALL
-Java_com_puzzroom_whisper_WhisperContext_nativeInitFromFile(
-    JNIEnv *env,
-    jobject,
-    jstring modelPath) {
-
-    const char *model_path_cstr = env->GetStringUTFChars(modelPath, nullptr);
-
-    LOGI("Initializing whisper context from: %s", model_path_cstr);
-
-    struct whisper_context_params cparams = whisper_context_default_params();
-    cparams.use_gpu = true; // Enable GPU acceleration if available
-
-    struct whisper_context *ctx = whisper_init_from_file_with_params(model_path_cstr, cparams);
-
-    env->ReleaseStringUTFChars(modelPath, model_path_cstr);
-
-    if (ctx == nullptr) {
-        LOGE("Failed to initialize whisper context");
-        return 0;
-    }
-
-    LOGI("Whisper context initialized successfully");
-    return reinterpret_cast<jlong>(ctx);
+Java_com_puzzroom_whisper_WhisperLib_00024Companion_initContextFromAsset(
+        JNIEnv *env, jobject thiz, jobject assetManager, jstring asset_path_str) {
+    UNUSED(thiz);
+    struct whisper_context *context = NULL;
+    const char *asset_path_chars = env->GetStringUTFChars(asset_path_str, NULL);
+    context = whisper_init_from_asset(env, assetManager, asset_path_chars);
+    env->ReleaseStringUTFChars(asset_path_str, asset_path_chars);
+    return (jlong) context;
 }
 
-// Free whisper context
-JNIEXPORT void JNICALL
-Java_com_puzzroom_whisper_WhisperContext_nativeFree(JNIEnv *, jobject, jlong contextPtr) {
-    auto *ctx = reinterpret_cast<struct whisper_context *>(contextPtr);
-    if (ctx != nullptr) {
-        whisper_free(ctx);
-        LOGI("Whisper context freed");
-    }
-}
-
-// Get default full parameters
 JNIEXPORT jlong JNICALL
-Java_com_puzzroom_whisper_WhisperContext_nativeGetDefaultParams(
-    JNIEnv *,
-    jobject,
-    jlong contextPtr,
-    jint strategy) {
-
-    auto *ctx = reinterpret_cast<struct whisper_context *>(contextPtr);
-    if (ctx == nullptr) {
-        LOGE("Context is null");
-        return 0;
-    }
-
-    whisper_sampling_strategy sampling_strategy =
-        static_cast<whisper_sampling_strategy>(strategy);
-
-    struct whisper_full_params *params = new whisper_full_params();
-    *params = whisper_full_default_params(sampling_strategy);
-
-    return reinterpret_cast<jlong>(params);
+Java_com_puzzroom_whisper_WhisperLib_00024Companion_initContext(
+        JNIEnv *env, jobject thiz, jstring model_path_str) {
+    UNUSED(thiz);
+    struct whisper_context *context = NULL;
+    const char *model_path_chars = env->GetStringUTFChars(model_path_str, NULL);
+    context = whisper_init_from_file_with_params(model_path_chars, whisper_context_default_params());
+    env->ReleaseStringUTFChars(model_path_str, model_path_chars);
+    return (jlong) context;
 }
 
-// Free full parameters
 JNIEXPORT void JNICALL
-Java_com_puzzroom_whisper_WhisperContext_nativeFreeParams(JNIEnv *, jobject, jlong paramsPtr) {
-    auto *params = reinterpret_cast<struct whisper_full_params *>(paramsPtr);
-    if (params != nullptr) {
-        delete params;
-    }
+Java_com_puzzroom_whisper_WhisperLib_00024Companion_freeContext(
+        JNIEnv *env, jobject thiz, jlong context_ptr) {
+    UNUSED(env);
+    UNUSED(thiz);
+    struct whisper_context *context = (struct whisper_context *) context_ptr;
+    whisper_free(context);
 }
 
-// Set language
 JNIEXPORT void JNICALL
-Java_com_puzzroom_whisper_WhisperContext_nativeSetLanguage(
-    JNIEnv *env,
-    jobject,
-    jlong paramsPtr,
-    jstring language) {
+Java_com_puzzroom_whisper_WhisperLib_00024Companion_fullTranscribe(
+        JNIEnv *env, jobject thiz, jlong context_ptr, jint num_threads, jfloatArray audio_data) {
+    UNUSED(thiz);
+    struct whisper_context *context = (struct whisper_context *) context_ptr;
+    jfloat *audio_data_arr = env->GetFloatArrayElements(audio_data, NULL);
+    const jsize audio_data_length = env->GetArrayLength(audio_data);
 
-    auto *params = reinterpret_cast<struct whisper_full_params *>(paramsPtr);
-    if (params == nullptr) {
-        LOGE("Params is null");
-        return;
-    }
+    // The below adapted from the Objective-C iOS sample
+    struct whisper_full_params params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
+    params.print_realtime = true;
+    params.print_progress = false;
+    params.print_timestamps = true;
+    params.print_special = false;
+    params.translate = false;
+    params.language = "en";
+    params.n_threads = num_threads;
+    params.offset_ms = 0;
+    params.no_context = true;
+    params.single_segment = false;
 
-    const char *lang_cstr = env->GetStringUTFChars(language, nullptr);
-    params->language = lang_cstr;
-    env->ReleaseStringUTFChars(language, lang_cstr);
-}
+    whisper_reset_timings(context);
 
-// Set translate flag
-JNIEXPORT void JNICALL
-Java_com_puzzroom_whisper_WhisperContext_nativeSetTranslate(
-    JNIEnv *,
-    jobject,
-    jlong paramsPtr,
-    jboolean translate) {
-
-    auto *params = reinterpret_cast<struct whisper_full_params *>(paramsPtr);
-    if (params != nullptr) {
-        params->translate = translate;
-    }
-}
-
-// Set number of threads
-JNIEXPORT void JNICALL
-Java_com_puzzroom_whisper_WhisperContext_nativeSetThreads(
-    JNIEnv *,
-    jobject,
-    jlong paramsPtr,
-    jint threads) {
-
-    auto *params = reinterpret_cast<struct whisper_full_params *>(paramsPtr);
-    if (params != nullptr) {
-        params->n_threads = threads;
-    }
-}
-
-// Transcribe audio from float array
-JNIEXPORT jint JNICALL
-Java_com_puzzroom_whisper_WhisperContext_nativeTranscribe(
-    JNIEnv *env,
-    jobject,
-    jlong contextPtr,
-    jlong paramsPtr,
-    jfloatArray audioData) {
-
-    auto *ctx = reinterpret_cast<struct whisper_context *>(contextPtr);
-    auto *params = reinterpret_cast<struct whisper_full_params *>(paramsPtr);
-
-    if (ctx == nullptr || params == nullptr) {
-        LOGE("Context or params is null");
-        return -1;
-    }
-
-    jsize audioLen = env->GetArrayLength(audioData);
-    jfloat *audio = env->GetFloatArrayElements(audioData, nullptr);
-
-    LOGI("Starting transcription with %d samples", audioLen);
-
-    int result = whisper_full(ctx, *params, audio, audioLen);
-
-    env->ReleaseFloatArrayElements(audioData, audio, JNI_ABORT);
-
-    if (result != 0) {
-        LOGE("Transcription failed with error code: %d", result);
+    LOGI("About to run whisper_full");
+    if (whisper_full(context, params, audio_data_arr, audio_data_length) != 0) {
+        LOGI("Failed to run the model");
     } else {
-        LOGI("Transcription completed successfully");
+        whisper_print_timings(context);
     }
-
-    return result;
+    env->ReleaseFloatArrayElements(audio_data, audio_data_arr, JNI_ABORT);
 }
 
-// Get number of segments
 JNIEXPORT jint JNICALL
-Java_com_puzzroom_whisper_WhisperContext_nativeGetSegmentCount(
-    JNIEnv *,
-    jobject,
-    jlong contextPtr) {
-
-    auto *ctx = reinterpret_cast<struct whisper_context *>(contextPtr);
-    if (ctx == nullptr) {
-        return 0;
-    }
-
-    return whisper_full_n_segments(ctx);
+Java_com_puzzroom_whisper_WhisperLib_00024Companion_getTextSegmentCount(
+        JNIEnv *env, jobject thiz, jlong context_ptr) {
+    UNUSED(env);
+    UNUSED(thiz);
+    struct whisper_context *context = (struct whisper_context *) context_ptr;
+    return whisper_full_n_segments(context);
 }
 
-// Get segment text
 JNIEXPORT jstring JNICALL
-Java_com_puzzroom_whisper_WhisperContext_nativeGetSegmentText(
-    JNIEnv *env,
-    jobject,
-    jlong contextPtr,
-    jint segmentIndex) {
-
-    auto *ctx = reinterpret_cast<struct whisper_context *>(contextPtr);
-    if (ctx == nullptr) {
-        return env->NewStringUTF("");
-    }
-
-    const char *text = whisper_full_get_segment_text(ctx, segmentIndex);
-    return env->NewStringUTF(text);
+Java_com_puzzroom_whisper_WhisperLib_00024Companion_getTextSegment(
+        JNIEnv *env, jobject thiz, jlong context_ptr, jint index) {
+    UNUSED(thiz);
+    struct whisper_context *context = (struct whisper_context *) context_ptr;
+    const char *text = whisper_full_get_segment_text(context, index);
+    jstring string = env->NewStringUTF(text);
+    return string;
 }
 
-// Get segment start time (in milliseconds)
 JNIEXPORT jlong JNICALL
-Java_com_puzzroom_whisper_WhisperContext_nativeGetSegmentT0(
-    JNIEnv *,
-    jobject,
-    jlong contextPtr,
-    jint segmentIndex) {
-
-    auto *ctx = reinterpret_cast<struct whisper_context *>(contextPtr);
-    if (ctx == nullptr) {
-        return 0;
-    }
-
-    return whisper_full_get_segment_t0(ctx, segmentIndex) * 10; // Convert to milliseconds
+Java_com_puzzroom_whisper_WhisperLib_00024Companion_getTextSegmentT0(
+        JNIEnv *env, jobject thiz, jlong context_ptr, jint index) {
+    UNUSED(env);
+    UNUSED(thiz);
+    struct whisper_context *context = (struct whisper_context *) context_ptr;
+    return whisper_full_get_segment_t0(context, index);
 }
 
-// Get segment end time (in milliseconds)
 JNIEXPORT jlong JNICALL
-Java_com_puzzroom_whisper_WhisperContext_nativeGetSegmentT1(
-    JNIEnv *,
-    jobject,
-    jlong contextPtr,
-    jint segmentIndex) {
-
-    auto *ctx = reinterpret_cast<struct whisper_context *>(contextPtr);
-    if (ctx == nullptr) {
-        return 0;
-    }
-
-    return whisper_full_get_segment_t1(ctx, segmentIndex) * 10; // Convert to milliseconds
+Java_com_puzzroom_whisper_WhisperLib_00024Companion_getTextSegmentT1(
+        JNIEnv *env, jobject thiz, jlong context_ptr, jint index) {
+    UNUSED(env);
+    UNUSED(thiz);
+    struct whisper_context *context = (struct whisper_context *) context_ptr;
+    return whisper_full_get_segment_t1(context, index);
 }
 
-// Get full transcription as single string
 JNIEXPORT jstring JNICALL
-Java_com_puzzroom_whisper_WhisperContext_nativeGetFullText(
-    JNIEnv *env,
-    jobject,
-    jlong contextPtr) {
-
-    auto *ctx = reinterpret_cast<struct whisper_context *>(contextPtr);
-    if (ctx == nullptr) {
-        return env->NewStringUTF("");
-    }
-
-    const int n_segments = whisper_full_n_segments(ctx);
-    std::string result;
-
-    for (int i = 0; i < n_segments; ++i) {
-        const char *text = whisper_full_get_segment_text(ctx, i);
-        result += text;
-    }
-
-    return env->NewStringUTF(result.c_str());
+Java_com_puzzroom_whisper_WhisperLib_00024Companion_getSystemInfo(
+        JNIEnv *env, jobject thiz
+) {
+    UNUSED(thiz);
+    const char *sysinfo = whisper_print_system_info();
+    jstring string = env->NewStringUTF(sysinfo);
+    return string;
 }
 
-// Check if a language is supported
-JNIEXPORT jboolean JNICALL
-Java_com_puzzroom_whisper_WhisperContext_nativeIsLanguageSupported(
-    JNIEnv *env,
-    jclass,
-    jstring language) {
+JNIEXPORT jstring JNICALL
+Java_com_puzzroom_whisper_WhisperLib_00024Companion_benchMemcpy(JNIEnv *env, jobject thiz,
+                                                                      jint n_threads) {
+    UNUSED(thiz);
+    const char *bench_ggml_memcpy = whisper_bench_memcpy_str(n_threads);
+    jstring string = env->NewStringUTF(bench_ggml_memcpy);
+    return string;
+}
 
-    const char *lang_cstr = env->GetStringUTFChars(language, nullptr);
-    int lang_id = whisper_lang_id(lang_cstr);
-    env->ReleaseStringUTFChars(language, lang_cstr);
-
-    return lang_id >= 0;
+JNIEXPORT jstring JNICALL
+Java_com_puzzroom_whisper_WhisperLib_00024Companion_benchGgmlMulMat(JNIEnv *env, jobject thiz,
+                                                                          jint n_threads) {
+    UNUSED(thiz);
+    const char *bench_ggml_mul_mat = whisper_bench_ggml_mul_mat_str(n_threads);
+    jstring string = env->NewStringUTF(bench_ggml_mul_mat);
+    return string;
 }
 
 } // extern "C"

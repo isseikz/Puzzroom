@@ -42,61 +42,7 @@ fun App() {
         Surface {
             val navController: NavHostController = rememberNavController()
 
-            NavHost(
-                navController = navController,
-                startDestination = LibraryDestination
-            ) {
-                // Library Screen - Global scope, lightweight
-                composable<LibraryDestination> {
-                    LibraryScreenPlatform(
-                        onNavigateToSession = { uri ->
-                            navController.navigate(SessionGraph(uri))
-                        }
-                    )
-                }
-
-                // Session Graph - Scoped navigation for heavy audio operations
-                navigation<SessionGraph>(
-                    startDestination = RecorderDestination
-                ) {
-                    composable<RecorderDestination> { backStackEntry ->
-                        val parentEntry = remember(backStackEntry) {
-                            navController.getBackStackEntry<SessionGraph>()
-                        }
-                        val sessionGraph = parentEntry.toRoute<SessionGraph>()
-
-                        RecorderScreenPlatform(
-                            uri = sessionGraph.uri,
-                            onNavigateBack = {
-                                navController.popBackStack<LibraryDestination>(inclusive = false)
-                            },
-                            onNavigateToEditor = {
-                                navController.navigate(EditorDestination)
-                            }
-                        )
-                    }
-
-                    composable<EditorDestination> { backStackEntry ->
-                        val parentEntry = remember(backStackEntry) {
-                            navController.getBackStackEntry<SessionGraph>()
-                        }
-                        val sessionGraph = parentEntry.toRoute<SessionGraph>()
-
-                        SyncEditorScreen(
-                            uri = sessionGraph.uri,
-                            onNavigateBack = {
-                                navController.popBackStack()
-                            },
-                            onNavigateToRecorder = {
-                                navController.popBackStack<RecorderDestination>(inclusive = false)
-                            },
-                            onFinish = {
-                                navController.popBackStack<LibraryDestination>(inclusive = false)
-                            }
-                        )
-                    }
-                }
-            }
+            AppNav(navController)
         }
     }
 }

@@ -32,7 +32,7 @@ enum class SamplingStrategy(val value: Int) {
 data class TranscriptionParams(
     val language: String = "en",
     val translate: Boolean = false,
-    val threads: Int = 4,
+    val threads: Int = 0, // 0 = auto-detect based on CPU cores
     val samplingStrategy: SamplingStrategy = SamplingStrategy.GREEDY,
     val noContext: Boolean = false,
     val singleSegment: Boolean = false,

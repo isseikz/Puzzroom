@@ -27,13 +27,13 @@ interface Whisper {
      */
     fun isLanguageSupported(languageCode: String): Boolean
 
-    companion object {
-        /**
-         * Get the platform-specific Whisper instance
-         */
-        expect fun create(): Whisper
-    }
+    companion object
 }
+
+/**
+ * Get the platform-specific Whisper instance
+ */
+expect fun Whisper.Companion.create(): Whisper
 
 /**
  * Whisper context for performing transcriptions

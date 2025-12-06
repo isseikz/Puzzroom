@@ -1,5 +1,7 @@
 package tokyo.isseikuzumaki.unison.data
 
+import com.puzzroom.whisper.TranscriptionSegment
+
 /**
  * Repository layer: Data loading
  * Loads audio files and converts them to PCM data
@@ -19,4 +21,12 @@ interface AudioRepository {
      * @return true if valid audio file, false otherwise
      */
     suspend fun validateAudioFile(uri: String): Boolean
+
+    /**
+     * Transcribe audio from PCM data
+     * @param pcmData PCM audio data (16-bit, mono)
+     * @param sampleRate Sample rate of the audio (default: 44100Hz)
+     * @return List of transcription segments with timestamps
+     */
+    suspend fun transcribeAudio(pcmData: ByteArray, sampleRate: Int = 44100): Result<List<TranscriptionSegment>>
 }
