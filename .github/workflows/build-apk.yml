@@ -195,6 +195,13 @@ jobs:
           echo "y" | sudo ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --install "ndk;26.1.10909125"
           echo "y" | sudo ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --install "cmake;3.22.1"
 
+      - name: Download Whisper model
+        run: |
+          mkdir -p unison-app/src/androidMain/assets/models
+          wget -O unison-app/src/androidMain/assets/models/ggml-base.en.bin \
+            https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin
+          echo "✅ Whisper model downloaded ($(du -h unison-app/src/androidMain/assets/models/ggml-base.en.bin | cut -f1))"
+
       - name: Decode debug keystore
         env:
           DEBUG_KEYSTORE: ${{ secrets.DEBUG_KEYSTORE }}
