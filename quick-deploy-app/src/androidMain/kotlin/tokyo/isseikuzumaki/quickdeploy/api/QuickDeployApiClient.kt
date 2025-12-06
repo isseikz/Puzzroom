@@ -109,13 +109,12 @@ class QuickDeployApiClient(
                                 // Throttle progress updates to avoid overwhelming UI (update every ~100ms or 1% progress)
                                 val currentTime = System.currentTimeMillis()
                                 val shouldUpdateByTime = currentTime - lastProgressUpdate >= 100
-                                if (shouldUpdateByTime || totalBytes > 0) {
-                                    val progressPercent = if (totalBytes > 0) (bytesDownloaded.toFloat() / totalBytes * 100).toInt() else 0
-                                    val lastProgressPercent = if (totalBytes > 0) ((bytesDownloaded - bytesRead).toFloat() / totalBytes * 100).toInt() else 0
-                                    if (shouldUpdateByTime || progressPercent != lastProgressPercent) {
-                                        onProgress(DownloadProgress(bytesDownloaded, totalBytes, startTime))
-                                        lastProgressUpdate = currentTime
-                                    }
+                                val progressPercent = if (totalBytes > 0) (bytesDownloaded.toFloat() / totalBytes * 100).toInt() else 0
+                                val lastProgressPercent = if (totalBytes > 0) ((bytesDownloaded - bytesRead).toFloat() / totalBytes * 100).toInt() else 0
+                                val shouldUpdateByProgress = totalBytes > 0 && progressPercent != lastProgressPercent
+                                if (shouldUpdateByTime || shouldUpdateByProgress) {
+                                    onProgress(DownloadProgress(bytesDownloaded, totalBytes, startTime))
+                                    lastProgressUpdate = currentTime
                                 }
                             }
                         }

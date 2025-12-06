@@ -212,11 +212,13 @@ private fun DownloadingContent(progress: DownloadProgress? = null) {
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Show size progress
-                val downloadedMB = progress.bytesDownloaded / BYTES_PER_MB
-                val totalMB = progress.totalBytes / BYTES_PER_MB
-                val downloadedText = String.format(Locale.getDefault(), "%.1f MB", downloadedMB)
-                val totalText = String.format(Locale.getDefault(), "%.1f MB", totalMB)
+                // Show size progress with caching to avoid recalculation on recomposition
+                val downloadedText = remember(progress.bytesDownloaded) {
+                    String.format(Locale.getDefault(), "%.1f MB", progress.bytesDownloaded / BYTES_PER_MB)
+                }
+                val totalText = remember(progress.totalBytes) {
+                    String.format(Locale.getDefault(), "%.1f MB", progress.totalBytes / BYTES_PER_MB)
+                }
                 Text(
                     text = stringResource(
                         Res.string.download_progress_format,
@@ -227,18 +229,24 @@ private fun DownloadingContent(progress: DownloadProgress? = null) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                // Show remaining time
+                // Show remaining time with caching
                 val remainingTimeMs = progress.estimatedRemainingTimeMillis
-                if (remainingTimeMs > 0) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    val remainingSeconds = (remainingTimeMs / 1000).toInt()
-                    val remainingTimeText = if (remainingSeconds >= 60) {
-                        val minutes = remainingSeconds / 60
-                        val seconds = remainingSeconds % 60
-                        String.format(Locale.getDefault(), "%d:%02d", minutes, seconds)
+                val remainingTimeText = remember(remainingTimeMs) {
+                    if (remainingTimeMs <= 0) {
+                        null
                     } else {
-                        "${remainingSeconds}s"
+                        val remainingSeconds = (remainingTimeMs / 1000).toInt()
+                        if (remainingSeconds >= 60) {
+                            val minutes = remainingSeconds / 60
+                            val seconds = remainingSeconds % 60
+                            String.format(Locale.getDefault(), "%d:%02d", minutes, seconds)
+                        } else {
+                            "${remainingSeconds}s"
+                        }
                     }
+                }
+                if (remainingTimeText != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = stringResource(Res.string.download_remaining_time_format, remainingTimeText),
                         style = MaterialTheme.typography.bodySmall,
