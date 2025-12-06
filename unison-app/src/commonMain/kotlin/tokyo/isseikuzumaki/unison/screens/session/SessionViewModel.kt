@@ -131,48 +131,57 @@ class SessionViewModel(
             }
 
             if (recordedPcmData != null) {
-                // Show editing state immediately without recorded transcription
-                _uiState.value = SessionUiState.Editing(
+                // Show processing state while transcribing
+                _uiState.value = SessionUiState.Processing(
                     fileName = extractFileName(uri),
-                    durationMs = audioEngine.getDurationMs(originalPcmData!!),
-                    offsetMs = _offsetMs.value,
-                    balance = _balance.value,
-                    transcription = transcriptionSegments,
-                    recordedTranscription = emptyList()
+                    message = "Transcribing your voice..."
                 )
 
-                // Transcribe recorded audio in background
-                launch {
-                    audioRepository.transcribeAudio(recordedPcmData!!, sampleRate = 44100).fold(
-                        onSuccess = { segments ->
-                            recordedTranscriptionSegments = segments
+                // Transcribe recorded audio
+                audioRepository.transcribeAudio(recordedPcmData!!, sampleRate = 44100).fold(
+                    onSuccess = { segments ->
+                        recordedTranscriptionSegments = segments
 
-                            // Calculate optimal offset using transcription alignment
-                            val calculatedOffset = calculateOptimalOffset(
-                                originalTranscription = transcriptionSegments,
-                                recordedTranscription = segments
-                            )
+                        // Update processing message
+                        _uiState.value = SessionUiState.Processing(
+                            fileName = extractFileName(uri),
+                            message = "Calculating sync offset..."
+                        )
 
-                            // Update offset with calculated value
-                            _offsetMs.value = calculatedOffset
+                        // Calculate optimal offset using transcription alignment
+                        val calculatedOffset = calculateOptimalOffset(
+                            originalTranscription = transcriptionSegments,
+                            recordedTranscription = segments
+                        )
 
-                            // Update state with recorded transcription and auto-calculated offset
-                            _uiState.value = SessionUiState.Editing(
-                                fileName = extractFileName(uri),
-                                durationMs = audioEngine.getDurationMs(originalPcmData!!),
-                                offsetMs = calculatedOffset,
-                                balance = _balance.value,
-                                transcription = transcriptionSegments,
-                                recordedTranscription = segments
-                            )
+                        // Update offset with calculated value
+                        _offsetMs.value = calculatedOffset
 
-                            android.util.Log.i("SessionViewModel", "Auto-calculated offset: ${calculatedOffset}ms")
-                        },
-                        onFailure = { error ->
-                            android.util.Log.e("SessionViewModel", "Recorded transcription failed", error)
-                        }
-                    )
-                }
+                        // Update state with recorded transcription and auto-calculated offset
+                        _uiState.value = SessionUiState.Editing(
+                            fileName = extractFileName(uri),
+                            durationMs = audioEngine.getDurationMs(originalPcmData!!),
+                            offsetMs = calculatedOffset,
+                            balance = _balance.value,
+                            transcription = transcriptionSegments,
+                            recordedTranscription = segments
+                        )
+
+                        android.util.Log.i("SessionViewModel", "Auto-calculated offset: ${calculatedOffset}ms")
+                    },
+                    onFailure = { error ->
+                        android.util.Log.e("SessionViewModel", "Recorded transcription failed", error)
+                        // Even if transcription fails, allow user to edit with default offset
+                        _uiState.value = SessionUiState.Editing(
+                            fileName = extractFileName(uri),
+                            durationMs = audioEngine.getDurationMs(originalPcmData!!),
+                            offsetMs = 0,
+                            balance = _balance.value,
+                            transcription = transcriptionSegments,
+                            recordedTranscription = emptyList()
+                        )
+                    }
+                )
             } else {
                 _uiState.value = SessionUiState.Error("No recording data")
             }
@@ -355,6 +364,11 @@ sealed class SessionUiState {
         val fileName: String,
         val durationMs: Long,
         val transcription: List<TranscriptionSegment> = emptyList()
+    ) : SessionUiState()
+
+    data class Processing(
+        val fileName: String,
+        val message: String = "Processing audio..."
     ) : SessionUiState()
 
     data class Editing(
