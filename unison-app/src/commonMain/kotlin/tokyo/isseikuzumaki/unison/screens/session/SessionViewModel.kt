@@ -87,6 +87,7 @@ class SessionViewModel(
     }
 
     fun startRecording() {
+        Napier.i { "Start recording" }
         val pcm = originalPcmData ?: return
 
         viewModelScope.launch {
@@ -121,6 +122,7 @@ class SessionViewModel(
     }
 
     fun stopRecording() {
+        Napier.i { "Stop Recording" }
         viewModelScope.launch {
             withContext(Dispatchers.Default) {
                 audioEngine.stopRecording()

@@ -9,6 +9,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import kotlinx.coroutines.runBlocking
+import org.junit.Assume
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -29,6 +30,17 @@ import java.io.FileOutputStream
  *
  * This test uses real audio file and real Whisper model to ensure
  * the integration works correctly in production-like conditions.
+ *
+ * **LOCAL EXECUTION ONLY**
+ * This test is skipped in CI/CD because:
+ * - Requires downloading large audio file (19MB) from third-party site
+ * - Takes significant time to run (~5-10 minutes)
+ * - Intended for manual verification before releases
+ *
+ * To run locally:
+ * 1. Download test audio: curl -o unison-app/src/androidTest/assets/test_audio.mp3 \
+ *    https://downloads.bbc.co.uk/learningenglish/features/work_in_the_future/251201_cyber_security_download.mp3
+ * 2. Run: ./gradlew :unison-app:connectedAndroidTest
  */
 @RunWith(AndroidJUnit4::class)
 class WhisperIntegrationTest {
@@ -41,11 +53,35 @@ class WhisperIntegrationTest {
 
     @Before
     fun setup() {
+        // Skip this test in CI environment
+        // CI is detected by checking common CI environment variables
+        val isCI = System.getenv("CI") != null ||
+                   System.getenv("GITHUB_ACTIONS") != null ||
+                   System.getenv("JENKINS_HOME") != null
+
+        Assume.assumeFalse("Skipping test in CI environment (requires third-party download)", isCI)
+
         context = InstrumentationRegistry.getInstrumentation().targetContext
 
         // Copy test audio from androidTest/assets to app's cache directory
         // This simulates a user selecting an audio file
         testAudioFile = File(context.cacheDir, "test_audio.mp3")
+
+        // Skip if test audio file doesn't exist
+        val assetExists = try {
+            context.assets.open("test_audio.mp3").close()
+            true
+        } catch (e: Exception) {
+            false
+        }
+
+        Assume.assumeTrue(
+            "Test audio file not found. Download it first:\n" +
+            "curl -o unison-app/src/androidTest/assets/test_audio.mp3 \\\n" +
+            "  https://downloads.bbc.co.uk/learningenglish/features/work_in_the_future/251201_cyber_security_download.mp3",
+            assetExists
+        )
+
         context.assets.open("test_audio.mp3").use { input ->
             FileOutputStream(testAudioFile).use { output ->
                 input.copyTo(output)
