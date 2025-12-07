@@ -15,6 +15,7 @@ import com.puzzroom.whisper.WhisperAndroid
 import com.puzzroom.whisper.WhisperContext
 import com.puzzroom.whisper.TranscriptionParams
 import com.puzzroom.whisper.TranscriptionSegment
+import io.github.aakira.napier.Napier
 
 /**
  * Android implementation of AudioRepository
@@ -152,6 +153,7 @@ class AndroidAudioRepository(
         pcmData: ByteArray,
         sampleRate: Int
     ): Result<List<TranscriptionSegment>> = withContext(Dispatchers.IO) {
+        Napier.i { "Start transcribe audio" }
         try {
             val context = whisperContext
                 ?: return@withContext Result.failure(Exception("Whisper not initialized"))
@@ -185,17 +187,37 @@ class AndroidAudioRepository(
 
     /**
      * Convert PCM16 to Float32 format required by Whisper
+     * Processes in chunks to avoid OutOfMemoryError with large audio files
      */
     private fun convertPcm16ToFloat32(pcm16: ByteArray): FloatArray {
-        val shorts = ShortArray(pcm16.size / 2)
-        ByteBuffer.wrap(pcm16)
-            .order(ByteOrder.LITTLE_ENDIAN)
-            .asShortBuffer()
-            .get(shorts)
+        val numSamples = pcm16.size / 2
+        val result = FloatArray(numSamples)
 
-        return FloatArray(shorts.size) { i ->
-            shorts[i] / 32768.0f  // Normalize to [-1.0, 1.0]
+        // Process in 1MB chunks to avoid memory issues
+        val chunkSize = 1024 * 1024 / 2 // 512K samples (1MB of bytes)
+        val buffer = ByteBuffer.allocate(minOf(chunkSize * 2, pcm16.size))
+            .order(ByteOrder.LITTLE_ENDIAN)
+
+        var offset = 0
+        var resultIndex = 0
+
+        while (offset < pcm16.size) {
+            val bytesToRead = minOf(chunkSize * 2, pcm16.size - offset)
+            buffer.clear()
+            buffer.put(pcm16, offset, bytesToRead)
+            buffer.flip()
+
+            val shortBuffer = buffer.asShortBuffer()
+            val samplesInChunk = bytesToRead / 2
+
+            for (i in 0 until samplesInChunk) {
+                result[resultIndex++] = shortBuffer.get(i) / 32768.0f
+            }
+
+            offset += bytesToRead
         }
+
+        return result
     }
 
     /**
