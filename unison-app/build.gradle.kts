@@ -115,4 +115,16 @@ android {
 
 dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
+
+    // Android Instrumented Test dependencies
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.7.5")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test:rules:1.6.1")
+
+    // Kotest for assertions in instrumented tests
+    androidTestImplementation("io.kotest:kotest-assertions-core:5.9.1")
+
+    // Debug manifest for Compose tests
+    debugImplementation("androidx.compose.ui:ui-test-manifest:1.7.5")
 }
