@@ -39,6 +39,14 @@ local.properties
 .kotlin/
 debug.keystore
 
+# Large ML model files (use Git LFS or download separately)
+*.bin
+**/assets/*.bin
+
+# Large test audio files (download in CI)
+**/androidTest/assets/*.mp3
+**/androidTest/assets/*.wav
+
 # This is an unusual rule. You may not need it.
 # It prevents ignoring 'build' folders inside 'src'.
 !src/**/build/
