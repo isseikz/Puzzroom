@@ -34,6 +34,9 @@ object RecorderDestination
 @Serializable
 object EditorDestination
 
+@Serializable
+object ShadowingDestination
+
 @Composable
 fun App() {
     MaterialTheme(

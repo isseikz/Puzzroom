@@ -69,6 +69,7 @@ kotlin {
             implementation(libs.napier.logger)
 
             implementation(project(":whisper-kmp"))
+            implementation(project(":shared-ui"))
         }
     }
 }

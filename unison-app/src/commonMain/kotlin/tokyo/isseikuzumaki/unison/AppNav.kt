@@ -11,6 +11,7 @@ import androidx.navigation.toRoute
 import tokyo.isseikuzumaki.unison.screens.editor.SyncEditorScreen
 import tokyo.isseikuzumaki.unison.screens.library.LibraryScreenPlatform
 import tokyo.isseikuzumaki.unison.screens.recorder.RecorderScreenPlatform
+import tokyo.isseikuzumaki.unison.screens.shadowing.ShadowingScreen
 
 @Composable
 fun AppNav(
@@ -31,8 +32,22 @@ fun AppNav(
 
         // Session Graph - Scoped navigation for heavy audio operations
         navigation<SessionGraph>(
-            startDestination = RecorderDestination
+            startDestination = ShadowingDestination
         ) {
+            composable<ShadowingDestination> { backStackEntry ->
+                val parentEntry = remember(backStackEntry) {
+                    navController.getBackStackEntry<SessionGraph>()
+                }
+                val sessionGraph = parentEntry.toRoute<SessionGraph>()
+
+                ShadowingScreen(
+                    uri = sessionGraph.uri,
+                    onNavigateBack = {
+                        navController.popBackStack<LibraryDestination>(inclusive = false)
+                    }
+                )
+            }
+
             composable<RecorderDestination> { backStackEntry ->
                 val parentEntry = remember(backStackEntry) {
                     navController.getBackStackEntry<SessionGraph>()

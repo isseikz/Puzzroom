@@ -5,14 +5,49 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tokyo.isseikuzumaki.unison.data.AudioEngine
 import tokyo.isseikuzumaki.unison.data.AudioRepository
 import com.puzzroom.whisper.TranscriptionSegment
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.flow.map
+
+/**
+ * Data class combining audio file and transcript for shadowing
+ */
+data class ShadowingData(
+    val pcmData: ByteArray,
+    val transcript: String,
+    val durationMs: Long,
+    val fileName: String
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this == other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as ShadowingData
+
+        if (!pcmData.contentEquals(other.pcmData)) return false
+        if (transcript != other.transcript) return false
+        if (durationMs != other.durationMs) return false
+        if (fileName != other.fileName) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = pcmData.contentHashCode()
+        result = 31 * result + transcript.hashCode()
+        result = 31 * result + durationMs.hashCode()
+        result = 31 * result + fileName.hashCode()
+        return result
+    }
+}
 
 /**
  * Heavy ViewModel scoped to Session Navigation Graph
@@ -27,6 +62,42 @@ class SessionViewModel(
 
     private val _uiState = MutableStateFlow<SessionUiState>(SessionUiState.Loading)
     val uiState: StateFlow<SessionUiState> = _uiState.asStateFlow()
+
+    /**
+     * Flow providing audio data and transcript for shadowing practice
+     * Emits when both audio and transcription are available
+     */
+    val shadowingData: StateFlow<ShadowingData?> = uiState.map { state ->
+        when (state) {
+            is SessionUiState.Ready -> {
+                val pcm = originalPcmData
+                if (pcm != null && state.transcription.isNotEmpty()) {
+                    ShadowingData(
+                        pcmData = pcm,
+                        transcript = state.transcription.joinToString("\n") { it.text },
+                        durationMs = state.durationMs,
+                        fileName = state.fileName
+                    )
+                } else null
+            }
+            is SessionUiState.Recording -> {
+                val pcm = originalPcmData
+                if (pcm != null && state.transcription.isNotEmpty()) {
+                    ShadowingData(
+                        pcmData = pcm,
+                        transcript = state.transcription.joinToString("\n") { it.text },
+                        durationMs = state.durationMs,
+                        fileName = state.fileName
+                    )
+                } else null
+            }
+            else -> null
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = null
+    )
 
     private var originalPcmData: ByteArray? = null
     private var recordedPcmData: ByteArray? = null

@@ -1,0 +1,321 @@
+package tokyo.isseikuzumaki.unison.screens.shadowing
+
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import org.koin.compose.viewmodel.koinViewModel
+import tokyo.isseikuzumaki.shared.ui.atoms.AppButton
+import tokyo.isseikuzumaki.shared.ui.atoms.HorizontalSpacer
+import tokyo.isseikuzumaki.shared.ui.atoms.VerticalSpacer
+import tokyo.isseikuzumaki.shared.ui.atoms.AppText
+import tokyo.isseikuzumaki.shared.ui.theme.WarmError
+import tokyo.isseikuzumaki.shared.ui.theme.WarmPrimary
+import tokyo.isseikuzumaki.unison.screens.session.SessionViewModel
+
+/**
+ * Screen for shadowing practice
+ * Shows transcript and allows playing audio and recording voice
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ShadowingScreen(
+    uri: String,
+    onNavigateBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val viewModel: SessionViewModel = koinViewModel()
+    val shadowingData by viewModel.shadowingData.collectAsState()
+
+    var isPlaying by remember { mutableStateOf(false) }
+    var isRecording by remember { mutableStateOf(false) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Shadowing Practice") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                }
+            )
+        },
+        floatingActionButton = {
+            if (shadowingData != null) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Play/Stop audio button
+                    FloatingActionButton(
+                        onClick = {
+                            if (isPlaying) {
+                                viewModel.stopPreview()
+                                isPlaying = false
+                            } else {
+                                viewModel.playPreview()
+                                isPlaying = true
+                            }
+                        },
+                        containerColor = WarmPrimary
+                    ) {
+                        Icon(
+                            imageVector = if (isPlaying) Icons.Default.Stop else Icons.Default.PlayArrow,
+                            contentDescription = if (isPlaying) "Stop" else "Play",
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+
+                    // Record button
+                    FloatingActionButton(
+                        onClick = {
+                            if (isRecording) {
+                                viewModel.stopRecording()
+                                isRecording = false
+                            } else {
+                                viewModel.startRecording()
+                                isRecording = true
+                            }
+                        },
+                        containerColor = if (isRecording) WarmError else MaterialTheme.colorScheme.secondary
+                    ) {
+                        if (isRecording) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                val infiniteTransition = rememberInfiniteTransition()
+                                val alpha by infiniteTransition.animateFloat(
+                                    initialValue = 1f,
+                                    targetValue = 0.3f,
+                                    animationSpec = infiniteRepeatable(
+                                        animation = tween(500, easing = LinearEasing),
+                                        repeatMode = RepeatMode.Reverse
+                                    )
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.Mic,
+                                    contentDescription = "Recording",
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .alpha(alpha)
+                                )
+                            }
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Mic,
+                                contentDescription = "Record",
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        modifier = modifier
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            when {
+                shadowingData == null -> {
+                    // Loading state
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator()
+                        VerticalSpacer(height = 16.dp)
+                        AppText(
+                            text = "Loading transcript...",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+                else -> {
+                    // Content state
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        // File name
+                        AppText(
+                            text = shadowingData!!.fileName,
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = WarmPrimary
+                        )
+
+                        VerticalSpacer(height = 8.dp)
+
+                        // Duration
+                        AppText(
+                            text = "Duration: ${formatDuration(shadowingData!!.durationMs)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        VerticalSpacer(height = 24.dp)
+
+                        // Transcript card
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp)
+                            ) {
+                                AppText(
+                                    text = "Transcript",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = WarmPrimary
+                                )
+
+                                VerticalSpacer(height = 12.dp)
+
+                                AppText(
+                                    text = shadowingData!!.transcript,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        VerticalSpacer(height = 16.dp)
+
+                        // Instructions card
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp)
+                            ) {
+                                AppText(
+                                    text = "How to Practice",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+
+                                VerticalSpacer(height = 8.dp)
+
+                                AppText(
+                                    text = "1. Press play to listen to the audio\n" +
+                                            "2. Read along with the transcript\n" +
+                                            "3. Press record to practice speaking\n" +
+                                            "4. Try to match the timing and pronunciation",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                        }
+
+                        // Recording indicator
+                        if (isRecording) {
+                            VerticalSpacer(height = 16.dp)
+
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = WarmError.copy(alpha = 0.1f)
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(12.dp)
+                                            .background(WarmError, CircleShape)
+                                    )
+                                    HorizontalSpacer(width = 8.dp)
+                                    AppText(
+                                        text = "Recording in progress...",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = WarmError
+                                    )
+                                }
+                            }
+                        }
+
+                        // Bottom spacing for FABs
+                        Spacer(modifier = Modifier.height(100.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Format duration in milliseconds to MM:SS format
+ */
+private fun formatDuration(durationMs: Long): String {
+    val totalSeconds = (durationMs / 1000).toInt()
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return String.format("%02d:%02d", minutes, seconds)
+}
