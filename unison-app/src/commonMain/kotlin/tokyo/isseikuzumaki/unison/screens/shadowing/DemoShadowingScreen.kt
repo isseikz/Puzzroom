@@ -112,27 +112,22 @@ fun DemoShadowingScreen(
                         containerColor = if (isRecording) WarmError else MaterialTheme.colorScheme.secondary
                     ) {
                         if (isRecording) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                val infiniteTransition = rememberInfiniteTransition()
-                                val alpha by infiniteTransition.animateFloat(
-                                    initialValue = 1f,
-                                    targetValue = 0.3f,
-                                    animationSpec = infiniteRepeatable(
-                                        animation = tween(500, easing = LinearEasing),
-                                        repeatMode = RepeatMode.Reverse
-                                    )
+                            val infiniteTransition = rememberInfiniteTransition()
+                            val alpha by infiniteTransition.animateFloat(
+                                initialValue = 1f,
+                                targetValue = 0.3f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(500, easing = LinearEasing),
+                                    repeatMode = RepeatMode.Reverse
                                 )
-                                Icon(
-                                    imageVector = Icons.Default.Mic,
-                                    contentDescription = "Recording",
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .alpha(alpha)
-                                )
-                            }
+                            )
+                            Icon(
+                                imageVector = Icons.Default.Mic,
+                                contentDescription = "Recording",
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .alpha(alpha)
+                            )
                         } else {
                             Icon(
                                 imageVector = Icons.Default.Mic,
