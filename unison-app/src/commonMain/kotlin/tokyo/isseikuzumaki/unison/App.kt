@@ -16,12 +16,8 @@ import androidx.navigation.toRoute
 import tokyo.isseikuzumaki.unison.screens.library.LibraryScreenPlatform
 import tokyo.isseikuzumaki.unison.screens.recorder.RecorderScreenPlatform
 import tokyo.isseikuzumaki.unison.screens.editor.SyncEditorScreen
-import tokyo.isseikuzumaki.unison.screens.shadowing.DemoShadowingScreen
 import kotlinx.serialization.Serializable
 import org.koin.compose.viewmodel.koinViewModel
-
-// Set to true to launch demo mode with dummy data
-private const val DEMO_MODE = true
 
 /**
  * Navigation destinations for Unison app
@@ -47,14 +43,8 @@ fun App() {
         colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()
     ) {
         Surface {
-            if (DEMO_MODE) {
-                // Launch demo screen directly with dummy data
-                DemoShadowingScreen()
-            } else {
-                // Normal app flow with navigation
-                val navController: NavHostController = rememberNavController()
-                AppNav(navController)
-            }
+            val navController: NavHostController = rememberNavController()
+            AppNav(navController)
         }
     }
 }

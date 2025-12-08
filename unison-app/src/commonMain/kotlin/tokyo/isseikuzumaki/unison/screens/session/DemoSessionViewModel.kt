@@ -9,6 +9,38 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 
 /**
+ * Data class combining audio file and transcript for shadowing
+ */
+data class ShadowingData(
+    val pcmData: ByteArray,
+    val transcript: String,
+    val durationMs: Long,
+    val fileName: String
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this == other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as ShadowingData
+
+        if (!pcmData.contentEquals(other.pcmData)) return false
+        if (transcript != other.transcript) return false
+        if (durationMs != other.durationMs) return false
+        if (fileName != other.fileName) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = pcmData.contentHashCode()
+        result = 31 * result + transcript.hashCode()
+        result = 31 * result + durationMs.hashCode()
+        result = 31 * result + fileName.hashCode()
+        return result
+    }
+}
+
+/**
  * Demo ViewModel for testing ShadowingScreen with dummy data
  * Simulates loading state and provides sample transcript
  */

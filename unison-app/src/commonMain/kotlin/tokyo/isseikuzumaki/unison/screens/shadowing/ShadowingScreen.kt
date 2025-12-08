@@ -48,18 +48,19 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import org.koin.compose.viewmodel.koinViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import tokyo.isseikuzumaki.shared.ui.atoms.AppButton
 import tokyo.isseikuzumaki.shared.ui.atoms.HorizontalSpacer
 import tokyo.isseikuzumaki.shared.ui.atoms.VerticalSpacer
 import tokyo.isseikuzumaki.shared.ui.atoms.AppText
 import tokyo.isseikuzumaki.shared.ui.theme.WarmError
 import tokyo.isseikuzumaki.shared.ui.theme.WarmPrimary
-import tokyo.isseikuzumaki.unison.screens.session.SessionViewModel
+import tokyo.isseikuzumaki.unison.screens.session.DemoSessionViewModel
 
 /**
  * Screen for shadowing practice
  * Shows transcript and allows playing audio and recording voice
+ * Note: Currently uses demo data only (Whisper integration removed)
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,7 +69,7 @@ fun ShadowingScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val viewModel: SessionViewModel = koinViewModel()
+    val viewModel: DemoSessionViewModel = viewModel()
     val shadowingData by viewModel.shadowingData.collectAsState()
 
     var isPlaying by remember { mutableStateOf(false) }
