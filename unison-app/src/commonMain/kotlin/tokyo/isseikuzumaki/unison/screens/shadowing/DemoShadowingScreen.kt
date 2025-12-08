@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -32,6 +33,8 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -66,6 +69,7 @@ fun DemoShadowingScreen(
 
     var isPlaying by remember { mutableStateOf(false) }
     var isRecording by remember { mutableStateOf(false) }
+    var seekPosition by remember { mutableStateOf(0f) }
 
     Scaffold(
         topBar = {
@@ -76,64 +80,109 @@ fun DemoShadowingScreen(
         floatingActionButton = {
             if (shadowingData != null) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Play/Stop audio button
-                    FloatingActionButton(
-                        onClick = {
-                            if (isPlaying) {
-                                viewModel.stopPreview()
-                                isPlaying = false
-                            } else {
-                                viewModel.playPreview()
-                                isPlaying = true
-                            }
-                        },
-                        containerColor = WarmPrimary
+                    // Seek bar
+                    Column(
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Icon(
-                            imageVector = if (isPlaying) Icons.Default.Stop else Icons.Default.PlayArrow,
-                            contentDescription = if (isPlaying) "Stop" else "Play",
-                            modifier = Modifier.size(32.dp)
+                        Slider(
+                            value = seekPosition,
+                            onValueChange = { seekPosition = it },
+                            valueRange = 0f..shadowingData!!.durationMs.toFloat(),
+                            colors = SliderDefaults.colors(
+                                thumbColor = WarmPrimary,
+                                activeTrackColor = WarmPrimary,
+                                inactiveTrackColor = WarmPrimary.copy(alpha = 0.3f)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
                         )
+
+                        // Time display
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            AppText(
+                                text = formatDuration(seekPosition.toLong()),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            AppText(
+                                text = formatDuration(shadowingData!!.durationMs),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
 
-                    // Record button
-                    FloatingActionButton(
-                        onClick = {
-                            if (isRecording) {
-                                viewModel.stopRecording()
-                                isRecording = false
-                            } else {
-                                viewModel.startRecording()
-                                isRecording = true
-                            }
-                        },
-                        containerColor = if (isRecording) WarmError else MaterialTheme.colorScheme.secondary
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    // Control buttons
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        if (isRecording) {
-                            val infiniteTransition = rememberInfiniteTransition()
-                            val alpha by infiniteTransition.animateFloat(
-                                initialValue = 1f,
-                                targetValue = 0.3f,
-                                animationSpec = infiniteRepeatable(
-                                    animation = tween(500, easing = LinearEasing),
-                                    repeatMode = RepeatMode.Reverse
+                        // Play/Stop audio button
+                        FloatingActionButton(
+                            onClick = {
+                                if (isPlaying) {
+                                    viewModel.stopPreview()
+                                    isPlaying = false
+                                } else {
+                                    viewModel.playPreview()
+                                    isPlaying = true
+                                }
+                            },
+                            containerColor = WarmPrimary
+                        ) {
+                            Icon(
+                                imageVector = if (isPlaying) Icons.Default.Stop else Icons.Default.PlayArrow,
+                                contentDescription = if (isPlaying) "Stop" else "Play",
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+
+                        // Record button
+                        FloatingActionButton(
+                            onClick = {
+                                if (isRecording) {
+                                    viewModel.stopRecording()
+                                    isRecording = false
+                                } else {
+                                    viewModel.startRecording()
+                                    isRecording = true
+                                }
+                            },
+                            containerColor = if (isRecording) WarmError else MaterialTheme.colorScheme.secondary
+                        ) {
+                            if (isRecording) {
+                                val infiniteTransition = rememberInfiniteTransition()
+                                val alpha by infiniteTransition.animateFloat(
+                                    initialValue = 1f,
+                                    targetValue = 0.3f,
+                                    animationSpec = infiniteRepeatable(
+                                        animation = tween(500, easing = LinearEasing),
+                                        repeatMode = RepeatMode.Reverse
+                                    )
                                 )
-                            )
-                            Icon(
-                                imageVector = Icons.Default.Mic,
-                                contentDescription = "Recording",
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .alpha(alpha)
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.Mic,
-                                contentDescription = "Record",
-                                modifier = Modifier.size(32.dp)
-                            )
+                                Icon(
+                                    imageVector = Icons.Default.Mic,
+                                    contentDescription = "Recording",
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .alpha(alpha)
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Mic,
+                                    contentDescription = "Record",
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
                         }
                     }
                 }
