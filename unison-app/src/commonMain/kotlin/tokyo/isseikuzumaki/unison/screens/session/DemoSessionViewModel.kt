@@ -9,36 +9,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 
 /**
- * Data class combining audio file and transcript for shadowing
+ * Data class combining transcript metadata for shadowing
+ * Note: Audio data is not stored in state to avoid memory issues
  */
 data class ShadowingData(
-    val pcmData: ByteArray,
     val transcript: String,
     val durationMs: Long,
     val fileName: String
-) {
-    override fun equals(other: Any?): Boolean {
-        if (this == other) return true
-        if (other == null || this::class != other::class) return false
-
-        other as ShadowingData
-
-        if (!pcmData.contentEquals(other.pcmData)) return false
-        if (transcript != other.transcript) return false
-        if (durationMs != other.durationMs) return false
-        if (fileName != other.fileName) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = pcmData.contentHashCode()
-        result = 31 * result + transcript.hashCode()
-        result = 31 * result + durationMs.hashCode()
-        result = 31 * result + fileName.hashCode()
-        return result
-    }
-}
+)
 
 /**
  * Demo ViewModel for testing ShadowingScreen with dummy data
@@ -58,9 +36,8 @@ class DemoSessionViewModel : ViewModel() {
             // Simulate loading delay
             delay(1500)
 
-            // Provide dummy data
+            // Provide dummy data (audio not stored in state)
             _shadowingData.value = ShadowingData(
-                pcmData = ByteArray(44100 * 2 * 30), // 30 seconds of dummy audio data
                 transcript = """
                     Welcome to the Unison shadowing practice session.
 

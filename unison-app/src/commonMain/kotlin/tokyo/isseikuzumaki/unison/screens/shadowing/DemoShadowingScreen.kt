@@ -79,13 +79,44 @@ fun DemoShadowingScreen(
         },
         floatingActionButton = {
             if (shadowingData != null) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    horizontalAlignment = Alignment.End
                 ) {
+                    // Recording indicator positioned near FABs
+                    if (isRecording) {
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = WarmError.copy(alpha = 0.1f)
+                            ),
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .background(WarmError, CircleShape)
+                                )
+                                HorizontalSpacer(width = 6.dp)
+                                AppText(
+                                    text = "Recording...",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = WarmError
+                                )
+                            }
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                     // Seek bar
                     Column(
                         modifier = Modifier.weight(1f)
@@ -184,6 +215,7 @@ fun DemoShadowingScreen(
                                 )
                             }
                         }
+                    }
                     }
                 }
             }
@@ -321,38 +353,6 @@ fun DemoShadowingScreen(
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer
                                 )
-                            }
-                        }
-
-                        // Recording indicator
-                        if (isRecording) {
-                            VerticalSpacer(height = 16.dp)
-
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = WarmError.copy(alpha = 0.1f)
-                                )
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(12.dp)
-                                            .background(WarmError, CircleShape)
-                                    )
-                                    HorizontalSpacer(width = 8.dp)
-                                    AppText(
-                                        text = "Recording in progress... (simulated)",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = WarmError
-                                    )
-                                }
                             }
                         }
 
