@@ -75,6 +75,9 @@ jobs:
             echo "⚠️  DEBUG_KEYSTORE secret not found, using default Android debug keystore"
           fi
 
+      - name: Run composeApp Unit Tests
+        run: ./gradlew :composeApp:testDebugUnitTest --no-daemon
+
       - name: Build composeApp Debug APK
         run: ./gradlew :composeApp:assembleDebug --no-daemon
 
@@ -142,6 +145,9 @@ jobs:
             echo "⚠️  GOOGLE_SERVICES_JSON_BASE64 secret not found, skipping google-services.json creation"
           fi
 
+      - name: Run nlt-app Unit Tests
+        run: ./gradlew :nlt-app:testDebugUnitTest --no-daemon
+
       - name: Build nlt-app Debug APK
         run: ./gradlew :nlt-app:assembleDebug --no-daemon
 
@@ -197,6 +203,9 @@ jobs:
           else
             echo "⚠️  DEBUG_KEYSTORE secret not found, using default Android debug keystore"
           fi
+
+      - name: Run unison-app Unit Tests
+        run: ./gradlew :unison-app:testDebugUnitTest --no-daemon
 
       - name: Build unison-app Debug APK
         run: ./gradlew :unison-app:assembleDebug --no-daemon
