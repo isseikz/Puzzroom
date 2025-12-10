@@ -25,4 +25,5 @@ plugins {
 include(":composeApp")
 include(":shared-ui")
 include(":nlt-app")
+include(":unison-app")
 include(":quick-deploy-app")
