@@ -63,6 +63,7 @@ import tokyo.isseikuzumaki.unison.screens.session.DemoSessionViewModel
  *
  * @param uri Optional URI for audio file. If null, runs in demo mode with dummy data
  * @param onNavigateBack Callback when back button is pressed (null hides back button)
+ * @param onRecordingComplete Callback when user stops recording and should review it
  * @param showSeekBar Whether to show the seek bar (default true)
  * @param isDemoMode Whether to show demo banner (default based on uri)
  * @param modifier Modifier for the screen
@@ -72,6 +73,7 @@ import tokyo.isseikuzumaki.unison.screens.session.DemoSessionViewModel
 fun ShadowingScreen(
     uri: String? = null,
     onNavigateBack: (() -> Unit)? = null,
+    onRecordingComplete: (() -> Unit)? = null,
     showSeekBar: Boolean = true,
     isDemoMode: Boolean = uri == null,
     modifier: Modifier = Modifier
@@ -209,6 +211,8 @@ fun ShadowingScreen(
                                 if (isRecording) {
                                     viewModel.stopRecording()
                                     isRecording = false
+                                    // Navigate to recording review screen
+                                    onRecordingComplete?.invoke()
                                 } else {
                                     viewModel.startRecording()
                                     isRecording = true
