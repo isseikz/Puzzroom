@@ -1,7 +1,5 @@
 package tokyo.isseikuzumaki.unison.data
 
-import com.puzzroom.whisper.TranscriptionSegment
-
 /**
  * Repository layer: Data loading
  * Loads audio files and converts them to PCM data

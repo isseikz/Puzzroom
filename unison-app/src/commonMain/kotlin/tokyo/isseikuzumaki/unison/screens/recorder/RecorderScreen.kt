@@ -14,7 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.puzzroom.whisper.TranscriptionSegment
+import tokyo.isseikuzumaki.unison.data.TranscriptionSegment
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import org.jetbrains.compose.ui.tooling.preview.Preview

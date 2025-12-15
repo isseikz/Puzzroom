@@ -11,8 +11,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tokyo.isseikuzumaki.unison.data.AudioEngine
 import tokyo.isseikuzumaki.unison.data.AudioRepository
-import com.puzzroom.whisper.TranscriptionSegment
-import io.github.aakira.napier.Napier
+import tokyo.isseikuzumaki.unison.data.TranscriptionSegment
 
 /**
  * Heavy ViewModel scoped to Session Navigation Graph
@@ -75,7 +74,7 @@ class SessionViewModel(
                             },
                             onFailure = { error ->
                                 // Log error but don't fail the whole UI
-                                Napier.e("Failed to load transcription", error)
+                                println("Error: Failed to load transcription - ${error.message}")
                             }
                         )
                     }
@@ -88,7 +87,7 @@ class SessionViewModel(
     }
 
     fun startRecording() {
-        Napier.i { "Start recording" }
+        println("Info: Start recording")
         val pcm = originalPcmData ?: return
 
         viewModelScope.launch {
@@ -123,7 +122,7 @@ class SessionViewModel(
     }
 
     fun stopRecording() {
-        Napier.i { "Stop Recording" }
+        println("Info: Stop Recording")
         viewModelScope.launch {
             withContext(Dispatchers.Default) {
                 audioEngine.stopRecording()
@@ -171,10 +170,10 @@ class SessionViewModel(
                             recordedTranscription = segments
                         )
 
-                        Napier.i("Auto-calculated offset: ${calculatedOffset}ms")
+                        println("Info: Auto-calculated offset: ${calculatedOffset}ms")
                     },
                     onFailure = { error ->
-                        Napier.e("Recorded transcription failed", error)
+                        println("Error: Recorded transcription failed - ${error.message}")
                         // Even if transcription fails, allow user to edit with default offset
                         _uiState.value = SessionUiState.Editing(
                             fileName = extractFileName(audioUri),
@@ -275,7 +274,7 @@ class SessionViewModel(
         recordedTranscription: List<TranscriptionSegment>
     ): Int {
         if (originalTranscription.isEmpty() || recordedTranscription.isEmpty()) {
-            Napier.w("Cannot calculate offset: empty transcriptions")
+            println("Warning: Cannot calculate offset: empty transcriptions")
             return 0
         }
 
@@ -295,8 +294,8 @@ class SessionViewModel(
                     val offset = recordedSeg.startTimeMs - originalSeg.startTimeMs
                     timeOffsets.add(offset)
 
-                    Napier.d(
-                        "Match: '${originalSeg.text.take(30)}...' @ ${originalSeg.startTimeMs}ms " +
+                    println(
+                        "Debug: Match: '${originalSeg.text.take(30)}...' @ ${originalSeg.startTimeMs}ms " +
                         "vs '${recordedSeg.text.take(30)}...' @ ${recordedSeg.startTimeMs}ms " +
                         "-> offset: ${offset}ms (similarity: ${similarity})"
                     )
@@ -305,7 +304,7 @@ class SessionViewModel(
         }
 
         if (timeOffsets.isEmpty()) {
-            Napier.w("No matching segments found for alignment")
+            println("Warning: No matching segments found for alignment")
             return 0
         }
 
@@ -320,8 +319,8 @@ class SessionViewModel(
         // Negate the offset: if recorded is ahead, we need negative offset to delay it
         val correctionOffset = -medianOffset.toInt()
 
-        Napier.i(
-            "Alignment complete: ${timeOffsets.size} matches, median offset: ${medianOffset}ms, " +
+        println(
+            "Info: Alignment complete: ${timeOffsets.size} matches, median offset: ${medianOffset}ms, " +
             "correction: ${correctionOffset}ms"
         )
 
