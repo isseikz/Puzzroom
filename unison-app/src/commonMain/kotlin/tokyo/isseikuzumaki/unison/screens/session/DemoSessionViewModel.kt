@@ -19,6 +19,14 @@ data class ShadowingData(
 )
 
 /**
+ * Data class for recording information
+ */
+data class RecordingData(
+    val durationMs: Long,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
+/**
  * Demo ViewModel for testing ShadowingScreen with dummy data
  * Simulates loading state and provides sample transcript
  */
@@ -26,6 +34,11 @@ class DemoSessionViewModel : ViewModel() {
 
     private val _shadowingData = MutableStateFlow<ShadowingData?>(null)
     val shadowingData: StateFlow<ShadowingData?> = _shadowingData.asStateFlow()
+
+    private val _recordingData = MutableStateFlow<RecordingData?>(null)
+    val recordingData: StateFlow<RecordingData?> = _recordingData.asStateFlow()
+
+    private var recordingStartTime: Long = 0
 
     init {
         loadDummyData()
@@ -73,9 +86,16 @@ class DemoSessionViewModel : ViewModel() {
 
     fun startRecording() {
         // Dummy implementation - no actual recording in demo
+        recordingStartTime = System.currentTimeMillis()
     }
 
     fun stopRecording() {
-        // Dummy implementation
+        // Dummy implementation - calculate recording duration
+        val duration = System.currentTimeMillis() - recordingStartTime
+        _recordingData.value = RecordingData(durationMs = duration)
+    }
+
+    fun clearRecording() {
+        _recordingData.value = null
     }
 }
