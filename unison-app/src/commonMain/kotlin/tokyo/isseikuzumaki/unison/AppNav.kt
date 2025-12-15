@@ -23,8 +23,8 @@ fun AppNav(
         // Library Screen - Global scope, lightweight
         composable<LibraryDestination> {
             LibraryScreenPlatform(
-                onNavigateToSession = { uri ->
-                    navController.navigate(SessionGraph(uri))
+                onNavigateToSession = { audioUri, transcriptionUri ->
+                    navController.navigate(SessionGraph(audioUri, transcriptionUri))
                 }
             )
         }
@@ -40,7 +40,8 @@ fun AppNav(
                 val sessionGraph = parentEntry.toRoute<SessionGraph>()
 
                 RecorderScreenPlatform(
-                    uri = sessionGraph.uri,
+                    audioUri = sessionGraph.audioUri,
+                    transcriptionUri = sessionGraph.transcriptionUri,
                     onNavigateBack = {
                         navController.popBackStack<LibraryDestination>(inclusive = false)
                     },
@@ -57,7 +58,8 @@ fun AppNav(
                 val sessionGraph = parentEntry.toRoute<SessionGraph>()
 
                 SyncEditorScreen(
-                    uri = sessionGraph.uri,
+                    audioUri = sessionGraph.audioUri,
+                    transcriptionUri = sessionGraph.transcriptionUri,
                     onNavigateBack = {
                         navController.popBackStack()
                     },

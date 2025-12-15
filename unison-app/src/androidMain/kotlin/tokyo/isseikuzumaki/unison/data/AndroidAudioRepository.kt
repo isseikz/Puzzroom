@@ -238,6 +238,103 @@ class AndroidAudioRepository(
         }
     }
 
+    override suspend fun loadTranscriptionFromFile(uri: String): Result<List<TranscriptionSegment>> = withContext(Dispatchers.IO) {
+        try {
+            val androidUri = Uri.parse(uri)
+            val text = context.contentResolver.openInputStream(androidUri)?.use { inputStream ->
+                inputStream.bufferedReader().use { it.readText() }
+            } ?: return@withContext Result.failure(Exception("Failed to open file"))
+
+            // Parse JSON format: [{"start": 0.0, "end": 1.5, "text": "hello"}, ...]
+            val segments = parseTranscriptionJson(text)
+            Result.success(segments)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    private fun parseTranscriptionJson(jsonText: String): List<TranscriptionSegment> {
+        // Simple JSON parsing without external library
+        // Expected format: [{"start":0.0,"end":1.5,"text":"hello"},...]
+        val segments = mutableListOf<TranscriptionSegment>()
+
+        // Remove whitespace and outer brackets
+        val cleaned = jsonText.trim().removePrefix("[").removeSuffix("]")
+        if (cleaned.isEmpty()) return segments
+
+        // Split by objects (rough parsing)
+        var currentPos = 0
+        var braceCount = 0
+        var currentObject = StringBuilder()
+
+        for (char in cleaned) {
+            when (char) {
+                '{' -> {
+                    braceCount++
+                    currentObject.append(char)
+                }
+                '}' -> {
+                    braceCount--
+                    currentObject.append(char)
+                    if (braceCount == 0 && currentObject.isNotEmpty()) {
+                        parseSegmentObject(currentObject.toString())?.let { segments.add(it) }
+                        currentObject.clear()
+                    }
+                }
+                else -> {
+                    if (braceCount > 0) {
+                        currentObject.append(char)
+                    }
+                }
+            }
+        }
+
+        return segments
+    }
+
+    private fun parseSegmentObject(obj: String): TranscriptionSegment? {
+        try {
+            // Extract values using simple string parsing
+            var start = 0L
+            var end = 0L
+            var text = ""
+            var index = 0
+
+            // Find "start": value
+            val startMatch = """"start"\s*:\s*([\d.]+)""".toRegex().find(obj)
+            if (startMatch != null) {
+                start = (startMatch.groupValues[1].toDouble() * 1000).toLong()
+            }
+
+            // Find "end": value
+            val endMatch = """"end"\s*:\s*([\d.]+)""".toRegex().find(obj)
+            if (endMatch != null) {
+                end = (endMatch.groupValues[1].toDouble() * 1000).toLong()
+            }
+
+            // Find "text": "value"
+            val textMatch = """"text"\s*:\s*"([^"]*)"""".toRegex().find(obj)
+            if (textMatch != null) {
+                text = textMatch.groupValues[1]
+            }
+
+            // Find "index": value (optional)
+            val indexMatch = """"index"\s*:\s*(\d+)""".toRegex().find(obj)
+            if (indexMatch != null) {
+                index = indexMatch.groupValues[1].toInt()
+            }
+
+            return TranscriptionSegment(
+                text = text,
+                startTimeMs = start,
+                endTimeMs = end,
+                index = index
+            )
+        } catch (e: Exception) {
+            return null
+        }
+    }
+
     fun cleanup() {
         whisperContext?.close()
         whisperContext = null

@@ -43,7 +43,8 @@ interface RecordAudioPermissionState {
  */
 @Composable
 fun RecorderScreenPlatform(
-    uri: String,
+    audioUri: String,
+    transcriptionUri: String,
     onNavigateBack: () -> Unit,
     onNavigateToEditor: () -> Unit
 ) {
@@ -57,7 +58,8 @@ fun RecorderScreenPlatform(
 
     if (permissionState.isGranted) {
         RecorderScreen(
-            uri = uri,
+            audioUri = audioUri,
+            transcriptionUri = transcriptionUri,
             onNavigateBack = onNavigateBack,
             onNavigateToEditor = onNavigateToEditor
         )
@@ -105,11 +107,12 @@ private fun PermissionRequiredContent(
  */
 @Composable
 internal fun RecorderScreen(
-    uri: String,
+    audioUri: String,
+    transcriptionUri: String,
     onNavigateBack: () -> Unit,
     onNavigateToEditor: () -> Unit
 ) {
-    val viewModel: SessionViewModel = koinViewModel { parametersOf(uri) }
+    val viewModel: SessionViewModel = koinViewModel { parametersOf(audioUri, transcriptionUri) }
     val uiState by viewModel.uiState.collectAsState()
 
     // Auto-navigate to editor when recording is complete

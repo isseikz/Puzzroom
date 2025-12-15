@@ -20,7 +20,8 @@ import io.github.aakira.napier.Napier
  * Automatically cleaned up when user returns to Library screen
  */
 class SessionViewModel(
-    private val uri: String,
+    private val audioUri: String,
+    private val transcriptionUri: String,
     private val audioRepository: AudioRepository,
     private val audioEngine: AudioEngine
 ) : ViewModel() {
@@ -42,16 +43,16 @@ class SessionViewModel(
     val balance: StateFlow<Float> = _balance.asStateFlow()
 
     init {
-        loadAudio(uri)
+        loadAudio(audioUri, transcriptionUri)
     }
 
-    private fun loadAudio(uri: String) {
+    private fun loadAudio(audioUri: String, transcriptionUri: String) {
         viewModelScope.launch {
             _uiState.value = SessionUiState.Loading
-            audioRepository.loadPcmData(uri).fold(
+            audioRepository.loadPcmData(audioUri).fold(
                 onSuccess = { pcmData ->
                     originalPcmData = pcmData
-                    val fileName = extractFileName(uri)
+                    val fileName = extractFileName(audioUri)
                     val durationMs = audioEngine.getDurationMs(pcmData)
 
                     // Show ready state first
@@ -60,9 +61,9 @@ class SessionViewModel(
                         durationMs = durationMs
                     )
 
-                    // Start transcription in background
+                    // Load transcription from file
                     launch {
-                        audioRepository.transcribeAudio(pcmData, sampleRate = 44100).fold(
+                        audioRepository.loadTranscriptionFromFile(transcriptionUri).fold(
                             onSuccess = { segments ->
                                 transcriptionSegments = segments
                                 // Update state with transcription
@@ -74,7 +75,7 @@ class SessionViewModel(
                             },
                             onFailure = { error ->
                                 // Log error but don't fail the whole UI
-                                Napier.e("Transcription failed", error)
+                                Napier.e("Failed to load transcription", error)
                             }
                         )
                     }
@@ -101,7 +102,7 @@ class SessionViewModel(
 
                 // Update UI to recording state first
                 _uiState.value = SessionUiState.Recording(
-                    fileName = extractFileName(uri),
+                    fileName = extractFileName(audioUri),
                     durationMs = audioEngine.getDurationMs(pcm),
                     transcription = transcriptionSegments
                 )
@@ -136,7 +137,7 @@ class SessionViewModel(
             if (recordedPcmData != null) {
                 // Show processing state while transcribing
                 _uiState.value = SessionUiState.Processing(
-                    fileName = extractFileName(uri),
+                    fileName = extractFileName(audioUri),
                     message = "Transcribing your voice..."
                 )
 
@@ -147,7 +148,7 @@ class SessionViewModel(
 
                         // Update processing message
                         _uiState.value = SessionUiState.Processing(
-                            fileName = extractFileName(uri),
+                            fileName = extractFileName(audioUri),
                             message = "Calculating sync offset..."
                         )
 
@@ -162,7 +163,7 @@ class SessionViewModel(
 
                         // Update state with recorded transcription and auto-calculated offset
                         _uiState.value = SessionUiState.Editing(
-                            fileName = extractFileName(uri),
+                            fileName = extractFileName(audioUri),
                             durationMs = audioEngine.getDurationMs(originalPcmData!!),
                             offsetMs = calculatedOffset,
                             balance = _balance.value,
@@ -176,7 +177,7 @@ class SessionViewModel(
                         Napier.e("Recorded transcription failed", error)
                         // Even if transcription fails, allow user to edit with default offset
                         _uiState.value = SessionUiState.Editing(
-                            fileName = extractFileName(uri),
+                            fileName = extractFileName(audioUri),
                             durationMs = audioEngine.getDurationMs(originalPcmData!!),
                             offsetMs = 0,
                             balance = _balance.value,
@@ -235,7 +236,7 @@ class SessionViewModel(
     fun retryRecording() {
         recordedPcmData = null
         _uiState.value = SessionUiState.Ready(
-            fileName = extractFileName(uri),
+            fileName = extractFileName(audioUri),
             durationMs = audioEngine.getDurationMs(originalPcmData!!),
             transcription = transcriptionSegments
         )

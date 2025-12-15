@@ -2,6 +2,9 @@ package tokyo.isseikuzumaki.unison.screens.library
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AudioFile
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,30 +19,40 @@ import org.koin.compose.viewmodel.koinViewModel
  */
 @Composable
 expect fun LibraryScreenPlatform(
-    onNavigateToSession: (String) -> Unit,
+    onNavigateToSession: (String, String) -> Unit,
     viewModel: LibraryViewModel = koinViewModel()
 )
 
 /**
  * Library Screen - Entry point of the app
- * Allows users to select an audio file to start a shadowing session
+ * Allows users to select an audio file and its transcription to start a shadowing session
  */
 @Composable
 internal fun LibraryScreen(
-    onFileSelected: () -> Unit,
-    onNavigateToSession: (String) -> Unit,
+    onAudioFileSelected: () -> Unit,
+    onTranscriptionFileSelected: () -> Unit,
+    onStartSession: () -> Unit,
+    onNavigateToSession: (String, String) -> Unit,
     viewModel: LibraryViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    // Handle navigation when file is validated
+    // Handle navigation when files are validated
     LaunchedEffect(uiState) {
         if (uiState is LibraryUiState.Valid) {
-            val uri = (uiState as LibraryUiState.Valid).uri
-            onNavigateToSession(uri)
+            val state = uiState as LibraryUiState.Valid
+            onNavigateToSession(state.audioUri, state.transcriptionUri)
             viewModel.clearError()
         }
     }
+
+    val hasAudio = uiState is LibraryUiState.AudioSelected ||
+                   uiState is LibraryUiState.BothSelected ||
+                   uiState is LibraryUiState.Valid
+    val hasTranscription = uiState is LibraryUiState.TranscriptionSelected ||
+                           uiState is LibraryUiState.BothSelected ||
+                           uiState is LibraryUiState.Valid
+    val canStart = hasAudio && hasTranscription
 
     Scaffold(
         topBar = {
@@ -90,12 +103,103 @@ internal fun LibraryScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                // Audio File Selection Button
+                OutlinedCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onAudioFileSelected
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AudioFile,
+                                contentDescription = null,
+                                tint = if (hasAudio) MaterialTheme.colorScheme.primary
+                                      else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Column {
+                                Text(
+                                    text = "Audio File",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Text(
+                                    text = if (hasAudio) "Selected" else "Tap to select",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        if (hasAudio) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = "Selected",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+
+                // Transcription File Selection Button
+                OutlinedCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onTranscriptionFileSelected
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Description,
+                                contentDescription = null,
+                                tint = if (hasTranscription) MaterialTheme.colorScheme.primary
+                                      else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Column {
+                                Text(
+                                    text = "Transcription File",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Text(
+                                    text = if (hasTranscription) "Selected" else "Tap to select",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        if (hasTranscription) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = "Selected",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Start Session Button
                 Button(
-                    onClick = onFileSelected,
+                    onClick = onStartSession,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    enabled = uiState !is LibraryUiState.Validating
+                    enabled = canStart && uiState !is LibraryUiState.Validating
                 ) {
                     if (uiState is LibraryUiState.Validating) {
                         CircularProgressIndicator(
@@ -103,12 +207,12 @@ internal fun LibraryScreen(
                             color = MaterialTheme.colorScheme.onPrimary
                         )
                     } else {
-                        Text("Select Audio File")
+                        Text("Start Session")
                     }
                 }
 
                 Text(
-                    text = "Supported formats: MP3, AAC, WAV, and more",
+                    text = "Audio: MP3, AAC, WAV • Transcription: TXT",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

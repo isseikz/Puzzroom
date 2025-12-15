@@ -29,4 +29,12 @@ interface AudioRepository {
      * @return List of transcription segments with timestamps
      */
     suspend fun transcribeAudio(pcmData: ByteArray, sampleRate: Int = 44100): Result<List<TranscriptionSegment>>
+
+    /**
+     * Load transcription from a text file URI
+     * Expected format: JSON array of transcription segments
+     * @param uri File URI to load
+     * @return List of transcription segments with timestamps
+     */
+    suspend fun loadTranscriptionFromFile(uri: String): Result<List<TranscriptionSegment>>
 }

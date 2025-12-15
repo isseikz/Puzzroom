@@ -18,10 +18,11 @@ val viewModelModule = module {
     factoryOf(::LibraryViewModel)
 
     // SessionViewModel - Scoped to navigation graph, heavy with audio data
-    // Accepts URI as a parameter
-    factory { (uri: String) ->
+    // Accepts audio URI and transcription URI as parameters
+    factory { (audioUri: String, transcriptionUri: String) ->
         SessionViewModel(
-            uri = uri,
+            audioUri = audioUri,
+            transcriptionUri = transcriptionUri,
             audioRepository = get(),
             audioEngine = get()
         )

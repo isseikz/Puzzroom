@@ -23,12 +23,13 @@ import tokyo.isseikuzumaki.unison.screens.session.SessionViewModel
  */
 @Composable
 fun SyncEditorScreen(
-    uri: String,
+    audioUri: String,
+    transcriptionUri: String,
     onNavigateBack: () -> Unit,
     onNavigateToRecorder: () -> Unit,
     onFinish: () -> Unit
 ) {
-    val viewModel: SessionViewModel = koinViewModel { parametersOf(uri) }
+    val viewModel: SessionViewModel = koinViewModel { parametersOf(audioUri, transcriptionUri) }
     val uiState by viewModel.uiState.collectAsState()
     val offsetMs by viewModel.offsetMs.collectAsState()
     val balance by viewModel.balance.collectAsState()

@@ -5,7 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 
 /**
- * Handles file picking for audio files
+ * Handles file picking for audio and text files
  */
 class FilePicker(private val activity: ComponentActivity) {
 
@@ -21,5 +21,10 @@ class FilePicker(private val activity: ComponentActivity) {
     fun pickAudioFile(onSelected: (Uri?) -> Unit) {
         onFileSelected = onSelected
         pickFileLauncher.launch("audio/*")
+    }
+
+    fun pickTextFile(onSelected: (Uri?) -> Unit) {
+        onFileSelected = onSelected
+        pickFileLauncher.launch("text/*")
     }
 }

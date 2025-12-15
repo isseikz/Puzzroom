@@ -26,7 +26,7 @@ import org.koin.compose.viewmodel.koinViewModel
 object LibraryDestination
 
 @Serializable
-data class SessionGraph(val uri: String)
+data class SessionGraph(val audioUri: String, val transcriptionUri: String)
 
 @Serializable
 object RecorderDestination

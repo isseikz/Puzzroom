@@ -10,28 +10,37 @@ import org.koin.compose.viewmodel.koinViewModel
  */
 @Composable
 actual fun LibraryScreenPlatform(
-    onNavigateToSession: (String) -> Unit,
+    onNavigateToSession: (String, String) -> Unit,
     viewModel: LibraryViewModel
 ) {
     val filePicker = LocalFilePicker.current
     val permissionHandler = LocalPermissionHandler.current
 
     LibraryScreen(
-        onFileSelected = {
-            // Check and request permission if needed, then open file picker
+        onAudioFileSelected = {
+            // Check and request permission if needed, then open audio file picker
             if (permissionHandler.hasRecordAudioPermission()) {
                 filePicker.pickAudioFile { uri ->
-                    uri?.let { viewModel.onFileSelected(it.toString()) }
+                    uri?.let { viewModel.onAudioFileSelected(it.toString()) }
                 }
             } else {
                 permissionHandler.requestRecordAudioPermission { granted ->
                     if (granted) {
                         filePicker.pickAudioFile { uri ->
-                            uri?.let { viewModel.onFileSelected(it.toString()) }
+                            uri?.let { viewModel.onAudioFileSelected(it.toString()) }
                         }
                     }
                 }
             }
+        },
+        onTranscriptionFileSelected = {
+            // Open text file picker for transcription
+            filePicker.pickTextFile { uri ->
+                uri?.let { viewModel.onTranscriptionFileSelected(it.toString()) }
+            }
+        },
+        onStartSession = {
+            viewModel.onStartSession()
         },
         onNavigateToSession = onNavigateToSession,
         viewModel = viewModel
