@@ -40,6 +40,7 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -61,7 +62,10 @@ import tokyo.isseikuzumaki.unison.screens.session.DemoSessionViewModel
  * Unified screen for shadowing practice
  * Supports both demo mode (with dummy data) and production mode (with real audio)
  *
+ * @param viewModel ViewModel for managing session state (optional, will create if not provided)
  * @param uri Optional URI for audio file. If null, runs in demo mode with dummy data
+ * @param transcriptionUri Optional URI for transcription file
+ * @param loadTranscription Function to load transcription content from URI (platform-specific)
  * @param onNavigateBack Callback when back button is pressed (null hides back button)
  * @param onRecordingComplete Callback when user stops recording and should review it
  * @param showSeekBar Whether to show the seek bar (default true)
@@ -71,19 +75,36 @@ import tokyo.isseikuzumaki.unison.screens.session.DemoSessionViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShadowingScreen(
+    viewModel: DemoSessionViewModel? = null,
     uri: String? = null,
+    transcriptionUri: String? = null,
+    loadTranscription: (suspend (String) -> String)? = null,
     onNavigateBack: (() -> Unit)? = null,
     onRecordingComplete: (() -> Unit)? = null,
     showSeekBar: Boolean = true,
     isDemoMode: Boolean = uri == null,
     modifier: Modifier = Modifier
 ) {
-    val viewModel: DemoSessionViewModel = viewModel()
-    val shadowingData by viewModel.shadowingData.collectAsState()
+    val sessionViewModel: DemoSessionViewModel = viewModel ?: viewModel()
+    val shadowingData by sessionViewModel.shadowingData.collectAsState()
+    val currentPosition by sessionViewModel.currentPosition.collectAsState()
+    val isPlaying by sessionViewModel.isPlaying.collectAsState()
 
-    var isPlaying by remember { mutableStateOf(false) }
     var isRecording by remember { mutableStateOf(false) }
+    var isSeeking by remember { mutableStateOf(false) }
     var seekPosition by remember { mutableStateOf(0f) }
+
+    // Update seek position from playback when not manually seeking
+    if (!isSeeking) {
+        seekPosition = currentPosition.toFloat()
+    }
+
+    // Load data when URIs change
+    LaunchedEffect(uri, transcriptionUri) {
+        if (loadTranscription != null) {
+            sessionViewModel.loadShadowingData(uri, transcriptionUri, loadTranscription)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -150,7 +171,14 @@ fun ShadowingScreen(
                         ) {
                         Slider(
                             value = seekPosition,
-                            onValueChange = { seekPosition = it },
+                            onValueChange = {
+                                isSeeking = true
+                                seekPosition = it
+                            },
+                            onValueChangeFinished = {
+                                sessionViewModel.seekTo(seekPosition.toLong())
+                                isSeeking = false
+                            },
                             valueRange = 0f..shadowingData!!.durationMs.toFloat(),
                             colors = SliderDefaults.colors(
                                 thumbColor = WarmPrimary,
@@ -189,11 +217,9 @@ fun ShadowingScreen(
                         FloatingActionButton(
                             onClick = {
                                 if (isPlaying) {
-                                    viewModel.stopPreview()
-                                    isPlaying = false
+                                    sessionViewModel.stopPreview()
                                 } else {
-                                    viewModel.playPreview()
-                                    isPlaying = true
+                                    sessionViewModel.playPreview()
                                 }
                             },
                             containerColor = WarmPrimary
@@ -209,12 +235,12 @@ fun ShadowingScreen(
                         FloatingActionButton(
                             onClick = {
                                 if (isRecording) {
-                                    viewModel.stopRecording()
+                                    sessionViewModel.stopRecording()
                                     isRecording = false
                                     // Navigate to recording review screen
                                     onRecordingComplete?.invoke()
                                 } else {
-                                    viewModel.startRecording()
+                                    sessionViewModel.startRecording()
                                     isRecording = true
                                 }
                             },
@@ -331,7 +357,9 @@ fun ShadowingScreen(
 
                         // Transcript card
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(400.dp),
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceVariant
                             ),
@@ -348,11 +376,17 @@ fun ShadowingScreen(
 
                                 VerticalSpacer(height = 12.dp)
 
-                                AppText(
-                                    text = shadowingData!!.transcript,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .verticalScroll(rememberScrollState())
+                                ) {
+                                    AppText(
+                                        text = shadowingData!!.transcript,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
 

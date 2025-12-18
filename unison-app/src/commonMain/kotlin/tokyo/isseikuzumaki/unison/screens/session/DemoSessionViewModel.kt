@@ -7,6 +7,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
+import tokyo.isseikuzumaki.unison.audio.AudioPlayer
 
 /**
  * Data class combining transcript metadata for shadowing
@@ -30,7 +33,9 @@ data class RecordingData(
  * Demo ViewModel for testing ShadowingScreen with dummy data
  * Simulates loading state and provides sample transcript
  */
-class DemoSessionViewModel : ViewModel() {
+class DemoSessionViewModel(
+    private val audioPlayer: AudioPlayer? = null
+) : ViewModel() {
 
     private val _shadowingData = MutableStateFlow<ShadowingData?>(null)
     val shadowingData: StateFlow<ShadowingData?> = _shadowingData.asStateFlow()
@@ -38,10 +43,92 @@ class DemoSessionViewModel : ViewModel() {
     private val _recordingData = MutableStateFlow<RecordingData?>(null)
     val recordingData: StateFlow<RecordingData?> = _recordingData.asStateFlow()
 
+    private val _currentPosition = MutableStateFlow(0L)
+    val currentPosition: StateFlow<Long> = _currentPosition.asStateFlow()
+
+    private val _isPlaying = MutableStateFlow(false)
+    val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
+
     private var recordingStartTime: Long = 0
+    private var currentAudioUri: String? = null
+    private var positionTrackingJob: Job? = null
 
     init {
         loadDummyData()
+
+        // Set up audio player completion listener
+        audioPlayer?.setOnCompletionListener {
+            _isPlaying.value = false
+            stopPositionTracking()
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopPositionTracking()
+        audioPlayer?.release()
+    }
+
+    /**
+     * Start tracking playback position in real-time
+     */
+    private fun startPositionTracking() {
+        stopPositionTracking()
+        positionTrackingJob = viewModelScope.launch {
+            while (isActive && audioPlayer?.isPlaying() == true) {
+                _currentPosition.value = audioPlayer?.getCurrentPosition() ?: 0L
+                delay(100) // Update every 100ms
+            }
+        }
+    }
+
+    /**
+     * Stop tracking playback position
+     */
+    private fun stopPositionTracking() {
+        positionTrackingJob?.cancel()
+        positionTrackingJob = null
+    }
+
+    /**
+     * Load shadowing data from provided URIs
+     * @param audioUri URI of the audio file
+     * @param transcriptionUri URI of the transcription file
+     * @param loadTranscription Function to load transcription content from URI
+     */
+    fun loadShadowingData(
+        audioUri: String?,
+        transcriptionUri: String?,
+        loadTranscription: suspend (String) -> String
+    ) {
+        viewModelScope.launch {
+            if (audioUri != null && transcriptionUri != null) {
+                try {
+                    currentAudioUri = audioUri
+                    val transcriptionContent = loadTranscription(transcriptionUri)
+                    val fileName = audioUri.substringAfterLast("/")
+
+                    // Load the audio file and get its duration
+                    val duration = if (audioPlayer != null) {
+                        audioPlayer.load(audioUri)
+                    } else {
+                        0L
+                    }
+
+                    _shadowingData.value = ShadowingData(
+                        transcript = transcriptionContent,
+                        durationMs = duration,
+                        fileName = fileName
+                    )
+                } catch (e: Exception) {
+                    // Handle error - could add error state to ViewModel
+                    e.printStackTrace()
+                }
+            } else {
+                // No URIs provided, load dummy data
+                loadDummyData()
+            }
+        }
     }
 
     private fun loadDummyData() {
@@ -77,11 +164,20 @@ class DemoSessionViewModel : ViewModel() {
     }
 
     fun playPreview() {
-        // Dummy implementation - no actual audio playback in demo
+        audioPlayer?.play()
+        _isPlaying.value = true
+        startPositionTracking()
     }
 
     fun stopPreview() {
-        // Dummy implementation
+        audioPlayer?.pause()
+        _isPlaying.value = false
+        stopPositionTracking()
+    }
+
+    fun seekTo(positionMs: Long) {
+        audioPlayer?.seekTo(positionMs)
+        _currentPosition.value = positionMs
     }
 
     fun startRecording() {
