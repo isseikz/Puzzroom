@@ -17,10 +17,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import tokyo.isseikuzumaki.unison.audio.createAudioPlayer
+import tokyo.isseikuzumaki.unison.audio.createAudioRecorder
 import tokyo.isseikuzumaki.unison.screens.fileselection.FileSelectionScreen
 import tokyo.isseikuzumaki.unison.screens.review.RecordingReviewScreen
 import tokyo.isseikuzumaki.unison.screens.session.DemoSessionViewModel
 import tokyo.isseikuzumaki.unison.screens.shadowing.ShadowingScreen
+import java.io.File
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,9 +38,21 @@ class MainActivity : ComponentActivity() {
 fun UnisonApp() {
     val context = LocalContext.current
 
-    // Create AudioPlayer and ViewModel with it
+    // Create recording output path generator
+    val getRecordingOutputPath: () -> String = {
+        val recordingsDir = File(context.filesDir, "recordings")
+        recordingsDir.mkdirs()
+        val timestamp = System.currentTimeMillis()
+        File(recordingsDir, "recording_$timestamp.m4a").absolutePath
+    }
+
+    // Create AudioPlayer, AudioRecorder, and ViewModel with them
     val viewModel: DemoSessionViewModel = viewModel {
-        DemoSessionViewModel(createAudioPlayer(context))
+        DemoSessionViewModel(
+            audioPlayer = createAudioPlayer(context),
+            audioRecorder = createAudioRecorder(context),
+            getRecordingOutputPath = getRecordingOutputPath
+        )
     }
     val shadowingData by viewModel.shadowingData.collectAsState()
     val recordingData by viewModel.recordingData.collectAsState()

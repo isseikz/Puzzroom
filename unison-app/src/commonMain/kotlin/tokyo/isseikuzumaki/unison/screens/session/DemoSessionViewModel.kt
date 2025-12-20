@@ -10,6 +10,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
 import tokyo.isseikuzumaki.unison.audio.AudioPlayer
+import tokyo.isseikuzumaki.unison.audio.AudioRecorder
 
 /**
  * Data class combining transcript metadata for shadowing
@@ -26,6 +27,7 @@ data class ShadowingData(
  */
 data class RecordingData(
     val durationMs: Long,
+    val audioFilePath: String,
     val timestamp: Long = System.currentTimeMillis()
 )
 
@@ -34,7 +36,9 @@ data class RecordingData(
  * Simulates loading state and provides sample transcript
  */
 class DemoSessionViewModel(
-    private val audioPlayer: AudioPlayer? = null
+    private val audioPlayer: AudioPlayer? = null,
+    private val audioRecorder: AudioRecorder? = null,
+    private val getRecordingOutputPath: (() -> String)? = null
 ) : ViewModel() {
 
     private val _shadowingData = MutableStateFlow<ShadowingData?>(null)
@@ -52,6 +56,7 @@ class DemoSessionViewModel(
     private var recordingStartTime: Long = 0
     private var currentAudioUri: String? = null
     private var positionTrackingJob: Job? = null
+    private var currentRecordingPath: String? = null
 
     init {
         loadDummyData()
@@ -67,6 +72,7 @@ class DemoSessionViewModel(
         super.onCleared()
         stopPositionTracking()
         audioPlayer?.release()
+        audioRecorder?.release()
     }
 
     /**
@@ -181,14 +187,44 @@ class DemoSessionViewModel(
     }
 
     fun startRecording() {
-        // Dummy implementation - no actual recording in demo
-        recordingStartTime = System.currentTimeMillis()
+        if (audioRecorder != null && getRecordingOutputPath != null) {
+            // Real recording implementation
+            recordingStartTime = System.currentTimeMillis()
+            currentRecordingPath = getRecordingOutputPath()
+            val success = audioRecorder.startRecording(currentRecordingPath!!)
+            if (!success) {
+                println("Failed to start recording")
+                currentRecordingPath = null
+            }
+        } else {
+            // Fallback to dummy implementation for demo mode
+            recordingStartTime = System.currentTimeMillis()
+        }
     }
 
     fun stopRecording() {
-        // Dummy implementation - calculate recording duration
-        val duration = System.currentTimeMillis() - recordingStartTime
-        _recordingData.value = RecordingData(durationMs = duration)
+        if (audioRecorder != null && currentRecordingPath != null) {
+            // Real recording implementation
+            val filePath = audioRecorder.stopRecording()
+            val duration = System.currentTimeMillis() - recordingStartTime
+
+            if (filePath != null) {
+                _recordingData.value = RecordingData(
+                    durationMs = duration,
+                    audioFilePath = filePath
+                )
+            } else {
+                println("Failed to stop recording or save file")
+            }
+            currentRecordingPath = null
+        } else {
+            // Fallback to dummy implementation for demo mode
+            val duration = System.currentTimeMillis() - recordingStartTime
+            _recordingData.value = RecordingData(
+                durationMs = duration,
+                audioFilePath = "" // Empty path for demo mode
+            )
+        }
     }
 
     fun clearRecording() {

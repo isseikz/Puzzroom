@@ -57,6 +57,7 @@ import tokyo.isseikuzumaki.shared.ui.atoms.AppText
 import tokyo.isseikuzumaki.shared.ui.theme.WarmError
 import tokyo.isseikuzumaki.shared.ui.theme.WarmPrimary
 import tokyo.isseikuzumaki.unison.screens.session.DemoSessionViewModel
+import tokyo.isseikuzumaki.unison.screens.session.RecordingData
 
 /**
  * Unified screen for shadowing practice
@@ -67,7 +68,7 @@ import tokyo.isseikuzumaki.unison.screens.session.DemoSessionViewModel
  * @param transcriptionUri Optional URI for transcription file
  * @param loadTranscription Function to load transcription content from URI (platform-specific)
  * @param onNavigateBack Callback when back button is pressed (null hides back button)
- * @param onRecordingComplete Callback when user stops recording and should review it
+ * @param onRecordingComplete Callback when user stops recording and should review it, receives RecordingData
  * @param showSeekBar Whether to show the seek bar (default true)
  * @param isDemoMode Whether to show demo banner (default based on uri)
  * @param modifier Modifier for the screen
@@ -80,13 +81,14 @@ fun ShadowingScreen(
     transcriptionUri: String? = null,
     loadTranscription: (suspend (String) -> String)? = null,
     onNavigateBack: (() -> Unit)? = null,
-    onRecordingComplete: (() -> Unit)? = null,
+    onRecordingComplete: ((RecordingData) -> Unit)? = null,
     showSeekBar: Boolean = true,
     isDemoMode: Boolean = uri == null,
     modifier: Modifier = Modifier
 ) {
     val sessionViewModel: DemoSessionViewModel = viewModel ?: viewModel()
     val shadowingData by sessionViewModel.shadowingData.collectAsState()
+    val recordingData by sessionViewModel.recordingData.collectAsState()
     val currentPosition by sessionViewModel.currentPosition.collectAsState()
     val isPlaying by sessionViewModel.isPlaying.collectAsState()
 
@@ -237,8 +239,10 @@ fun ShadowingScreen(
                                 if (isRecording) {
                                     sessionViewModel.stopRecording()
                                     isRecording = false
-                                    // Navigate to recording review screen
-                                    onRecordingComplete?.invoke()
+                                    // Navigate to recording review screen with recording data
+                                    recordingData?.let { data ->
+                                        onRecordingComplete?.invoke(data)
+                                    }
                                 } else {
                                     sessionViewModel.startRecording()
                                     isRecording = true
