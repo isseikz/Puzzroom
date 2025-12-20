@@ -7,6 +7,11 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinx.serialization)
     alias(libs.plugins.google.services)
+    alias(libs.plugins.androidGitVersion)
+}
+
+androidGitVersion {
+    format = "%tag%%-count%%-commit%"
 }
 
 kotlin {
@@ -80,8 +85,8 @@ android {
         applicationId = "tokyo.isseikuzumaki.quickdeploy"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = androidGitVersion.code()
+        versionName = androidGitVersion.name()
     }
 
     signingConfigs {
