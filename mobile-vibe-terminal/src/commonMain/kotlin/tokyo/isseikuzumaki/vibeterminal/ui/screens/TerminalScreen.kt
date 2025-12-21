@@ -1,10 +1,12 @@
 package tokyo.isseikuzumaki.vibeterminal.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -24,6 +26,7 @@ import org.koin.compose.koinInject
 import tokyo.isseikuzumaki.vibeterminal.domain.model.ConnectionConfig
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.TerminalScreenModel
+import tokyo.isseikuzumaki.vibeterminal.ui.utils.AnsiParser
 
 data class TerminalScreen(
     val config: ConnectionConfig
@@ -101,8 +104,7 @@ data class TerminalScreen(
                 ) {
                     items(state.logLines) { line ->
                         Text(
-                            text = line,
-                            color = Color(0xFF00FF00),
+                            text = AnsiParser.parse(line),
                             fontFamily = FontFamily.Monospace,
                             fontSize = 12.sp,
                             modifier = Modifier.fillMaxWidth()
@@ -119,52 +121,101 @@ data class TerminalScreen(
                     }
                 }
 
-                // Input Field
+                // Buffered Input Deck with Macro Row
                 if (state.isConnected) {
                     var inputText by remember { mutableStateOf("") }
 
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(Color(0xFF1A1A1A))
-                            .padding(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        TextField(
-                            value = inputText,
-                            onValueChange = { inputText = it },
-                            placeholder = { Text("Enter command...", color = Color.Gray) },
-                            colors = TextFieldDefaults.colors(
-                                focusedTextColor = Color(0xFF00FF00),
-                                unfocusedTextColor = Color(0xFF00FF00),
-                                focusedContainerColor = Color.Black,
-                                unfocusedContainerColor = Color.Black,
-                                cursorColor = Color(0xFF00FF00)
-                            ),
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            textStyle = androidx.compose.ui.text.TextStyle(
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 14.sp
-                            )
-                        )
-
-                        Button(
-                            onClick = {
-                                screenModel.sendCommand(inputText)
-                                inputText = ""
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF00FF00),
-                                contentColor = Color.Black
-                            ),
-                            modifier = Modifier.padding(start = 8.dp)
+                        // Macro Row - Common terminal keys
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState())
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Text("Send")
+                            MacroButton("ESC") { screenModel.sendCommand("\u001B") }
+                            MacroButton("TAB") { screenModel.sendCommand("\t") }
+                            MacroButton("CTRL+C") { screenModel.sendCommand("\u0003") }
+                            MacroButton("CTRL+D") { screenModel.sendCommand("\u0004") }
+                            MacroButton("CTRL+Z") { screenModel.sendCommand("\u001A") }
+                            MacroButton("|") { inputText += "|" }
+                            MacroButton("->") { inputText += " -> " }
+                            MacroButton("&&") { inputText += " && " }
+                            MacroButton("||") { inputText += " || " }
+                            MacroButton("~/") { inputText += "~/" }
+                            MacroButton("../") { inputText += "../" }
+                        }
+
+                        HorizontalDivider(color = Color(0xFF00FF00).copy(alpha = 0.3f), thickness = 1.dp)
+
+                        // Buffered Input Field
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = inputText,
+                                onValueChange = { inputText = it },
+                                placeholder = { Text("Enter command...", color = Color.Gray) },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color(0xFF00FF00),
+                                    unfocusedTextColor = Color(0xFF00FF00),
+                                    focusedContainerColor = Color.Black,
+                                    unfocusedContainerColor = Color.Black,
+                                    cursorColor = Color(0xFF00FF00),
+                                    focusedBorderColor = Color(0xFF00FF00),
+                                    unfocusedBorderColor = Color(0xFF00FF00).copy(alpha = 0.5f)
+                                ),
+                                modifier = Modifier.weight(1f),
+                                textStyle = androidx.compose.ui.text.TextStyle(
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 14.sp
+                                )
+                            )
+
+                            Button(
+                                onClick = {
+                                    screenModel.sendCommand(inputText)
+                                    inputText = ""
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF00FF00),
+                                    contentColor = Color.Black
+                                ),
+                                modifier = Modifier.padding(start = 8.dp)
+                            ) {
+                                Text("Send", fontSize = 14.sp)
+                            }
                         }
                     }
                 }
             }
+        }
+    }
+
+    @Composable
+    private fun MacroButton(label: String, onClick: () -> Unit) {
+        Button(
+            onClick = onClick,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF2A2A2A),
+                contentColor = Color(0xFF00FF00)
+            ),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+            modifier = Modifier.height(36.dp)
+        ) {
+            Text(
+                text = label,
+                fontSize = 12.sp,
+                fontFamily = FontFamily.Monospace
+            )
         }
     }
 }
