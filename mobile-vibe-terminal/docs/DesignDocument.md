@@ -197,9 +197,9 @@ FCMや外部ストレージを使わず、SSH接続だけでデプロイを完�
 
 ### Phase 3: Magic Deploy (デプロイ機能)
 
-* [ ] ログ監視ロジック (Regex Watcher) の実装。
-* [ ] SFTP ダウンロード機能の実装。
-* [ ] Android `PackageInstaller` 連携の実装。
+* [x] ログ監視ロジック (Regex Watcher) の実装。
+* [x] SFTP ダウンロード機能の実装。
+* [x] Android `PackageInstaller` 連携の実装。
 
 ### Phase 4: Explorer & Polish (完成度向上)
 
