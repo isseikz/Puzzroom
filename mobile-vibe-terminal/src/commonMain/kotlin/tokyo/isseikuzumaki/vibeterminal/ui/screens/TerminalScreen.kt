@@ -3,9 +3,6 @@ package tokyo.isseikuzumaki.vibeterminal.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -22,12 +19,10 @@ import androidx.compose.runtime.remember
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import tokyo.isseikuzumaki.vibeterminal.domain.model.ConnectionConfig
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.TerminalScreenModel
-import tokyo.isseikuzumaki.vibeterminal.ui.utils.AnsiParser
 import tokyo.isseikuzumaki.vibeterminal.ui.components.FileExplorerSheet
 import tokyo.isseikuzumaki.vibeterminal.ui.components.CodeViewerSheet
 
@@ -129,34 +124,19 @@ data class TerminalScreen(
                     )
                 }
 
-                // Terminal Output
-                val listState = rememberLazyListState()
-                val coroutineScope = rememberCoroutineScope()
-
-                LazyColumn(
-                    state = listState,
+                // Terminal Output - Screen Buffer Rendering
+                Box(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
                         .padding(8.dp)
                 ) {
-                    items(state.logLines) { line ->
-                        Text(
-                            text = AnsiParser.parse(line),
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 12.sp,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-
-                // Auto-scroll to bottom when new lines arrive
-                LaunchedEffect(state.logLines.size) {
-                    if (state.logLines.isNotEmpty()) {
-                        coroutineScope.launch {
-                            listState.animateScrollToItem(state.logLines.size - 1)
-                        }
-                    }
+                    TerminalBufferView(
+                        screenBuffer = state.screenBuffer,
+                        cursorRow = state.cursorRow,
+                        cursorCol = state.cursorCol,
+                        bufferUpdateCounter = state.bufferUpdateCounter
+                    )
                 }
 
                 // Buffered Input Deck with Macro Row
@@ -275,5 +255,74 @@ data class TerminalScreen(
                 fontFamily = FontFamily.Monospace
             )
         }
+    }
+
+    @Composable
+    private fun TerminalBufferView(
+        screenBuffer: Array<Array<tokyo.isseikuzumaki.vibeterminal.terminal.TerminalCell>>,
+        cursorRow: Int,
+        cursorCol: Int,
+        bufferUpdateCounter: Int
+    ) {
+        // Force recomposition when buffer updates
+        key(bufferUpdateCounter) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                if (screenBuffer.isEmpty()) {
+                    // Show empty state
+                    Text(
+                        text = "Initializing terminal...",
+                        color = Color.Gray,
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 12.sp
+                    )
+                } else {
+                    // Render each row of the terminal
+                    screenBuffer.forEachIndexed { rowIndex, row ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            row.forEachIndexed { colIndex, cell ->
+                                TerminalCellView(
+                                    cell = cell,
+                                    isCursor = rowIndex == cursorRow && colIndex == cursorCol
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun TerminalCellView(
+        cell: tokyo.isseikuzumaki.vibeterminal.terminal.TerminalCell,
+        isCursor: Boolean
+    ) {
+        val backgroundColor = if (isCursor) {
+            Color(0xFF00FF00)  // Green cursor
+        } else {
+            cell.backgroundColor
+        }
+
+        val foregroundColor = if (isCursor) {
+            Color.Black  // Black text on green cursor
+        } else {
+            cell.foregroundColor
+        }
+
+        Text(
+            text = cell.char.toString(),
+            color = foregroundColor,
+            fontFamily = FontFamily.Monospace,
+            fontSize = 12.sp,
+            modifier = Modifier.background(backgroundColor),
+            style = androidx.compose.ui.text.TextStyle(
+                fontWeight = if (cell.isBold) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal,
+                textDecoration = if (cell.isUnderline) androidx.compose.ui.text.style.TextDecoration.Underline else null
+            )
+        )
     }
 }

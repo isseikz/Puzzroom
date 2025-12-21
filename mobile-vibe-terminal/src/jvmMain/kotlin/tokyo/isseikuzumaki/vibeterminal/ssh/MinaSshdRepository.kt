@@ -204,21 +204,25 @@ class MinaSshdRepository : SshRepository {
             return@callbackFlow
         }
 
-        val bufferedReader = BufferedReader(InputStreamReader(reader))
+        val inputStreamReader = InputStreamReader(reader, Charsets.UTF_8)
+        val buffer = CharArray(1024)
 
         try {
             while (isConnected()) {
-                val line = bufferedReader.readLine() ?: break
-                trySend(line)
+                val charsRead = inputStreamReader.read(buffer)
+                if (charsRead == -1) break
+
+                val chunk = String(buffer, 0, charsRead)
+                trySend(chunk)
             }
         } catch (e: Exception) {
             // Connection closed or read error
         } finally {
-            bufferedReader.close()
+            inputStreamReader.close()
             close()
         }
 
-        awaitClose { bufferedReader.close() }
+        awaitClose { inputStreamReader.close() }
     }
 
     override suspend fun sendInput(input: String) {
