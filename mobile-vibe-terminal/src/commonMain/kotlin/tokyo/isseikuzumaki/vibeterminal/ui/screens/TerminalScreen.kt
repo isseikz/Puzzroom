@@ -160,10 +160,14 @@ data class TerminalScreen(
 
                     // Trigger resize only when:
                     // 1. Connection is fully established
-                    // 2. Size is valid (> 0)
-                    // 3. Size differs from initial 80x24
+                    // 2. Shell has had time to initialize (wait 2s after connection)
+                    // 3. Size is valid (> 0)
+                    // 4. Size differs from initial 80x24
                     LaunchedEffect(cols, rows, state.isConnected) {
                         if (state.isConnected && cols > 0 && rows > 0) {
+                            // Wait for shell initialization (prompt to appear)
+                            kotlinx.coroutines.delay(2000)
+
                             // Only resize if different from standard size
                             if (cols != 80 || rows != 24) {
                                 screenModel.resize(cols, rows, widthPx, heightPx)
