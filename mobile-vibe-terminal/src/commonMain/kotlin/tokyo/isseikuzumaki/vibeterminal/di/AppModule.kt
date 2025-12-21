@@ -5,7 +5,7 @@ import tokyo.isseikuzumaki.vibeterminal.viewmodel.ConnectionListScreenModel
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.TerminalScreenModel
 
 val appModule = module {
-    factory { ConnectionListScreenModel() }
+    factory { ConnectionListScreenModel(connectionRepository = get()) }
 
     factory { params ->
         TerminalScreenModel(
