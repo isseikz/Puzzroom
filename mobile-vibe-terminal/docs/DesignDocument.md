@@ -191,9 +191,9 @@ FCMや外部ストレージを使わず、SSH接続だけでデプロイを完�
 
 ### Phase 2: The "Vibe" UI (UX向上)
 
-* [ ] **Buffered Input Deck** (Gboard連携) の実装。
-* [ ] ANSIカラーパースの実装。
-* [ ] Macro Rowの実装。
+* [x] **Buffered Input Deck** (Gboard連携) の実装。
+* [x] ANSIカラーパースの実装。
+* [x] Macro Rowの実装。
 
 ### Phase 3: Magic Deploy (デプロイ機能)
 
