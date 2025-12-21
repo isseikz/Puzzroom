@@ -1,7 +1,7 @@
-# 📱 Mobile Vibe Terminal - Master Design Document
+#  Mobile Vibe Terminal - Master Design Document
 
-**Project Name:** Vibe Terminal (Code Name: `vertical-vibe`)
-**Version:** 2.2.0 (Explorer & Polish Complete)
+**Project Name:** Mobile Vibe Terminal (Code Name: `mobile-vibe`)
+**Version:** 2.4.0 (Security & Compatibility Update)
 **Date:** 2025-12-21
 **Target Platform:** Android (Primary), Desktop/JVM (Secondary), **iOS (Future)**
 **Language:** Kotlin (Kotlin Multiplatform)
@@ -11,22 +11,22 @@
 ### 1.1 コンセプト: "Vertical Vibe Coding"
 
 スマートフォン（縦画面）での開発体験を再定義する、AI時代のSSHクライアント。
-Claude Code 等の **Agentic AI** をバックエンドで動かすことを前提とし、フロントエンドは「AIへの指示(Chat)」「コード確認(View)」「動作検証(Deploy)」を、**アプリを切り替えることなくシームレスに完結させる**ことを目的とする。
+Claude Code 等の **Agentic AI** をバックエンドで動かすことを前提とし、フロントエンドは「AIへの指示(Chat)」「コード確認(View)」「動作検証(Deploy)」を、**アプリを切り替えることなくシームレスに完結させる**ことを目的とす。
 
 ### 1.2 解決する課題 (Core Problems & Solutions)
 
-| 課題領域 | 現状の課題 | Vibe Terminal の解決策 |
+| 課題領域 | 現状の課題 | Mobile Vibe Terminal の解決策 |
 | --- | --- | --- |
-| **Input** | ターミナルでの1文字ずつの入力やコピペ作業が苦痛。 | **Buffered Input UI**: Gboard（グライド/音声入力）をフル活用できる入力エリアを採用。 |
+| **Input** | ターミナルでの1文字ずつの入力やコピペ作業が苦痛。 | **Hybrid Input UI**: Gboardのバッファ入力と、制御キーの即時送信を組み合わせた入力システム。 |
 | **Review** | コード確認のためにVimを開いたりアプリを切り替えると文脈が切れる。 | **Code Peek Overlay**: SSH経由でファイルを裏読みし、モーダルでサッと確認できるビューアを搭載。 |
 | **Deploy** | APK転送のためにクラウドやFCMアプリを経由し、AIに余計な指示が必要。 | **Magic Trigger Deploy**: ビルド完了ログを検知し、SFTPで直接APKをDL＆インストールする機能を統合。 |
-| **Vibe** | 既存アプリは事務的で、開発の気分（Vibe）が上がらない。 | **Neon Focus UI**: サイバーパンク/モダンな美学を取り入れた没入感あるUI。 |
+| **Persistence** | バックグラウンドに行くと接続が切れる。 | **Keep-Alive Service**: フォアグラウンドサービスによる接続維持、セキュアな自動再接続。 |
 
 ---
 
 ## 2. システムアーキテクチャ (Technical Architecture)
 
-Kotlin Multiplatform (KMP) を採用。共通ロジックを最大化しつつ、プラットフォーム固有機能（SSH実装、インストーラー）を抽象化して扱う。
+Kotlin Multiplatform (KMP) を採用。共通ロジックを最大化しつつ、プラットフォーム固有機能（SSH実装、セキュリティ、サービス）を抽象化して扱う。
 
 ### 2.1 技術スタック (Tech Stack)
 
@@ -36,11 +36,10 @@ Kotlin Multiplatform (KMP) を採用。共通ロジックを最大化しつつ�
 | **UI Framework** | **Compose Multiplatform** | Android/Desktop/iOSでUIコードを共有。 |
 | **Navigation** | **Voyager** | KMP標準のナビゲーション。ScreenModelによるMVVMを実現。 |
 | **DI** | **Koin** | アノテーション不要、DSLベースでKMP設定が容易。 |
-| **Database** | **Room (KMP)** | Android/iOS/Desktop共通でSQLiteを使用。 |
-| **SSH Core** | **Apache MINA** (Android/JVM)<br>
-
-<br>**NMSSH/Libssh2** (iOS) | プラットフォームごとに最適な実装を `expect/actual` で切り替え。 |
-| **Settings** | **DataStore** | キーバリュー設定の保存。 |
+| **Database** | **Room (KMP)** | SQLiteの抽象化。サーバー設定の永続化に使用。 |
+| **Persistence** | **DataStore** | `SharedPreferences` のモダンな代替。設定保存用。 |
+| **Security** | **Android Keystore** | 暗号鍵のハードウェア管理。認証情報の保護に使用。 |
+| **SSH Core** | **Apache MINA** (Android/JVM) | 非同期処理に強く、xterm準拠の実装が可能。 |
 
 ### 2.2 モジュール構成図
 
@@ -50,25 +49,22 @@ graph TD
         UI[<b>UI Layer</b><br>Compose Screens<br>Voyager Nav]
         VM[<b>ScreenModel</b><br>ViewModel Logic]
         Domain[<b>Domain Layer</b><br>Interfaces (SshRepo)<br>DeployUseCase]
-        Data[<b>Data Layer</b><br>Room DB<br>Settings]
+        Data[<b>Data Layer</b><br>Room DB<br>DataStore]
     end
 
     subgraph "Android (androidMain)"
-        Mina[<b>Apache MINA SSHD</b><br>Java Implementation]
-        InstallerA[<b>Package Installer</b><br>Android API]
-    end
-
-    subgraph "iOS (iosMain - Future)"
-        NativeSSH[<b>Native SSH Wrapper</b><br>Swift/C Interop]
-        InstallerI[<b>AltStore / TestFlight</b><br>Manual Install Support]
+        Mina[<b>Apache MINA SSHD</b>]
+        InstallerA[<b>Package Installer</b>]
+        Service[<b>Foreground Service</b><br>Connection Keep-Alive]
+        KeyStore[<b>Android Keystore</b><br>Credential Encryption]
     end
 
     UI --> VM
     VM --> Domain
     Domain --> Data
     Domain -.-> Mina
-    Domain -.-> NativeSSH
-    Domain -.-> InstallerA
+    Domain -.-> Service
+    Data -.-> KeyStore
 
 ```
 
@@ -83,7 +79,7 @@ graph TD
 ```mermaid
 graph LR
     Launch((Launch)) --> Connection[<b>Connection Mgr</b><br>Server Grid]
-    Connection -->|Connect| Terminal[<b>Main Terminal</b><br>Chat & Log & Deploy]
+    Connection -->|Connect| Terminal[<b>Main Terminal</b><br>Chat/xterm Mode]
     
     Terminal -->|Swipe/Btn| FileSheet[<b>File Explorer</b><br>Half Modal]
     FileSheet -->|Tap File| CodeSheet[<b>Code Viewer</b><br>Full Modal]
@@ -96,71 +92,62 @@ graph LR
 
 ### 3.2 詳細要件
 
-#### A. Main Terminal (The Core)
+#### A. Main Terminal (Core Experience)
 
-* **Log Area:** `LazyColumn(reverseLayout=true)`。ANSIカラーをComposeで描画。
-* **Magic Trigger Overlay:**
-* ビルド完了ログを検知した際、画面右下に「🚀 Deploy Ready」FAB (Floating Action Button) を出現させる。
+* **Display Modes:** 以下の2モードを動的に切り替える。
+1. **Chat Mode (Default):** `LazyColumn` ベース。過去の履歴を閲覧可能。Claude Code の出力に適している。
+2. **xterm Mode (Application Mode):** `Canvas` または固定Textベース。`byobu`, `vim`, `tmux` が "Alternate Screen Buffer" を要求した際に切り替わる。全画面描画。
 
 
-* **Buffered Input:**
-* 画面下部に `OutlinedTextField`。
-* 「Send」ボタン押下時にのみSSHへ送信。
+* **Hybrid Input System:**
+* **Buffer Field:** 通常の文字入力用。
+* **Direct Keys:** `TAB`, `CTRL`, `ESC`, `Arrow Keys` はバッファを経由せず即時送信。
 
 
 * **Macro Row:** キーボード上部に `ESC`, `TAB`, `CTRL+C`, `|`, `->` 等を配置。
 
 #### B. File Explorer & Viewer
 
-* **Explorer:** `ModalBottomSheet`。パンくずリスト（Breadcrumbs）による階層移動。
-* **Viewer:** シンタックスハイライト付きのリードオンリービュー。
-* SSHとは別のSFTPチャンネルで非同期にコンテンツを取得。
-
-
+* **Explorer:** `ModalBottomSheet`。パンくずリスト（Breadcrumbs）。
+* **Smart Initial Path:** デフォルトはホームディレクトリ(`~`)。可能であればターミナルの `pwd` に同期。
 
 #### C. Connection Manager
 
-* グリッドレイアウトのカード表示。サーバー接続情報のCRUD。
+* グリッドレイアウトのカード表示。
+* パスワード/鍵パスフレーズは `******` で表示（内部的には暗号化保存）。
 
 ---
 
 ## 4. 機能詳細 (Logic Specification)
 
-### 4.1 SSH通信フロー (Interface Base)
+### 4.1 SSH通信 & エミュレーション
 
-* `SshRepository` インターフェースを定義し、プラットフォームごとの実装を隠蔽する。
-* **Android/Desktop:** Apache MINA SSHD を使用。
-* **iOS:** 将来的に `NMSSH` や `libssh2` のKotlinラッパーを使用。
-
-
-
-### 4.2 Native Quick Deploy
-
-FCMや外部ストレージを使わず、SSH接続だけでデプロイを完結させる。
-
-**フロー:**
-
-1. **Server Side:** ビルドスクリプトが完了時に特定のマーカーを出力する。
-* 例: `>> VIBE_DEPLOY: ./app/build/outputs/apk/debug/app-debug.apk`
+* **Session Persistence:**
+* Androidの **Foreground Service** を使用し、アプリがバックグラウンドに回ってもSSHセッショを切断しない（通知領域に常駐）。
+* ネットワーク切断時の自動再接続ロジック。
 
 
-2. **App Logic (Regex Watcher):**
-* ターミナルログを常時正規表現監視: `/>> VIBE_DEPLOY: (.*\.apk)/`
+* **xterm-256color Compliance:**
+* 接続時に環境変数 `TERM=xterm-256color` を送信。
+* Alternate Screen Buffer シーケンス (`\e[?1049h`) 対応。
+* Window Resize Signal (`SIGWINCH`) 対応。
 
 
-3. **Trigger:**
-* マッチしたら、UIに通知（FAB出現 or トースト）。
+
+### 4.2 Security (Credential Storage)
+
+* **Encryption Strategy:**
+* 生のパスワードをDataStoreやDBに保存しない。
+* **Android Keystore** で `AES/GCM/NoPadding` の鍵ペアを生成・管理。
+* 認証情報は暗号化されたバイト列として **DataStore** に保存する。
+* `EncryptedSharedPreferences` は使用しない。
 
 
-4. **Download:**
-* ユーザー承認後、SFTPで対象パスのAPKをアプリ内キャッシュ領域にダウンロード。
 
+### 4.3 Native Quick Deploy
 
-5. **Install:**
-* Android `PackageInstaller` を起動し、インストール画面を表示。
-* (iOSの場合、ipaファイルの共有シートを表示する等の代替動作)
-
-
+* **Logic:** ログ `>> VIBE_DEPLOY: (path)` を監視 → SFTPダウンロード → `PackageInstaller` 起動。
+* **Permissions:** `REQUEST_INSTALL_PACKAGES` および `POST_NOTIFICATIONS` (Android 13+)。
 
 ---
 
@@ -171,149 +158,67 @@ FCMや外部ストレージを使わず、SSH接続だけでデプロイを完�
 | Column | Type | Note |
 | --- | --- | --- |
 | `id` | Long (PK) | Auto Increment |
-| `alias` | String | 表示名 (例: My VPS) |
-| `host` | String | IP address / Domain |
+| `alias` | String | 表示名 |
+| `host` | String | IP / Domain |
 | `port` | Int | Default: 22 |
 | `username` | String | User |
-| `auth_method` | Enum | PASSWORD / KEY_PATH |
-| `key_path` | String? | 秘密鍵のパス |
-| `deploy_pattern` | String? | 監視するログパターン (Default: `>> VIBE_DEPLOY: (.*)`) |
+| `auth_method` | Enum | PASSWORD / KEY_PAIR |
+| `key_alias` | String? | Keystore内の鍵エイリアス（パスワード保存用） |
+| `key_path` | String? | 秘密鍵ファイルのパス |
+| `deploy_pattern` | String? | 監視ログパターン |
 
 ---
 
 ## 6. 実装ロードマップ (Roadmap)
 
-### Phase 1: Core Connectivity (基礎)
-
-* [x] KMPプロジェクトセットアップ (Koin, Voyager, Room)。
-* [x] **Android/JVM:** Apache MINA SSHD による接続実装。
-* [x] **iOS:** スタブ実装（「iOSは将来対応です」と表示）。
-
-### Phase 2: The "Vibe" UI (UX向上)
-
-* [x] **Buffered Input Deck** (Gboard連携) の実装。
-* [x] ANSIカラーパースの実装。
-* [x] Macro Rowの実装。
-
-### Phase 3: Magic Deploy (デプロイ機能)
-
-* [x] ログ監視ロジック (Regex Watcher) の実装。
-* [x] SFTP ダウンロード機能の実装。
-* [x] Android `PackageInstaller` 連携の実装。
-
 ### Phase 4: Explorer & Polish (完成度向上) ✅ COMPLETE
 
 * [x] File Explorer / Code Viewer の実装。
 * [x] Connection Manager (DB連携) の実装。
-* [x] **Technical Challenge Resolved:** Separate SSH sessions for SFTP operations.
-  * Issue: SFTP and shell channels interfered when sharing the same session.
-  * Solution: Implemented `withSftpSession()` helper that creates independent SSH sessions for each SFTP operation.
-  * Result: Terminal and File Explorer now operate completely independently without interference.
-* [x] **Performance Fix:** All SFTP operations run on `Dispatchers.IO` to prevent `NetworkOnMainThreadException` on Android.
+* [x] **Tech Fix:** SFTP用独立セッションの実装。
+* [x] **Tech Fix:** SFTP操作のIOスレッド化。
 
-### Phase 5: iOS Expansion (将来対応)
+### Phase 5: Essential Power-Ups (コア体験の完成)  PRIORITY
+
+*最優先フェーズ。PO要望の `byobu` 対応と、日常使いのブロッカー（切断、入力ストレス）を解消する。*
+
+* **Terminal Core:**
+* [ ] **xterm-256color Compliance:**
+* Alternate Screen Buffer 対応 (`byobu`/`vim` 表示用)。
+* Canvasベースのレンダラー実装（xtermモード用）。
+* Window Resize シグナル送信。
+
+
+* [ ] **Background Persistence:** Foreground Service 実装。
+
+
+* **Connectivity & Security:**
+* [ ] **Secure Storage:** DataStore + Keystore による暗号化保存実装。
+* [ ] **Public Key Auth:** 鍵認証のサポート（OpenSSH/PEM読み込み）。
+
+
+* **Input:**
+* [ ] **Hybrid Input:** `TAB`/`CTRL` の即時送信ロジック実装。
+
+
+
+### Phase 6: Dev Tools Integration (開発効率化) ️ SPLIT
+
+*CUIで代替可能だが、あると便利な機能群。Phase 5完了後に着手。*
+
+* [ ] **Magic Deploy (Auto):** 設定トグル追加と、通知経由でのインストーラー起動。
+* [ ] **Git Visualizer:** `git log` / `diff` のGUI表示。
+* [ ] **Context Sync:** `cd Here` 機能とディレクトリ同期。
+* [ ] **SFTP Caching:** `LruCache` によるレスポンス向上。
+
+### Phase 7: iOS Expansion (将来対応) ☁️ MOVED
 
 * [ ] iOS用 SSHライブラリ (C-Interop) の選定と実装。
-* [ ] UIのiOS調整（Safe Area等）。
-* [ ] iOS用デプロイフローの検討（TestFlightアップロード連携など）。
+* [ ] UIのiOS調整。
 
 ---
 
-## 7. Phase 4 実装詳細 (Implementation Details)
+## 7. 実装に向けた技術メモ (Technical Notes)
 
-### 7.1 File Explorer & Code Viewer
-
-**実装概要:**
-- `FileExplorerSheet`: `ModalBottomSheet` による階層的なファイルブラウザ
-- `CodeViewerSheet`: シンタックスハイライト付きのコードビューア
-- パンくずリスト (Breadcrumbs) による直感的なナビゲーション
-- ファイルタイプ別アイコン表示とファイルサイズ表示
-
-**UI コンポーネント:**
-- GitHub風のダークテーマ (`#0D1117` 背景、`#39D353` アクセント)
-- LazyColumn による効率的なリスト表示
-- モノスペースフォントによるコード表示
-
-### 7.2 SSH/SFTP アーキテクチャの改善
-
-**課題と解決:**
-
-#### 課題 1: SSH セッション共有による干渉
-```
-初期実装: Shell Channel と SFTP Client が同一セッションを共有
-↓
-問題: SFTP操作によりShellチャネルが破壊され、ターミナルコマンドが実行不能に
-```
-
-**解決策: 独立したセッション管理**
-```kotlin
-private suspend fun <T> withSftpSession(block: suspend (SftpClient) -> T): T =
-    withContext(Dispatchers.IO) {
-        // 1. 新しいSSH接続を確立
-        val sftpSshClient = SshClient.setUpDefaultClient()
-        sftpSshClient.start()
-
-        // 2. 認証して専用セッションを作成
-        val sftpSession = sftpSshClient.connect(username, host, port)
-            .verify(10, TimeUnit.SECONDS).session
-        sftpSession.addPasswordIdentity(password)
-        sftpSession.auth().verify(10, TimeUnit.SECONDS)
-
-        // 3. SFTP操作を実行
-        val sftpClient = SftpClientFactory.instance().createSftpClient(sftpSession)
-        try {
-            return@withContext block(sftpClient)
-        } finally {
-            // 4. リソースをクリーンアップ
-            sftpClient.close()
-            sftpSession.close()
-            sftpSshClient.stop()
-        }
-    }
-```
-
-**利点:**
-- Shellセッションは完全に保護される
-- SFTP操作がターミナルに一切影響しない
-- 各操作後に適切にリソースが解放される
-
-#### 課題 2: NetworkOnMainThreadException
-```
-問題: Android StrictMode により、メインスレッドでの
-      ネットワーク操作が禁止されている
-```
-
-**解決策: Dispatchers.IO の使用**
-- `withContext(Dispatchers.IO)` で全SFTP操作をバックグラウンドスレッドで実行
-- UIスレッドをブロックせず、レスポンシブな操作感を維持
-
-### 7.3 Connection Manager
-
-**実装内容:**
-- Room Database による接続設定の永続化
-- グリッドレイアウトによるサーバーカード表示
-- CRUD操作 (作成・読み取り・更新・削除)
-- 接続履歴の管理
-
-**データモデル:**
-```kotlin
-@Entity(tableName = "server_connections")
-data class ServerConnection(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val alias: String,
-    val host: String,
-    val port: Int = 22,
-    val username: String,
-    val password: String
-)
-```
-
-### 7.4 コミット履歴
-
-Phase 4 完成までの主要コミット:
-
-1. `bad220f` - fix: share SSH repository instance between Terminal and File Explorer
-2. `3b1118e` - fix: use separate SSH sessions for SFTP to prevent shell interference
-3. `e557ebb` - fix: run SFTP operations on IO dispatcher to prevent NetworkOnMainThreadException
-
----
+* **DataStore + Keystore:** Android公式の [Security Best Practices](https://developer.android.com/topic/security/best-practices) に従い、マスターキーをKeystoreに置き、そのキーでDataStoreの値を暗号化/復号してください。
+* **Alternate Screen:** ターミナルViewModelは `isAlternateScreen: Boolean` という状態を持ち、これが `true` のときは `LazyColumn` (Chat) ではなく、全画面の `TerminalCanvas` (xterm) を表示するように分岐させてください。
