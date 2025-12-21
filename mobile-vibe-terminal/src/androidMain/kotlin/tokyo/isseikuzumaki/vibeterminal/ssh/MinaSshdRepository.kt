@@ -1,8 +1,10 @@
 package tokyo.isseikuzumaki.vibeterminal.ssh
 
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.withContext
 import org.apache.sshd.client.SshClient
 import org.apache.sshd.client.channel.ChannelShell
 import org.apache.sshd.client.session.ClientSession
@@ -132,8 +134,9 @@ class MinaSshdRepository : SshRepository {
     /**
      * Creates a separate SSH session for SFTP operations.
      * This prevents SFTP operations from interfering with the shell channel.
+     * Runs on IO dispatcher to avoid network on main thread exceptions.
      */
-    private suspend fun <T> withSftpSession(block: suspend (SftpClient) -> T): T {
+    private suspend fun <T> withSftpSession(block: suspend (SftpClient) -> T): T = withContext(Dispatchers.IO) {
         val host = connectionHost ?: throw IllegalStateException("Not connected")
         val port = connectionPort ?: throw IllegalStateException("Not connected")
         val username = connectionUsername ?: throw IllegalStateException("Not connected")
@@ -152,7 +155,7 @@ class MinaSshdRepository : SshRepository {
 
                 val sftpClient = SftpClientFactory.instance().createSftpClient(sftpSession)
                 try {
-                    return block(sftpClient)
+                    return@withContext block(sftpClient)
                 } finally {
                     sftpClient.close()
                 }
