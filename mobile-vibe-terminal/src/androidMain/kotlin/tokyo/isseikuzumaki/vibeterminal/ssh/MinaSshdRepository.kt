@@ -97,11 +97,12 @@ class MinaSshdRepository : SshRepository {
             ptyModes[PtyMode.ISIG] = 1       // Signal handling (Ctrl+C, etc.)
             shellChannel.ptyModes = ptyModes
 
-            // Set initial window size (Updated for mobile default)
-            shellChannel.ptyColumns = 40
-            shellChannel.ptyLines = 20
-            shellChannel.ptyWidth = 40
-            shellChannel.ptyHeight = 40
+            // Set initial window size to standard 80x24 (safe default)
+            // This prevents race conditions with shell initialization
+            shellChannel.ptyColumns = 80
+            shellChannel.ptyLines = 24
+            shellChannel.ptyWidth = 640  // 80 * 8px (approximate char width)
+            shellChannel.ptyHeight = 384 // 24 * 16px (approximate char height)
 
             Timber.d("10b. PTY configured: xterm-256color, 80x24")
 

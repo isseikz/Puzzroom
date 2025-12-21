@@ -157,10 +157,18 @@ data class TerminalScreen(
                     
                     val cols = (widthPx / charWidth).coerceAtLeast(1)
                     val rows = (heightPx / charHeight).coerceAtLeast(1)
-                    
-                    // Trigger resize if changed
-                    LaunchedEffect(cols, rows) {
-//                        screenModel.resize(cols, rows, widthPx, heightPx)
+
+                    // Trigger resize only when:
+                    // 1. Connection is fully established
+                    // 2. Size is valid (> 0)
+                    // 3. Size differs from initial 80x24
+                    LaunchedEffect(cols, rows, state.isConnected) {
+                        if (state.isConnected && cols > 0 && rows > 0) {
+                            // Only resize if different from standard size
+                            if (cols != 80 || rows != 24) {
+                                screenModel.resize(cols, rows, widthPx, heightPx)
+                            }
+                        }
                     }
 
                     if (state.isAlternateScreen) {
