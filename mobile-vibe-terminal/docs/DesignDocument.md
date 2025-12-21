@@ -1,8 +1,8 @@
 # 📱 Mobile Vibe Terminal - Master Design Document
 
 **Project Name:** Vibe Terminal (Code Name: `vertical-vibe`)
-**Version:** 2.1.0 (iOS Roadmap Added)
-**Date:** 2025-12-20
+**Version:** 2.2.0 (Explorer & Polish Complete)
+**Date:** 2025-12-21
 **Target Platform:** Android (Primary), Desktop/JVM (Secondary), **iOS (Future)**
 **Language:** Kotlin (Kotlin Multiplatform)
 
@@ -201,13 +201,119 @@ FCMや外部ストレージを使わず、SSH接続だけでデプロイを完�
 * [x] SFTP ダウンロード機能の実装。
 * [x] Android `PackageInstaller` 連携の実装。
 
-### Phase 4: Explorer & Polish (完成度向上)
+### Phase 4: Explorer & Polish (完成度向上) ✅ COMPLETE
 
-* [ ] File Explorer / Code Viewer の実装。
-* [ ] Connection Manager (DB連携) の実装。
+* [x] File Explorer / Code Viewer の実装。
+* [x] Connection Manager (DB連携) の実装。
+* [x] **Technical Challenge Resolved:** Separate SSH sessions for SFTP operations.
+  * Issue: SFTP and shell channels interfered when sharing the same session.
+  * Solution: Implemented `withSftpSession()` helper that creates independent SSH sessions for each SFTP operation.
+  * Result: Terminal and File Explorer now operate completely independently without interference.
+* [x] **Performance Fix:** All SFTP operations run on `Dispatchers.IO` to prevent `NetworkOnMainThreadException` on Android.
 
 ### Phase 5: iOS Expansion (将来対応)
 
 * [ ] iOS用 SSHライブラリ (C-Interop) の選定と実装。
 * [ ] UIのiOS調整（Safe Area等）。
 * [ ] iOS用デプロイフローの検討（TestFlightアップロード連携など）。
+
+---
+
+## 7. Phase 4 実装詳細 (Implementation Details)
+
+### 7.1 File Explorer & Code Viewer
+
+**実装概要:**
+- `FileExplorerSheet`: `ModalBottomSheet` による階層的なファイルブラウザ
+- `CodeViewerSheet`: シンタックスハイライト付きのコードビューア
+- パンくずリスト (Breadcrumbs) による直感的なナビゲーション
+- ファイルタイプ別アイコン表示とファイルサイズ表示
+
+**UI コンポーネント:**
+- GitHub風のダークテーマ (`#0D1117` 背景、`#39D353` アクセント)
+- LazyColumn による効率的なリスト表示
+- モノスペースフォントによるコード表示
+
+### 7.2 SSH/SFTP アーキテクチャの改善
+
+**課題と解決:**
+
+#### 課題 1: SSH セッション共有による干渉
+```
+初期実装: Shell Channel と SFTP Client が同一セッションを共有
+↓
+問題: SFTP操作によりShellチャネルが破壊され、ターミナルコマンドが実行不能に
+```
+
+**解決策: 独立したセッション管理**
+```kotlin
+private suspend fun <T> withSftpSession(block: suspend (SftpClient) -> T): T =
+    withContext(Dispatchers.IO) {
+        // 1. 新しいSSH接続を確立
+        val sftpSshClient = SshClient.setUpDefaultClient()
+        sftpSshClient.start()
+
+        // 2. 認証して専用セッションを作成
+        val sftpSession = sftpSshClient.connect(username, host, port)
+            .verify(10, TimeUnit.SECONDS).session
+        sftpSession.addPasswordIdentity(password)
+        sftpSession.auth().verify(10, TimeUnit.SECONDS)
+
+        // 3. SFTP操作を実行
+        val sftpClient = SftpClientFactory.instance().createSftpClient(sftpSession)
+        try {
+            return@withContext block(sftpClient)
+        } finally {
+            // 4. リソースをクリーンアップ
+            sftpClient.close()
+            sftpSession.close()
+            sftpSshClient.stop()
+        }
+    }
+```
+
+**利点:**
+- Shellセッションは完全に保護される
+- SFTP操作がターミナルに一切影響しない
+- 各操作後に適切にリソースが解放される
+
+#### 課題 2: NetworkOnMainThreadException
+```
+問題: Android StrictMode により、メインスレッドでの
+      ネットワーク操作が禁止されている
+```
+
+**解決策: Dispatchers.IO の使用**
+- `withContext(Dispatchers.IO)` で全SFTP操作をバックグラウンドスレッドで実行
+- UIスレッドをブロックせず、レスポンシブな操作感を維持
+
+### 7.3 Connection Manager
+
+**実装内容:**
+- Room Database による接続設定の永続化
+- グリッドレイアウトによるサーバーカード表示
+- CRUD操作 (作成・読み取り・更新・削除)
+- 接続履歴の管理
+
+**データモデル:**
+```kotlin
+@Entity(tableName = "server_connections")
+data class ServerConnection(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val alias: String,
+    val host: String,
+    val port: Int = 22,
+    val username: String,
+    val password: String
+)
+```
+
+### 7.4 コミット履歴
+
+Phase 4 完成までの主要コミット:
+
+1. `bad220f` - fix: share SSH repository instance between Terminal and File Explorer
+2. `3b1118e` - fix: use separate SSH sessions for SFTP to prevent shell interference
+3. `e557ebb` - fix: run SFTP operations on IO dispatcher to prevent NetworkOnMainThreadException
+
+---
