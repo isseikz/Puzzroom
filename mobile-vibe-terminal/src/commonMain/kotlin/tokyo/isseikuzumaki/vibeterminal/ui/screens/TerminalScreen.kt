@@ -240,6 +240,7 @@ data class TerminalScreen(
         // File Explorer Sheet
         if (showFileExplorer) {
             FileExplorerSheet(
+                sshRepository = sshRepository,
                 onDismiss = { showFileExplorer = false },
                 onFileSelected = { file ->
                     selectedFilePath = file.path
@@ -250,6 +251,7 @@ data class TerminalScreen(
         // Code Viewer Sheet
         selectedFilePath?.let { filePath ->
             CodeViewerSheet(
+                sshRepository = sshRepository,
                 filePath = filePath,
                 onDismiss = { selectedFilePath = null }
             )

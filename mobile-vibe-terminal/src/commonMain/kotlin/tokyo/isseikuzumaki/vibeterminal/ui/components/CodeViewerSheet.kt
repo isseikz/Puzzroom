@@ -16,17 +16,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
-import org.koin.compose.koinInject
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
 import tokyo.isseikuzumaki.vibeterminal.ui.utils.SyntaxHighlighter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CodeViewerSheet(
+    sshRepository: SshRepository,
     filePath: String,
     onDismiss: () -> Unit
 ) {
-    val sshRepository = koinInject<SshRepository>()
     var fileContent by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }

@@ -20,7 +20,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import org.koin.compose.koinInject
 import tokyo.isseikuzumaki.vibeterminal.domain.model.FileEntry
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
 import kotlin.math.log10
@@ -37,10 +36,10 @@ data class FileExplorerState(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FileExplorerSheet(
+    sshRepository: SshRepository,
     onDismiss: () -> Unit,
     onFileSelected: (FileEntry) -> Unit
 ) {
-    val sshRepository = koinInject<SshRepository>()
     var state by remember { mutableStateOf(FileExplorerState()) }
     val scope = rememberCoroutineScope()
 
