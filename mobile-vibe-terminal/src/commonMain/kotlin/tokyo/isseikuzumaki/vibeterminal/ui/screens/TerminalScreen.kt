@@ -37,8 +37,9 @@ data class TerminalScreen(
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val sshRepository = koinInject<SshRepository>()
+        val apkInstaller = koinInject<tokyo.isseikuzumaki.vibeterminal.domain.installer.ApkInstaller>()
         val screenModel = remember(config) {
-            TerminalScreenModel(config, sshRepository)
+            TerminalScreenModel(config, sshRepository, apkInstaller)
         }
         val state by screenModel.state.collectAsState()
 
@@ -65,6 +66,25 @@ data class TerminalScreen(
                         navigationIconContentColor = Color(0xFF00FF00)
                     )
                 )
+            },
+            floatingActionButton = {
+                // Magic Deploy FAB
+                if (state.detectedApkPath != null) {
+                    FloatingActionButton(
+                        onClick = { screenModel.downloadAndInstallApk() },
+                        containerColor = Color(0xFF00FF00),
+                        contentColor = Color.Black
+                    ) {
+                        if (state.isDownloadingApk) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = Color.Black
+                            )
+                        } else {
+                            Text("🚀", fontSize = 24.sp)
+                        }
+                    }
+                }
             }
         ) { padding ->
             Column(

@@ -71,6 +71,7 @@ kotlin {
             implementation(libs.koin.androidx.compose)
             implementation(libs.mina.sshd.core)
             implementation(libs.mina.sshd.common)
+            implementation(libs.mina.sshd.sftp)
             implementation(libs.room.runtime)
             implementation(libs.room.ktx)
         }
@@ -80,6 +81,7 @@ kotlin {
                 implementation(compose.desktop.currentOs)
                 implementation(libs.mina.sshd.core)
                 implementation(libs.mina.sshd.common)
+                implementation(libs.mina.sshd.sftp)
                 implementation(libs.room.runtime)
                 implementation(libs.room.ktx)
             }

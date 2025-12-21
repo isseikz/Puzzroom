@@ -6,8 +6,12 @@ import kotlinx.coroutines.flow.callbackFlow
 import org.apache.sshd.client.SshClient
 import org.apache.sshd.client.channel.ChannelShell
 import org.apache.sshd.client.session.ClientSession
+import org.apache.sshd.sftp.client.SftpClient
+import org.apache.sshd.sftp.client.SftpClientFactory
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
 import java.io.BufferedReader
+import java.io.File
+import java.io.FileOutputStream
 import java.io.InputStreamReader
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
@@ -109,7 +113,32 @@ class MinaSshdRepository : SshRepository {
     }
 
     override suspend fun executeCommand(command: String): Result<String> {
-        return Result.failure(NotImplementedError("Use sendInput() for shell interaction"))
+        return try {
+            val currentSession = session ?: return Result.failure(
+                IllegalStateException("Not connected to SSH server")
+            )
+
+            // Execute command and get output
+            val execChannel = currentSession.createExecChannel(command)
+            val outputStream = java.io.ByteArrayOutputStream()
+            execChannel.out = outputStream
+            execChannel.err = outputStream
+
+            execChannel.open().verify(5, TimeUnit.SECONDS)
+            execChannel.waitFor(
+                java.util.EnumSet.of(
+                    org.apache.sshd.client.channel.ClientChannelEvent.CLOSED
+                ),
+                TimeUnit.SECONDS.toMillis(10)
+            )
+
+            val output = outputStream.toString("UTF-8")
+            execChannel.close()
+
+            Result.success(output)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     override fun getOutputStream(): Flow<String> = callbackFlow {
@@ -137,5 +166,53 @@ class MinaSshdRepository : SshRepository {
 
     override suspend fun sendInput(input: String) {
         outputWriter?.println(input)
+    }
+
+    override suspend fun downloadFile(remotePath: String, localFile: File): Result<Unit> {
+        return try {
+            println("=== SFTP Download Start ===")
+            println("Remote: $remotePath")
+            println("Local: ${localFile.absolutePath}")
+
+            val currentSession = session ?: return Result.failure(
+                IllegalStateException("Not connected to SSH server")
+            )
+
+            // Create SFTP client from the existing session
+            println("Creating SFTP client...")
+            val sftpClient: SftpClient = SftpClientFactory.instance().createSftpClient(currentSession)
+
+            try {
+                println("Opening remote file for reading...")
+                sftpClient.read(remotePath).use { inputStream ->
+                    println("Creating local file...")
+                    FileOutputStream(localFile).use { outputStream ->
+                        println("Copying file content...")
+                        val buffer = ByteArray(8192)
+                        var bytesRead: Int
+                        var totalBytes = 0L
+
+                        while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                            outputStream.write(buffer, 0, bytesRead)
+                            totalBytes += bytesRead
+                            if (totalBytes % (1024 * 1024) == 0L) { // Log every MB
+                                println("Downloaded: ${totalBytes / (1024 * 1024)} MB")
+                            }
+                        }
+
+                        println("=== SFTP Download Complete ===")
+                        println("Total bytes: $totalBytes")
+                    }
+                }
+                Result.success(Unit)
+            } finally {
+                sftpClient.close()
+            }
+        } catch (e: Exception) {
+            println("=== SFTP Download Failed ===")
+            println("Error: ${e.message}")
+            e.printStackTrace()
+            Result.failure(e)
+        }
     }
 }

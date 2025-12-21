@@ -4,7 +4,9 @@ import android.content.Context
 import org.koin.dsl.module
 import tokyo.isseikuzumaki.vibeterminal.data.database.AppDatabase
 import tokyo.isseikuzumaki.vibeterminal.data.database.getRoomDatabase
+import tokyo.isseikuzumaki.vibeterminal.domain.installer.ApkInstaller
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
+import tokyo.isseikuzumaki.vibeterminal.installer.AndroidApkInstaller
 import tokyo.isseikuzumaki.vibeterminal.ssh.MinaSshdRepository
 
 actual fun platformModule() = module {
@@ -14,4 +16,9 @@ actual fun platformModule() = module {
     }
 
     factory<SshRepository> { MinaSshdRepository() }
+
+    factory<ApkInstaller> {
+        val context = get<Context>()
+        AndroidApkInstaller(context)
+    }
 }

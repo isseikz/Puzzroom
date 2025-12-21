@@ -10,7 +10,8 @@ val appModule = module {
     factory { params ->
         TerminalScreenModel(
             config = params.get(),
-            sshRepository = get()
+            sshRepository = get(),
+            apkInstaller = get()
         )
     }
 }

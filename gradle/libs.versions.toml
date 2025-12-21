@@ -100,6 +100,7 @@ room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 # Apache MINA SSHD
 mina-sshd-core = { module = "org.apache.sshd:sshd-core", version.ref = "mina-sshd" }
 mina-sshd-common = { module = "org.apache.sshd:sshd-common", version.ref = "mina-sshd" }
+mina-sshd-sftp = { module = "org.apache.sshd:sshd-sftp", version.ref = "mina-sshd" }
 
 # DataStore
 datastore = { module = "androidx.datastore:datastore", version.ref = "datastore" }
