@@ -1,0 +1,725 @@
+Initialized native services in: /Users/isseikz/.gradle/native
+Initialized jansi services in: /Users/isseikz/.gradle/native
+The client will now receive all logging from the daemon (pid: 5438). The daemon log file: /Users/isseikz/.gradle/daemon/8.14.3/daemon-5438.out.log
+Starting 11th build in daemon [uptime: 6 mins 35.728 secs, performance: 99%, GC rate: 0.00/s, heap usage: 0% of 4 GiB]
+Using 10 worker leases.
+Now considering [/Users/isseikz/AndroidStudioProjects/Puzzroom] as hierarchies to watch
+Reusing configuration cache.
+Now considering [/Users/isseikz/AndroidStudioProjects/Puzzroom] as hierarchies to watch
+Watching the file system is configured to be enabled if available
+File system watching is active
+Using local directory build cache for the root build (location = /Users/isseikz/.gradle/caches/build-cache-1, remove unused entries = after 7 days).
+Tasks to be executed: [task ':whisper-kmp:preBuild', task ':whisper-kmp:preDebugBuild', task ':whisper-kmp:configureCMakeDebug[arm64-v8a]', task ':whisper-kmp:buildCMakeDebug[arm64-v8a]', task ':whisper-kmp:configureCMakeDebug[armeabi-v7a]', task ':whisper-kmp:buildCMakeDebug[armeabi-v7a]', task ':whisper-kmp:configureCMakeDebug[x86]', task ':whisper-kmp:buildCMakeDebug[x86]', task ':whisper-kmp:configureCMakeDebug[x86_64]', task ':whisper-kmp:buildCMakeDebug[x86_64]', task ':whisper-kmp:mergeDebugJniLibFolders', task ':whisper-kmp:mergeDebugNativeLibs', task ':whisper-kmp:stripDebugDebugSymbols', task ':whisper-kmp:copyDebugJniLibsProjectAndLocalJars', task ':whisper-kmp:kmpPartiallyResolvedDependenciesChecker', task ':whisper-kmp:checkKotlinGradlePluginConfigurationErrors', task ':whisper-kmp:generateDebugBuildConfig', task ':whisper-kmp:generateDebugResValues', task ':whisper-kmp:generateDebugResources', task ':whisper-kmp:packageDebugResources', task ':whisper-kmp:parseDebugLocalResources', task ':whisper-kmp:generateDebugRFile', task ':whisper-kmp:compileDebugKotlinAndroid', task ':whisper-kmp:extractDebugAnnotations', task ':whisper-kmp:extractDeepLinksForAarDebug', task ':whisper-kmp:mergeDebugShaders', task ':whisper-kmp:compileDebugShaders', task ':whisper-kmp:debugAssetsCopyForAGP', task ':whisper-kmp:generateDebugAssets', task ':whisper-kmp:mergeDebugAssets', task ':whisper-kmp:javaPreCompileDebug', task ':whisper-kmp:compileDebugJavaWithJavac', task ':whisper-kmp:mergeDebugGeneratedProguardFiles', task ':whisper-kmp:mergeDebugConsumerProguardFiles', task ':whisper-kmp:prepareDebugArtProfile', task ':whisper-kmp:prepareLintJarForPublish', task ':whisper-kmp:processDebugManifest', task ':whisper-kmp:processDebugJavaRes', task ':whisper-kmp:mergeDebugJavaResource', task ':whisper-kmp:syncDebugLibJars', task ':whisper-kmp:writeDebugAarMetadata', task ':whisper-kmp:bundleDebugAar', task ':whisper-kmp:assembleDebug']
+Tasks that were excluded: []
+Resolve mutations for :whisper-kmp:preBuild (Thread[#730,Execution worker,5,main]) started.
+Resolve mutations for :whisper-kmp:kmpPartiallyResolvedDependenciesChecker (Thread[#731,Execution worker Thread 2,5,main]) started.
+:whisper-kmp:preBuild (Thread[#733,Execution worker Thread 4,5,main]) started.
+:whisper-kmp:kmpPartiallyResolvedDependenciesChecker (Thread[#731,Execution worker Thread 2,5,main]) started.
+Resolve mutations for :whisper-kmp:debugAssetsCopyForAGP (Thread[#732,Execution worker Thread 3,5,main]) started.
+Resolve mutations for :whisper-kmp:prepareLintJarForPublish (Thread[#734,Execution worker Thread 5,5,main]) started.
+:whisper-kmp:prepareLintJarForPublish (Thread[#734,Execution worker Thread 5,5,main]) started.
+:whisper-kmp:debugAssetsCopyForAGP (Thread[#732,Execution worker Thread 3,5,main]) started.
+
+> Task :whisper-kmp:preBuild UP-TO-DATE
+Skipping task ':whisper-kmp:preBuild' as it has no actions.
+Resolve mutations for :whisper-kmp:preDebugBuild (Thread[#733,Execution worker Thread 4,5,main]) started.
+:whisper-kmp:preDebugBuild (Thread[#733,Execution worker Thread 4,5,main]) started.
+Build 1d9a951c-6422-4a9b-892d-49408ec0150f is started
+
+> Task :whisper-kmp:debugAssetsCopyForAGP NO-SOURCE
+Skipping task ':whisper-kmp:debugAssetsCopyForAGP' as it has no source files and no previous output files.
+
+> Task :whisper-kmp:preDebugBuild UP-TO-DATE
+Skipping task ':whisper-kmp:preDebugBuild' as it has no actions.
+Resolve mutations for :whisper-kmp:configureCMakeDebug[arm64-v8a] (Thread[#733,Execution worker Thread 4,5,main]) started.
+
+> Task :whisper-kmp:prepareLintJarForPublish UP-TO-DATE
+Caching disabled for task ':whisper-kmp:prepareLintJarForPublish' because:
+  Caching has been disabled for the task
+Skipping task ':whisper-kmp:prepareLintJarForPublish' as it is up-to-date.
+Resolve mutations for :whisper-kmp:configureCMakeDebug[armeabi-v7a] (Thread[#729,included builds,5,main]) started.
+Resolve mutations for :whisper-kmp:configureCMakeDebug[x86_64] (Thread[#730,Execution worker,5,main]) started.
+Resolve mutations for :whisper-kmp:configureCMakeDebug[x86] (Thread[#734,Execution worker Thread 5,5,main]) started.
+Resolve mutations for :whisper-kmp:generateDebugResValues (Thread[#735,Execution worker Thread 6,5,main]) started.
+Resolve mutations for :whisper-kmp:generateDebugBuildConfig (Thread[#738,Execution worker Thread 9,5,main]) started.
+Resolve mutations for :whisper-kmp:mergeDebugShaders (Thread[#736,Execution worker Thread 7,5,main]) started.
+Resolve mutations for :whisper-kmp:javaPreCompileDebug (Thread[#732,Execution worker Thread 3,5,main]) started.
+Resolve mutations for :whisper-kmp:mergeDebugJniLibFolders (Thread[#737,Execution worker Thread 8,5,main]) started.
+:whisper-kmp:configureCMakeDebug[x86] (Thread[#734,Execution worker Thread 5,5,main]) started.
+:whisper-kmp:configureCMakeDebug[armeabi-v7a] (Thread[#729,included builds,5,main]) started.
+:whisper-kmp:configureCMakeDebug[arm64-v8a] (Thread[#733,Execution worker Thread 4,5,main]) started.
+:whisper-kmp:generateDebugBuildConfig (Thread[#738,Execution worker Thread 9,5,main]) started.
+:whisper-kmp:mergeDebugShaders (Thread[#736,Execution worker Thread 7,5,main]) started.
+:whisper-kmp:javaPreCompileDebug (Thread[#732,Execution worker Thread 3,5,main]) started.
+:whisper-kmp:mergeDebugJniLibFolders (Thread[#737,Execution worker Thread 8,5,main]) started.
+:whisper-kmp:generateDebugResValues (Thread[#735,Execution worker Thread 6,5,main]) started.
+:whisper-kmp:configureCMakeDebug[x86_64] (Thread[#730,Execution worker,5,main]) started.
+
+> Task :whisper-kmp:kmpPartiallyResolvedDependenciesChecker
+Caching disabled for task ':whisper-kmp:kmpPartiallyResolvedDependenciesChecker' because:
+  This task is not intended for execution
+Task ':whisper-kmp:kmpPartiallyResolvedDependenciesChecker' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+Execution stopped by some action with message: null
+
+> Task :whisper-kmp:generateDebugResValues UP-TO-DATE
+Build cache key for task ':whisper-kmp:generateDebugResValues' is 03715d824c1d8d66035945a6ee077230
+Skipping task ':whisper-kmp:generateDebugResValues' as it is up-to-date.
+Resolve mutations for :whisper-kmp:checkKotlinGradlePluginConfigurationErrors (Thread[#731,Execution worker Thread 2,5,main]) started.
+
+> Task :whisper-kmp:mergeDebugShaders UP-TO-DATE
+Caching disabled for task ':whisper-kmp:mergeDebugShaders' because:
+  Simple merging task
+Skipping task ':whisper-kmp:mergeDebugShaders' as it is up-to-date.
+Resolve mutations for :whisper-kmp:generateDebugResources (Thread[#735,Execution worker Thread 6,5,main]) started.
+
+> Task :whisper-kmp:mergeDebugJniLibFolders UP-TO-DATE
+Caching disabled for task ':whisper-kmp:mergeDebugJniLibFolders' because:
+  Simple merging task
+Skipping task ':whisper-kmp:mergeDebugJniLibFolders' as it is up-to-date.
+
+> Task :whisper-kmp:javaPreCompileDebug UP-TO-DATE
+Build cache key for task ':whisper-kmp:javaPreCompileDebug' is 73723f8c34b92db8ffd74b11f1c2a8bd
+Skipping task ':whisper-kmp:javaPreCompileDebug' as it is up-to-date.
+Resolve mutations for :whisper-kmp:compileDebugShaders (Thread[#737,Execution worker Thread 8,5,main]) started.
+Resolve mutations for :whisper-kmp:extractDeepLinksForAarDebug (Thread[#736,Execution worker Thread 7,5,main]) started.
+:whisper-kmp:checkKotlinGradlePluginConfigurationErrors (Thread[#731,Execution worker Thread 2,5,main]) started.
+
+> Task :whisper-kmp:generateDebugBuildConfig UP-TO-DATE
+Build cache key for task ':whisper-kmp:generateDebugBuildConfig' is 51ee9b7646b45dfb7bbd9bcebec45a55
+Skipping task ':whisper-kmp:generateDebugBuildConfig' as it is up-to-date.
+Resolve mutations for :whisper-kmp:prepareDebugArtProfile (Thread[#732,Execution worker Thread 3,5,main]) started.
+Resolve mutations for :whisper-kmp:processDebugManifest (Thread[#738,Execution worker Thread 9,5,main]) started.
+:whisper-kmp:generateDebugResources (Thread[#736,Execution worker Thread 7,5,main]) started.
+
+> Task :whisper-kmp:checkKotlinGradlePluginConfigurationErrors SKIPPED
+Skipping task ':whisper-kmp:checkKotlinGradlePluginConfigurationErrors' as task onlyIf 'errorDiagnostics are present' is false.
+:whisper-kmp:extractDeepLinksForAarDebug (Thread[#737,Execution worker Thread 8,5,main]) started.
+:whisper-kmp:compileDebugShaders (Thread[#735,Execution worker Thread 6,5,main]) started.
+:whisper-kmp:prepareDebugArtProfile (Thread[#732,Execution worker Thread 3,5,main]) started.
+:whisper-kmp:processDebugManifest (Thread[#738,Execution worker Thread 9,5,main]) started.
+Resolve mutations for :whisper-kmp:writeDebugAarMetadata (Thread[#731,Execution worker Thread 2,5,main]) started.
+:whisper-kmp:writeDebugAarMetadata (Thread[#731,Execution worker Thread 2,5,main]) started.
+
+> Task :whisper-kmp:compileDebugShaders NO-SOURCE
+Skipping task ':whisper-kmp:compileDebugShaders' as it has no source files and no previous output files.
+Resolve mutations for :whisper-kmp:generateDebugAssets (Thread[#735,Execution worker Thread 6,5,main]) started.
+
+> Task :whisper-kmp:writeDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':whisper-kmp:writeDebugAarMetadata' because:
+  Caching has been disabled for the task
+Skipping task ':whisper-kmp:writeDebugAarMetadata' as it is up-to-date.
+:whisper-kmp:generateDebugAssets (Thread[#735,Execution worker Thread 6,5,main]) started.
+
+> Task :whisper-kmp:generateDebugResources UP-TO-DATE
+Build cache key for task ':whisper-kmp:generateDebugResources' is a6e7957c73533e0e48b718a53034ffb8
+Skipping task ':whisper-kmp:generateDebugResources' as it is up-to-date.
+
+> Task :whisper-kmp:prepareDebugArtProfile UP-TO-DATE
+Caching disabled for task ':whisper-kmp:prepareDebugArtProfile' because:
+  Caching has been disabled for the task
+Skipping task ':whisper-kmp:prepareDebugArtProfile' as it is up-to-date.
+Resolve mutations for :whisper-kmp:packageDebugResources (Thread[#736,Execution worker Thread 7,5,main]) started.
+
+> Task :whisper-kmp:generateDebugAssets UP-TO-DATE
+Skipping task ':whisper-kmp:generateDebugAssets' as it has no actions.
+
+> Task :whisper-kmp:processDebugManifest UP-TO-DATE
+Build cache key for task ':whisper-kmp:processDebugManifest' is 7e144177c73fc1d1ca9201f9cb32c5b9
+Skipping task ':whisper-kmp:processDebugManifest' as it is up-to-date.
+Resolve mutations for :whisper-kmp:mergeDebugAssets (Thread[#735,Execution worker Thread 6,5,main]) started.
+
+> Task :whisper-kmp:extractDeepLinksForAarDebug UP-TO-DATE
+Build cache key for task ':whisper-kmp:extractDeepLinksForAarDebug' is d05bfcf3dbda13bc74e7d52aba325a81
+Skipping task ':whisper-kmp:extractDeepLinksForAarDebug' as it is up-to-date.
+:whisper-kmp:packageDebugResources (Thread[#736,Execution worker Thread 7,5,main]) started.
+:whisper-kmp:mergeDebugAssets (Thread[#735,Execution worker Thread 6,5,main]) started.
+
+> Task :whisper-kmp:mergeDebugAssets UP-TO-DATE
+Caching disabled for task ':whisper-kmp:mergeDebugAssets' because:
+  Simple merging task
+Skipping task ':whisper-kmp:mergeDebugAssets' as it is up-to-date.
+
+> Task :whisper-kmp:packageDebugResources UP-TO-DATE
+Build cache key for task ':whisper-kmp:packageDebugResources' is 2a907898185de73d8ade165f87cf7bb3
+Skipping task ':whisper-kmp:packageDebugResources' as it is up-to-date.
+Resolve mutations for :whisper-kmp:parseDebugLocalResources (Thread[#736,Execution worker Thread 7,5,main]) started.
+:whisper-kmp:parseDebugLocalResources (Thread[#736,Execution worker Thread 7,5,main]) started.
+
+> Task :whisper-kmp:parseDebugLocalResources UP-TO-DATE
+Build cache key for task ':whisper-kmp:parseDebugLocalResources' is 5995ba8ff107b33a5fef289ea7aff2ea
+Skipping task ':whisper-kmp:parseDebugLocalResources' as it is up-to-date.
+Resolve mutations for :whisper-kmp:generateDebugRFile (Thread[#736,Execution worker Thread 7,5,main]) started.
+:whisper-kmp:generateDebugRFile (Thread[#736,Execution worker Thread 7,5,main]) started.
+
+> Task :whisper-kmp:generateDebugRFile UP-TO-DATE
+Build cache key for task ':whisper-kmp:generateDebugRFile' is 20cef7d8e33e8fd288857bb2791a4d35
+Skipping task ':whisper-kmp:generateDebugRFile' as it is up-to-date.
+Resolve mutations for :whisper-kmp:compileDebugKotlinAndroid (Thread[#736,Execution worker Thread 7,5,main]) started.
+:whisper-kmp:compileDebugKotlinAndroid (Thread[#736,Execution worker Thread 7,5,main]) started.
+
+> Task :whisper-kmp:configureCMakeDebug[x86]
+Caching disabled for task ':whisper-kmp:configureCMakeDebug[x86]' because:
+  Caching has been disabled for the task
+Task ':whisper-kmp:configureCMakeDebug[x86]' is not up-to-date because:
+  Task.upToDateWhen is false.
+C/C++: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidMain/cpp/CMakeLists.txt debug|x86 : Start JSON generation. Platform version: 24 min SDK version: x86
+C/C++: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidMain/cpp/CMakeLists.txt debug|x86 : JSON '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/.cxx/Debug/5a646l1c/x86/android_gradle_build.json' was up-to-date
+C/C++: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidMain/cpp/CMakeLists.txt debug|x86 : JSON generation completed without problems
+C/C++: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidMain/cpp/CMakeLists.txt debug|x86 : Writing build model to /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/cxx/Debug/5a646l1c/logs/x86/build_model.json
+Resolve mutations for :whisper-kmp:buildCMakeDebug[x86] (Thread[#734,Execution worker Thread 5,5,main]) started.
+
+> Task :whisper-kmp:configureCMakeDebug[x86_64]
+Caching disabled for task ':whisper-kmp:configureCMakeDebug[x86_64]' because:
+  Caching has been disabled for the task
+Task ':whisper-kmp:configureCMakeDebug[x86_64]' is not up-to-date because:
+  Task.upToDateWhen is false.
+C/C++: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidMain/cpp/CMakeLists.txt debug|x86_64 : Start JSON generation. Platform version: 24 min SDK version: x86_64
+C/C++: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidMain/cpp/CMakeLists.txt debug|x86_64 : JSON '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/.cxx/Debug/5a646l1c/x86_64/android_gradle_build.json' was up-to-date
+C/C++: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidMain/cpp/CMakeLists.txt debug|x86_64 : JSON generation completed without problems
+C/C++: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidMain/cpp/CMakeLists.txt debug|x86_64 : Writing build model to /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/cxx/Debug/5a646l1c/logs/x86_64/build_model.json
+:whisper-kmp:buildCMakeDebug[x86] (Thread[#734,Execution worker Thread 5,5,main]) started.
+Resolve mutations for :whisper-kmp:buildCMakeDebug[x86_64] (Thread[#730,Execution worker,5,main]) started.
+:whisper-kmp:buildCMakeDebug[x86_64] (Thread[#730,Execution worker,5,main]) started.
+
+> Task :whisper-kmp:configureCMakeDebug[arm64-v8a]
+Caching disabled for task ':whisper-kmp:configureCMakeDebug[arm64-v8a]' because:
+  Caching has been disabled for the task
+Task ':whisper-kmp:configureCMakeDebug[arm64-v8a]' is not up-to-date because:
+  Task.upToDateWhen is false.
+C/C++: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidMain/cpp/CMakeLists.txt debug|arm64-v8a : Start JSON generation. Platform version: 24 min SDK version: arm64-v8a
+C/C++: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidMain/cpp/CMakeLists.txt debug|arm64-v8a : JSON '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/.cxx/Debug/5a646l1c/arm64-v8a/android_gradle_build.json' was up-to-date
+C/C++: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidMain/cpp/CMakeLists.txt debug|arm64-v8a : JSON generation completed without problems
+C/C++: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidMain/cpp/CMakeLists.txt debug|arm64-v8a : Writing build model to /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/cxx/Debug/5a646l1c/logs/arm64-v8a/build_model.json
+Resolve mutations for :whisper-kmp:buildCMakeDebug[arm64-v8a] (Thread[#733,Execution worker Thread 4,5,main]) started.
+
+> Task :whisper-kmp:configureCMakeDebug[armeabi-v7a]
+Caching disabled for task ':whisper-kmp:configureCMakeDebug[armeabi-v7a]' because:
+  Caching has been disabled for the task
+Task ':whisper-kmp:configureCMakeDebug[armeabi-v7a]' is not up-to-date because:
+  Task.upToDateWhen is false.
+C/C++: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidMain/cpp/CMakeLists.txt debug|armeabi-v7a : Start JSON generation. Platform version: 24 min SDK version: armeabi-v7a
+C/C++: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidMain/cpp/CMakeLists.txt debug|armeabi-v7a : JSON '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/.cxx/Debug/5a646l1c/armeabi-v7a/android_gradle_build.json' was up-to-date
+C/C++: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidMain/cpp/CMakeLists.txt debug|armeabi-v7a : JSON generation completed without problems
+C/C++: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidMain/cpp/CMakeLists.txt debug|armeabi-v7a : Writing build model to /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/cxx/Debug/5a646l1c/logs/armeabi-v7a/build_model.json
+Resolve mutations for :whisper-kmp:buildCMakeDebug[armeabi-v7a] (Thread[#729,included builds,5,main]) started.
+:whisper-kmp:buildCMakeDebug[arm64-v8a] (Thread[#733,Execution worker Thread 4,5,main]) started.
+:whisper-kmp:buildCMakeDebug[armeabi-v7a] (Thread[#729,included builds,5,main]) started.
+
+> Task :whisper-kmp:compileDebugKotlinAndroid
+Build cache key for task ':whisper-kmp:compileDebugKotlinAndroid' is 879ce8cb38ba7dd9c8458f2dac2c8cf2
+Task ':whisper-kmp:compileDebugKotlinAndroid' is not up-to-date because:
+  Task has failed previously.
+The input changes require a full rebuild for incremental task ':whisper-kmp:compileDebugKotlinAndroid'.
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidDebug/kotlin', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/debug/java', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/debug/kotlin', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/main/java', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/main/kotlin', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/main/java', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/debug/java', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidDebug/kotlin', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/debug/java', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/debug/kotlin', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidDebug/kotlin', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/debug/java', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/debug/kotlin', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/main/java', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/main/kotlin', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/main/java', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/debug/java', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidDebug/kotlin', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/debug/java', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/debug/kotlin', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/main/java', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/main/kotlin', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/main/java', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/debug/java', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidDebug/kotlin', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/debug/java', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/debug/kotlin', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/main/java', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/main/kotlin', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/main/java', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/debug/java', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidDebug/kotlin', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/debug/java', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/debug/kotlin', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/main/java', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/main/kotlin', not found
+Kotlin source files: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidMain/kotlin/com/puzzroom/whisper/WhisperAndroid.kt, /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidMain/kotlin/com/puzzroom/whisper/AudioUtils.kt, /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/commonMain/kotlin/com/puzzroom/whisper/Whisper.kt, /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/commonMain/kotlin/com/puzzroom/whisper/WhisperModels.kt
+Java source files: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/generated/source/buildConfig/debug/com/puzzroom/whisper/BuildConfig.java
+Script source files: 
+Script file extensions: 
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidDebug/kotlin', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/debug/java', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/debug/kotlin', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/main/java', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/main/kotlin', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/main/java', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/debug/java', not found
+Using Kotlin/JVM incremental compilation
+[KOTLIN] Kotlin compilation 'jdkHome' argument: /Applications/Android Studio.app/Contents/jbr/Contents/Home
+Options for KOTLIN DAEMON: IncrementalCompilationOptions(super=CompilationOptions(compilerMode=INCREMENTAL_COMPILER, targetPlatform=JVM, reportCategories=[0, 3], reportSeverity=2, requestedCompilationResults=[0], kotlinScriptExtensions=[]), sourceChanges=org.jetbrains.kotlin.buildtools.api.SourcesChanges$Unknown@9385be3, classpathChanges=NotAvailableForNonIncrementalRun, workingDir=/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/kotlin/compileDebugKotlinAndroid/cacheable, multiModuleICSettings=MultiModuleICSettings(buildHistoryFile=/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/kotlin/compileDebugKotlinAndroid/local-state/build-history.bin, useModuleDetection=true), icFeatures=IncrementalCompilationFeatures(usePreciseJavaTracking=true, withAbiSnapshot=false, preciseCompilationResultsBackup=true, keepIncrementalCompilationCachesInMemory=true, enableUnsafeIncrementalCompilationForMultiplatform=false, enableMonotonousIncrementalCompileSetExpansion=true), outputFiles=[/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/tmp/kotlin-classes/debug, /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/kotlin/compileDebugKotlinAndroid/cacheable, /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/kotlin/compileDebugKotlinAndroid/local-state])
+Finished executing kotlin compiler using DAEMON strategy
+Stored cache entry for task ':whisper-kmp:compileDebugKotlinAndroid' with cache key 879ce8cb38ba7dd9c8458f2dac2c8cf2
+Resolve mutations for :whisper-kmp:extractDebugAnnotations (Thread[#736,Execution worker Thread 7,5,main]) started.
+Resolve mutations for :whisper-kmp:compileDebugJavaWithJavac (Thread[#732,Execution worker Thread 3,5,main]) started.
+Resolve mutations for :whisper-kmp:processDebugJavaRes (Thread[#737,Execution worker Thread 8,5,main]) started.
+:whisper-kmp:processDebugJavaRes (Thread[#737,Execution worker Thread 8,5,main]) started.
+:whisper-kmp:extractDebugAnnotations (Thread[#736,Execution worker Thread 7,5,main]) started.
+:whisper-kmp:compileDebugJavaWithJavac (Thread[#732,Execution worker Thread 3,5,main]) started.
+
+> Task :whisper-kmp:buildCMakeDebug[x86]
+Caching disabled for task ':whisper-kmp:buildCMakeDebug[x86]' because:
+  Caching has been disabled for the task
+Task ':whisper-kmp:buildCMakeDebug[x86]' is not up-to-date because:
+  Task.upToDateWhen is false.
+C/C++: starting build
+C/C++: reading expected JSONs
+C/C++: done reading expected JSONs
+C/C++: executing build commands for targets that produce .so files or executables
+C/C++: evaluate miniconfig
+C/C++: evaluate library whisper_android (x86)
+C/C++: building target library whisper_android because no targets are specified.
+C/C++: evaluate library ggml-base (x86)
+C/C++: building target library ggml-base because no targets are specified.
+C/C++: evaluate library ggml-cpu (x86)
+C/C++: building target library ggml-cpu because no targets are specified.
+C/C++: evaluate library whisper (x86)
+C/C++: building target library whisper because no targets are specified.
+C/C++: evaluate library ggml (x86)
+C/C++: building target library ggml because no targets are specified.
+C/C++: about to build targets ggml, ggml-base, ggml-cpu, whisper, whisper_android
+C/C++: Build multiple targets whisper_android_x86 ggml-base_x86 ggml-cpu_x86 whisper_x86 ggml_x86
+C/C++: /Users/isseikz/Library/Android/sdk/cmake/3.22.1/bin/ninja \
+  -C \
+  /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/.cxx/Debug/5a646l1c/x86 \
+  ggml \
+  ggml-base \
+  ggml-cpu \
+  whisper \
+  whisper_android
+
+Starting process 'command '/Users/isseikz/Library/Android/sdk/cmake/3.22.1/bin/ninja''. Working directory: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp Command: /Users/isseikz/Library/Android/sdk/cmake/3.22.1/bin/ninja -C /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/.cxx/Debug/5a646l1c/x86 ggml ggml-base ggml-cpu whisper whisper_android
+Successfully started process 'command '/Users/isseikz/Library/Android/sdk/cmake/3.22.1/bin/ninja''
+
+> Task :whisper-kmp:processDebugJavaRes UP-TO-DATE
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/main/resources', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidMain/resources', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/debug/resources', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidDebug/resources', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidDebug/resources', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/main/resources', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidMain/resources', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/debug/resources', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidDebug/resources', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/androidDebug/resources', not found
+Caching disabled for task ':whisper-kmp:processDebugJavaRes' because:
+  Caching has been disabled for the task
+Skipping task ':whisper-kmp:processDebugJavaRes' as it is up-to-date.
+Resolve mutations for :whisper-kmp:mergeDebugJavaResource (Thread[#737,Execution worker Thread 8,5,main]) started.
+:whisper-kmp:mergeDebugJavaResource (Thread[#737,Execution worker Thread 8,5,main]) started.
+
+> Task :whisper-kmp:mergeDebugJavaResource UP-TO-DATE
+Caching disabled for task ':whisper-kmp:mergeDebugJavaResource' because:
+  Caching has been disabled for the task
+Skipping task ':whisper-kmp:mergeDebugJavaResource' as it is up-to-date.
+
+> Task :whisper-kmp:extractDebugAnnotations
+Build cache key for task ':whisper-kmp:extractDebugAnnotations' is 0363f2204cc5d4af283d1bd9aad90333
+Task ':whisper-kmp:extractDebugAnnotations' is not up-to-date because:
+  Input property 'classpath' file /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/tmp/kotlin-classes/debug/com/puzzroom/whisper/Whisper.class has been removed.
+  Input property 'classpath' file /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/tmp/kotlin-classes/debug/com/puzzroom/whisper/Whisper$Companion.class has been added.
+  Input property 'classpath' file /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/tmp/kotlin-classes/debug/com/puzzroom/whisper/WhisperAndroid.class has been removed.
+  and more...
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/main/java', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/debug/java', not found
+Stored cache entry for task ':whisper-kmp:extractDebugAnnotations' with cache key 0363f2204cc5d4af283d1bd9aad90333
+
+> Task :whisper-kmp:buildCMakeDebug[x86_64]
+Caching disabled for task ':whisper-kmp:buildCMakeDebug[x86_64]' because:
+  Caching has been disabled for the task
+Task ':whisper-kmp:buildCMakeDebug[x86_64]' is not up-to-date because:
+  Task.upToDateWhen is false.
+C/C++: starting build
+C/C++: reading expected JSONs
+C/C++: done reading expected JSONs
+C/C++: executing build commands for targets that produce .so files or executables
+C/C++: evaluate miniconfig
+C/C++: evaluate library whisper_android (x86_64)
+C/C++: building target library whisper_android because no targets are specified.
+C/C++: evaluate library ggml-base (x86_64)
+C/C++: building target library ggml-base because no targets are specified.
+C/C++: evaluate library ggml-cpu (x86_64)
+C/C++: building target library ggml-cpu because no targets are specified.
+C/C++: evaluate library whisper (x86_64)
+C/C++: building target library whisper because no targets are specified.
+C/C++: evaluate library ggml (x86_64)
+C/C++: building target library ggml because no targets are specified.
+C/C++: about to build targets ggml, ggml-base, ggml-cpu, whisper, whisper_android
+C/C++: Build multiple targets whisper_android_x86_64 ggml-base_x86_64 ggml-cpu_x86_64 whisper_x86_64 ggml_x86_64
+C/C++: /Users/isseikz/Library/Android/sdk/cmake/3.22.1/bin/ninja \
+  -C \
+  /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/.cxx/Debug/5a646l1c/x86_64 \
+  ggml \
+  ggml-base \
+  ggml-cpu \
+  whisper \
+  whisper_android
+
+Starting process 'command '/Users/isseikz/Library/Android/sdk/cmake/3.22.1/bin/ninja''. Working directory: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp Command: /Users/isseikz/Library/Android/sdk/cmake/3.22.1/bin/ninja -C /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/.cxx/Debug/5a646l1c/x86_64 ggml ggml-base ggml-cpu whisper whisper_android
+Successfully started process 'command '/Users/isseikz/Library/Android/sdk/cmake/3.22.1/bin/ninja''
+
+> Task :whisper-kmp:compileDebugJavaWithJavac
+Build cache key for task ':whisper-kmp:compileDebugJavaWithJavac' is b846b639b57f938900debf7fbead52f7
+Task ':whisper-kmp:compileDebugJavaWithJavac' is not up-to-date because:
+  Value of input property 'javaCompiler.metadata.languageVersion' has changed for task ':whisper-kmp:compileDebugJavaWithJavac'
+  Value of input property 'javaCompiler.metadata.taskInputs.languageVersion' has changed for task ':whisper-kmp:compileDebugJavaWithJavac'
+  Value of input property 'javaVersion' has changed for task ':whisper-kmp:compileDebugJavaWithJavac'
+The input changes require a full rebuild for incremental task ':whisper-kmp:compileDebugJavaWithJavac'.
+Compilation mode: in-process compilation
+Full recompilation is required because no incremental change information is available. This is usually caused by clean builds or changing compiler arguments.
+Compiling with toolchain '/Applications/Android Studio.app/Contents/jbr/Contents/Home'.
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/main/java', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/src/debug/java', not found
+Compiling with JDK Java compiler API.
+Class dependency analysis for incremental compilation took 0.009 secs.
+Created classpath snapshot for incremental compilation in 0.057 secs.
+Stored cache entry for task ':whisper-kmp:compileDebugJavaWithJavac' with cache key b846b639b57f938900debf7fbead52f7
+Resolve mutations for :whisper-kmp:mergeDebugGeneratedProguardFiles (Thread[#732,Execution worker Thread 3,5,main]) started.
+:whisper-kmp:mergeDebugGeneratedProguardFiles (Thread[#732,Execution worker Thread 3,5,main]) started.
+Resolve mutations for :whisper-kmp:syncDebugLibJars (Thread[#736,Execution worker Thread 7,5,main]) started.
+:whisper-kmp:syncDebugLibJars (Thread[#736,Execution worker Thread 7,5,main]) started.
+
+> Task :whisper-kmp:mergeDebugGeneratedProguardFiles UP-TO-DATE
+Caching disabled for task ':whisper-kmp:mergeDebugGeneratedProguardFiles' because:
+  Simple merging task
+Skipping task ':whisper-kmp:mergeDebugGeneratedProguardFiles' as it is up-to-date.
+Resolve mutations for :whisper-kmp:mergeDebugConsumerProguardFiles (Thread[#732,Execution worker Thread 3,5,main]) started.
+:whisper-kmp:mergeDebugConsumerProguardFiles (Thread[#732,Execution worker Thread 3,5,main]) started.
+
+> Task :whisper-kmp:mergeDebugConsumerProguardFiles UP-TO-DATE
+Caching disabled for task ':whisper-kmp:mergeDebugConsumerProguardFiles' because:
+  Simple merging task
+Skipping task ':whisper-kmp:mergeDebugConsumerProguardFiles' as it is up-to-date.
+
+> Task :whisper-kmp:syncDebugLibJars
+Build cache key for task ':whisper-kmp:syncDebugLibJars' is f844d19d5a660684bbe77ede61377795
+Task ':whisper-kmp:syncDebugLibJars' is not up-to-date because:
+  Input property 'mainScopeClassFiles' file /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/tmp/kotlin-classes/debug/com/puzzroom/whisper/Whisper.class has been removed.
+  Input property 'mainScopeClassFiles' file /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/tmp/kotlin-classes/debug/com/puzzroom/whisper/Whisper$Companion.class has been added.
+  Input property 'mainScopeClassFiles' file /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/tmp/kotlin-classes/debug/com/puzzroom/whisper/WhisperAndroid.class has been removed.
+  and more...
+Stored cache entry for task ':whisper-kmp:syncDebugLibJars' with cache key f844d19d5a660684bbe77ede61377795
+
+> Task :whisper-kmp:buildCMakeDebug[armeabi-v7a]
+Caching disabled for task ':whisper-kmp:buildCMakeDebug[armeabi-v7a]' because:
+  Caching has been disabled for the task
+Task ':whisper-kmp:buildCMakeDebug[armeabi-v7a]' is not up-to-date because:
+  Task.upToDateWhen is false.
+C/C++: starting build
+C/C++: reading expected JSONs
+C/C++: done reading expected JSONs
+C/C++: executing build commands for targets that produce .so files or executables
+C/C++: evaluate miniconfig
+C/C++: evaluate library whisper_android (armeabi-v7a)
+C/C++: building target library whisper_android because no targets are specified.
+C/C++: evaluate library ggml-base (armeabi-v7a)
+C/C++: building target library ggml-base because no targets are specified.
+C/C++: evaluate library ggml-cpu (armeabi-v7a)
+C/C++: building target library ggml-cpu because no targets are specified.
+C/C++: evaluate library whisper (armeabi-v7a)
+C/C++: building target library whisper because no targets are specified.
+C/C++: evaluate library ggml (armeabi-v7a)
+C/C++: building target library ggml because no targets are specified.
+C/C++: about to build targets ggml, ggml-base, ggml-cpu, whisper, whisper_android
+C/C++: Build multiple targets whisper_android_armeabi-v7a ggml-base_armeabi-v7a ggml-cpu_armeabi-v7a whisper_armeabi-v7a ggml_armeabi-v7a
+C/C++: /Users/isseikz/Library/Android/sdk/cmake/3.22.1/bin/ninja \
+  -C \
+  /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/.cxx/Debug/5a646l1c/armeabi-v7a \
+  ggml \
+  ggml-base \
+  ggml-cpu \
+  whisper \
+  whisper_android
+
+Starting process 'command '/Users/isseikz/Library/Android/sdk/cmake/3.22.1/bin/ninja''. Working directory: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp Command: /Users/isseikz/Library/Android/sdk/cmake/3.22.1/bin/ninja -C /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/.cxx/Debug/5a646l1c/armeabi-v7a ggml ggml-base ggml-cpu whisper whisper_android
+Successfully started process 'command '/Users/isseikz/Library/Android/sdk/cmake/3.22.1/bin/ninja''
+
+> Task :whisper-kmp:buildCMakeDebug[x86_64]
+C/C++: Received process result: 0
+C/C++: check expected build outputs
+C/C++: hard linked /Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/lib/clang/18/lib/linux/x86_64/libomp.so to /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/cxx/Debug/5a646l1c/obj/x86_64/libomp.so
+C/C++: build complete
+
+> Task :whisper-kmp:buildCMakeDebug[arm64-v8a]
+Caching disabled for task ':whisper-kmp:buildCMakeDebug[arm64-v8a]' because:
+  Caching has been disabled for the task
+Task ':whisper-kmp:buildCMakeDebug[arm64-v8a]' is not up-to-date because:
+  Task.upToDateWhen is false.
+C/C++: starting build
+C/C++: reading expected JSONs
+C/C++: done reading expected JSONs
+C/C++: executing build commands for targets that produce .so files or executables
+C/C++: evaluate miniconfig
+C/C++: evaluate library whisper_android (arm64-v8a)
+C/C++: building target library whisper_android because no targets are specified.
+C/C++: evaluate library ggml-base (arm64-v8a)
+C/C++: building target library ggml-base because no targets are specified.
+C/C++: evaluate library ggml-cpu (arm64-v8a)
+C/C++: building target library ggml-cpu because no targets are specified.
+C/C++: evaluate library whisper (arm64-v8a)
+C/C++: building target library whisper because no targets are specified.
+C/C++: evaluate library ggml (arm64-v8a)
+C/C++: building target library ggml because no targets are specified.
+C/C++: about to build targets ggml, ggml-base, ggml-cpu, whisper, whisper_android
+C/C++: Build multiple targets whisper_android_arm64-v8a ggml-base_arm64-v8a ggml-cpu_arm64-v8a whisper_arm64-v8a ggml_arm64-v8a
+C/C++: /Users/isseikz/Library/Android/sdk/cmake/3.22.1/bin/ninja \
+  -C \
+  /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/.cxx/Debug/5a646l1c/arm64-v8a \
+  ggml \
+  ggml-base \
+  ggml-cpu \
+  whisper \
+  whisper_android
+
+Starting process 'command '/Users/isseikz/Library/Android/sdk/cmake/3.22.1/bin/ninja''. Working directory: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp Command: /Users/isseikz/Library/Android/sdk/cmake/3.22.1/bin/ninja -C /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/.cxx/Debug/5a646l1c/arm64-v8a ggml ggml-base ggml-cpu whisper whisper_android
+Successfully started process 'command '/Users/isseikz/Library/Android/sdk/cmake/3.22.1/bin/ninja''
+
+> Task :whisper-kmp:buildCMakeDebug[x86]
+C/C++: ninja: Entering directory `/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/.cxx/Debug/5a646l1c/x86'
+C/C++: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/whisper.cpp/src/whisper.cpp:3437:80: warning: format specifies type 'long' but the argument has type 'size_t' (aka 'unsigned int') [-Wformat]
+C/C++:  3437 |         WHISPER_LOG_INFO("%s: alignment heads masks size = %ld B\n", __func__, memory_size);
+C/C++:       |                                                            ~~~                 ^~~~~~~~~~~
+C/C++:       |                                                            %zu
+C/C++: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/whisper.cpp/src/whisper.cpp:123:75: note: expanded from macro 'WHISPER_LOG_INFO'
+C/C++:   123 | #define WHISPER_LOG_INFO(...)  whisper_log_internal(GGML_LOG_LEVEL_INFO , __VA_ARGS__)
+C/C++:       |                                                                           ^~~~~~~~~~~
+C/C++: 1 warning generated.
+C/C++: Received process result: 0
+C/C++: check expected build outputs
+C/C++: hard linked /Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/lib/clang/18/lib/linux/i386/libomp.so to /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/cxx/Debug/5a646l1c/obj/x86/libomp.so
+C/C++: build complete
+
+> Task :whisper-kmp:buildCMakeDebug[arm64-v8a]
+C/C++: Received process result: 0
+C/C++: check expected build outputs
+C/C++: hard linked /Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/lib/clang/18/lib/linux/aarch64/libomp.so to /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/cxx/Debug/5a646l1c/obj/arm64-v8a/libomp.so
+C/C++: build complete
+
+> Task :whisper-kmp:buildCMakeDebug[armeabi-v7a]
+C/C++: ninja: Entering directory `/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/.cxx/Debug/5a646l1c/armeabi-v7a'
+C/C++: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/whisper.cpp/src/whisper.cpp:3437:80: warning: format specifies type 'long' but the argument has type 'size_t' (aka 'unsigned int') [-Wformat]
+C/C++:  3437 |         WHISPER_LOG_INFO("%s: alignment heads masks size = %ld B\n", __func__, memory_size);
+C/C++:       |                                                            ~~~                 ^~~~~~~~~~~
+C/C++:       |                                                            %zu
+C/C++: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/whisper.cpp/src/whisper.cpp:123:75: note: expanded from macro 'WHISPER_LOG_INFO'
+C/C++:   123 | #define WHISPER_LOG_INFO(...)  whisper_log_internal(GGML_LOG_LEVEL_INFO , __VA_ARGS__)
+C/C++:       |                                                                           ^~~~~~~~~~~
+C/C++: 1 warning generated.
+C/C++: Received process result: 0
+C/C++: check expected build outputs
+C/C++: hard linked /Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/lib/clang/18/lib/linux/arm/libomp.so to /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/cxx/Debug/5a646l1c/obj/armeabi-v7a/libomp.so
+C/C++: build complete
+Resolve mutations for :whisper-kmp:mergeDebugNativeLibs (Thread[#729,included builds,5,main]) started.
+:whisper-kmp:mergeDebugNativeLibs (Thread[#729,included builds,5,main]) started.
+
+> Task :whisper-kmp:mergeDebugNativeLibs
+Caching disabled for task ':whisper-kmp:mergeDebugNativeLibs' because:
+  Caching has been disabled for the task
+Task ':whisper-kmp:mergeDebugNativeLibs' is not up-to-date because:
+  Input property 'projectNativeLibs' file /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/cxx/Debug/5h434p2g/obj/x86_64/libggml-base.so has been removed.
+  Input property 'projectNativeLibs' file /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/cxx/Debug/5h434p2g/obj/arm64-v8a/libggml-base.so has been removed.
+  Input property 'projectNativeLibs' file /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/cxx/Debug/5h434p2g/obj/armeabi-v7a/libggml-base.so has been removed.
+  and more...
+Resolve mutations for :whisper-kmp:stripDebugDebugSymbols (Thread[#729,included builds,5,main]) started.
+:whisper-kmp:stripDebugDebugSymbols (Thread[#729,included builds,5,main]) started.
+
+> Task :whisper-kmp:stripDebugDebugSymbols
+Caching disabled for task ':whisper-kmp:stripDebugDebugSymbols' because:
+  Caching has been disabled for the task
+Task ':whisper-kmp:stripDebugDebugSymbols' is not up-to-date because:
+  Input property 'inputDir' file /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/arm64-v8a/libggml-base.so has changed.
+  Input property 'inputDir' file /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/arm64-v8a/libggml-cpu.so has changed.
+  Input property 'inputDir' file /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/arm64-v8a/libggml.so has changed.
+  and more...
+C/C++: android.ndkVersion from module build.gradle is [27.0.12077973]
+C/C++: android.ndkVersion from module build.gradle is [27.0.12077973]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is /Users/isseikz/Library/Android/sdk
+C/C++: android.ndkVersion from module build.gradle is [27.0.12077973]
+C/C++: android.ndkVersion from module build.gradle is [27.0.12077973]
+C/C++: android.ndkVersion from module build.gradle is [27.0.12077973]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is /Users/isseikz/Library/Android/sdk
+C/C++: android.ndkVersion from module build.gradle is [27.0.12077973]
+C/C++: android.ndkVersion from module build.gradle is [27.0.12077973]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: android.ndkVersion from module build.gradle is [27.0.12077973]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is /Users/isseikz/Library/Android/sdk
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is /Users/isseikz/Library/Android/sdk
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: android.ndkVersion from module build.gradle is [27.0.12077973]
+C/C++: android.ndkVersion from module build.gradle is [27.0.12077973]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is /Users/isseikz/Library/Android/sdk
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is /Users/isseikz/Library/Android/sdk
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is /Users/isseikz/Library/Android/sdk
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is /Users/isseikz/Library/Android/sdk
+C/C++: ndk.dir in local.properties is not set
+C/C++: sdkFolder is /Users/isseikz/Library/Android/sdk
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is /Users/isseikz/Library/Android/sdk
+Starting process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''. Working directory: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp Command: /Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip --strip-unneeded -o /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/arm64-v8a/libwhisper.so /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/arm64-v8a/libwhisper.so
+Starting process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''. Working directory: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp Command: /Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip --strip-unneeded -o /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/arm64-v8a/libwhisper_android.so /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/arm64-v8a/libwhisper_android.so
+Starting process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''. Working directory: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp Command: /Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip --strip-unneeded -o /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/armeabi-v7a/libggml-base.so /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/armeabi-v7a/libggml-base.so
+Starting process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''. Working directory: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp Command: /Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip --strip-unneeded -o /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/arm64-v8a/libggml.so /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/arm64-v8a/libggml.so
+Starting process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''. Working directory: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp Command: /Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip --strip-unneeded -o /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/armeabi-v7a/libggml.so /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/armeabi-v7a/libggml.so
+Starting process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''. Working directory: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp Command: /Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip --strip-unneeded -o /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/arm64-v8a/libggml-cpu.so /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/arm64-v8a/libggml-cpu.so
+Starting process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''. Working directory: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp Command: /Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip --strip-unneeded -o /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/armeabi-v7a/libwhisper_android.so /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/armeabi-v7a/libwhisper_android.so
+Starting process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''. Working directory: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp Command: /Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip --strip-unneeded -o /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/armeabi-v7a/libwhisper.so /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/armeabi-v7a/libwhisper.so
+Starting process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''. Working directory: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp Command: /Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip --strip-unneeded -o /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/arm64-v8a/libggml-base.so /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/arm64-v8a/libggml-base.so
+Starting process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''. Working directory: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp Command: /Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip --strip-unneeded -o /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/armeabi-v7a/libggml-cpu.so /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/armeabi-v7a/libggml-cpu.so
+Successfully started process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''
+Successfully started process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''
+Successfully started process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''
+Successfully started process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''
+Successfully started process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''
+Successfully started process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''
+Successfully started process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''
+Successfully started process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''
+Successfully started process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''
+Successfully started process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''
+C/C++: android.ndkVersion from module build.gradle is [27.0.12077973]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is /Users/isseikz/Library/Android/sdk
+Starting process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''. Working directory: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp Command: /Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip --strip-unneeded -o /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/x86/libggml-base.so /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/x86/libggml-base.so
+C/C++: android.ndkVersion from module build.gradle is [27.0.12077973]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is /Users/isseikz/Library/Android/sdk
+Starting process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''. Working directory: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp Command: /Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip --strip-unneeded -o /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/x86/libggml-cpu.so /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/x86/libggml-cpu.so
+C/C++: android.ndkVersion from module build.gradle is [27.0.12077973]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is /Users/isseikz/Library/Android/sdk
+Starting process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''. Working directory: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp Command: /Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip --strip-unneeded -o /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/x86/libggml.so /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/x86/libggml.so
+C/C++: android.ndkVersion from module build.gradle is [27.0.12077973]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is /Users/isseikz/Library/Android/sdk
+Successfully started process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''
+Starting process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''. Working directory: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp Command: /Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip --strip-unneeded -o /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/x86/libwhisper.so /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/x86/libwhisper.so
+C/C++: android.ndkVersion from module build.gradle is [27.0.12077973]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is /Users/isseikz/Library/Android/sdk
+Starting process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''. Working directory: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp Command: /Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip --strip-unneeded -o /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/x86/libwhisper_android.so /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/x86/libwhisper_android.so
+C/C++: android.ndkVersion from module build.gradle is [27.0.12077973]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is /Users/isseikz/Library/Android/sdk
+Starting process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''. Working directory: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp Command: /Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip --strip-unneeded -o /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/x86_64/libggml-base.so /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/x86_64/libggml-base.so
+C/C++: android.ndkVersion from module build.gradle is [27.0.12077973]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is /Users/isseikz/Library/Android/sdk
+Starting process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''. Working directory: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp Command: /Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip --strip-unneeded -o /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/x86_64/libggml-cpu.so /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/x86_64/libggml-cpu.so
+C/C++: android.ndkVersion from module build.gradle is [27.0.12077973]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is /Users/isseikz/Library/Android/sdk
+Starting process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''. Working directory: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp Command: /Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip --strip-unneeded -o /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/x86_64/libggml.so /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/x86_64/libggml.so
+Successfully started process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''
+C/C++: android.ndkVersion from module build.gradle is [27.0.12077973]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is /Users/isseikz/Library/Android/sdk
+Starting process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''. Working directory: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp Command: /Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip --strip-unneeded -o /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/x86_64/libwhisper.so /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/x86_64/libwhisper.so
+C/C++: android.ndkVersion from module build.gradle is [27.0.12077973]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is /Users/isseikz/Library/Android/sdk
+Starting process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''. Working directory: /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp Command: /Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip --strip-unneeded -o /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/x86_64/libwhisper_android.so /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/x86_64/libwhisper_android.so
+Successfully started process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''
+Successfully started process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''
+Successfully started process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''
+Successfully started process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''
+Successfully started process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''
+Successfully started process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''
+Successfully started process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''
+Successfully started process 'command '/Users/isseikz/Library/Android/sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip''
+Resolve mutations for :whisper-kmp:copyDebugJniLibsProjectAndLocalJars (Thread[#729,included builds,5,main]) started.
+:whisper-kmp:copyDebugJniLibsProjectAndLocalJars (Thread[#729,included builds,5,main]) started.
+
+> Task :whisper-kmp:copyDebugJniLibsProjectAndLocalJars
+Caching disabled for task ':whisper-kmp:copyDebugJniLibsProjectAndLocalJars' because:
+  Caching has been disabled for the task
+Task ':whisper-kmp:copyDebugJniLibsProjectAndLocalJars' is not up-to-date because:
+  Input property 'projectNativeLibs' file /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/arm64-v8a/libggml-base.so has changed.
+  Input property 'projectNativeLibs' file /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/arm64-v8a/libggml-cpu.so has changed.
+  Input property 'projectNativeLibs' file /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/stripped_native_libs/debug/stripDebugDebugSymbols/out/lib/arm64-v8a/libggml.so has changed.
+  and more...
+Resolve mutations for :whisper-kmp:bundleDebugAar (Thread[#729,included builds,5,main]) started.
+:whisper-kmp:bundleDebugAar (Thread[#729,included builds,5,main]) started.
+
+> Task :whisper-kmp:bundleDebugAar
+Caching disabled for task ':whisper-kmp:bundleDebugAar' because:
+  Caching has been disabled for the task
+Task ':whisper-kmp:bundleDebugAar' is not up-to-date because:
+  Input property 'rootSpec$1' file /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/aar_main_jar/debug/syncDebugLibJars/classes.jar has changed.
+  Input property 'rootSpec$1$5' file /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/library_and_local_jars_jni/debug/copyDebugJniLibsProjectAndLocalJars/jni/arm64-v8a/libggml-base.so has changed.
+  Input property 'rootSpec$1$5' file /Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/library_and_local_jars_jni/debug/copyDebugJniLibsProjectAndLocalJars/jni/arm64-v8a/libggml-cpu.so has changed.
+  and more...
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/public_res/debug/packageDebugResources/public.txt', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/navigation_json_for_aar/debug/extractDeepLinksForAarDebug/navigation.json', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/annotations_zip/debug/extractDebugAnnotations/annotations.zip', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/merged_consumer_proguard_file/debug/mergeDebugConsumerProguardFiles/proguard.txt', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/lint_publish_jar/global/prepareLintJarForPublish/lint.jar', not found
+file or directory '/Users/isseikz/AndroidStudioProjects/Puzzroom/whisper-kmp/build/intermediates/library_art_profile/debug/prepareDebugArtProfile/baseline-prof.txt', not found
+Resolve mutations for :whisper-kmp:assembleDebug (Thread[#729,included builds,5,main]) started.
+:whisper-kmp:assembleDebug (Thread[#729,included builds,5,main]) started.
+
+> Task :whisper-kmp:assembleDebug
+Skipping task ':whisper-kmp:assembleDebug' as it has no actions.
+Build 1d9a951c-6422-4a9b-892d-49408ec0150f is closed
+
+BUILD SUCCESSFUL in 14s
+36 actionable tasks: 17 executed, 19 up-to-date
+Watched directory hierarchies: [/Users/isseikz/AndroidStudioProjects/Puzzroom]
+Configuration cache entry reused.

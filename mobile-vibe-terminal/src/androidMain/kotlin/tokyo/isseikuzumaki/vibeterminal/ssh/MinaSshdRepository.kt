@@ -8,6 +8,7 @@ import kotlinx.coroutines.withContext
 import org.apache.sshd.client.SshClient
 import org.apache.sshd.client.channel.ChannelShell
 import org.apache.sshd.client.session.ClientSession
+import org.apache.sshd.common.channel.PtyMode
 import org.apache.sshd.sftp.client.SftpClient
 import org.apache.sshd.sftp.client.SftpClientFactory
 import tokyo.isseikuzumaki.vibeterminal.domain.model.FileEntry
@@ -19,6 +20,7 @@ import java.io.InputStreamReader
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
 import java.io.PrintWriter
+import java.util.EnumMap
 import java.util.concurrent.TimeUnit
 
 class MinaSshdRepository : SshRepository {
@@ -73,9 +75,35 @@ class MinaSshdRepository : SshRepository {
             clientSession.auth().verify(10, TimeUnit.SECONDS)
             println("9. Authentication successful")
 
-            // 4. Open shell channel
+            // 4. Open shell channel with PTY configuration
             println("10. Creating shell channel...")
             val shellChannel = clientSession.createShellChannel()
+
+            // 4a. Configure PTY for proper terminal emulation (byobu, tmux, vim support)
+            println("10a. Configuring PTY settings...")
+
+            // Set terminal type to xterm-256color (modern standard)
+            shellChannel.ptyType = "xterm-256color"
+
+            // Set environment variables
+            shellChannel.setEnv("TERM", "xterm-256color")
+            shellChannel.setEnv("LANG", "en_US.UTF-8")
+
+            // Configure PTY modes for interactive shell behavior
+            val ptyModes = EnumMap<PtyMode, Int>(PtyMode::class.java)
+            ptyModes[PtyMode.ECHO] = 1       // Echo back characters
+            ptyModes[PtyMode.ICANON] = 1     // Canonical mode (line editing)
+            ptyModes[PtyMode.ISIG] = 1       // Signal handling (Ctrl+C, etc.)
+            shellChannel.ptyModes = ptyModes
+
+            // Set initial window size (80x24 is standard default)
+            // This will be updated dynamically when UI size changes
+            shellChannel.ptyColumns = 80
+            shellChannel.ptyLines = 24
+            shellChannel.ptyWidth = 640    // 80 * 8px (approximate)
+            shellChannel.ptyHeight = 384   // 24 * 16px (approximate)
+
+            println("10b. PTY configured: xterm-256color, 80x24")
 
             // 5. Set up piped streams to capture output
             println("11. Setting up piped streams for output...")
@@ -221,6 +249,23 @@ class MinaSshdRepository : SshRepository {
 
     override suspend fun sendInput(input: String) {
         outputWriter?.println(input)
+    }
+
+    override suspend fun resizeTerminal(cols: Int, rows: Int, widthPx: Int, heightPx: Int) {
+        try {
+            val currentChannel = channel
+            if (currentChannel != null && currentChannel.isOpen) {
+                println("=== Terminal Resize ===")
+                println("New size: ${cols}x${rows} (${widthPx}x${heightPx}px)")
+                currentChannel.sendWindowChange(cols, rows, widthPx, heightPx)
+                println("Window change sent successfully")
+            } else {
+                println("Cannot resize: channel is not open")
+            }
+        } catch (e: Exception) {
+            println("Failed to send window change: ${e.message}")
+            e.printStackTrace()
+        }
     }
 
     override suspend fun downloadFile(remotePath: String, localFile: File): Result<Unit> {

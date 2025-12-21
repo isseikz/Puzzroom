@@ -33,4 +33,14 @@ interface SshRepository {
      * @return Result containing file content as string or error
      */
     suspend fun readFileContent(remotePath: String): Result<String>
+
+    /**
+     * Notify the server of terminal window size changes
+     * This is required for proper display of TUI applications like byobu, tmux, vim
+     * @param cols Terminal width in columns
+     * @param rows Terminal height in rows
+     * @param widthPx Terminal width in pixels (optional, for precise rendering)
+     * @param heightPx Terminal height in pixels (optional, for precise rendering)
+     */
+    suspend fun resizeTerminal(cols: Int, rows: Int, widthPx: Int = 0, heightPx: Int = 0)
 }

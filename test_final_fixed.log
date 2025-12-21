@@ -1,0 +1,149 @@
+Reusing configuration cache.
+> Task :unison-app:kmpPartiallyResolvedDependenciesChecker
+> Task :unison-app:convertXmlValueResourcesForAndroidInstrumentedTest NO-SOURCE
+> Task :unison-app:preBuild UP-TO-DATE
+> Task :unison-app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :unison-app:preDebugBuild UP-TO-DATE
+> Task :whisper-kmp:preBuild UP-TO-DATE
+> Task :unison-app:copyNonXmlValueResourcesForAndroidDebug NO-SOURCE
+> Task :whisper-kmp:preDebugBuild UP-TO-DATE
+> Task :whisper-kmp:kmpPartiallyResolvedDependenciesChecker
+> Task :unison-app:convertXmlValueResourcesForAndroidMain NO-SOURCE
+> Task :unison-app:generateComposeResClass UP-TO-DATE
+> Task :unison-app:generateExpectResourceCollectorsForCommonMain UP-TO-DATE
+> Task :unison-app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :whisper-kmp:generateDebugResValues UP-TO-DATE
+> Task :whisper-kmp:writeDebugAarMetadata UP-TO-DATE
+> Task :unison-app:generateDebugResValues UP-TO-DATE
+> Task :whisper-kmp:processDebugManifest UP-TO-DATE
+> Task :whisper-kmp:generateDebugBuildConfig UP-TO-DATE
+> Task :unison-app:copyNonXmlValueResourcesForAndroidMain NO-SOURCE
+> Task :unison-app:convertXmlValueResourcesForAndroidDebug NO-SOURCE
+> Task :whisper-kmp:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :unison-app:extractDeepLinksDebug UP-TO-DATE
+> Task :whisper-kmp:javaPreCompileDebug UP-TO-DATE
+> Task :unison-app:convertXmlValueResourcesForCommonMain UP-TO-DATE
+> Task :unison-app:generateDebugResources UP-TO-DATE
+> Task :whisper-kmp:generateDebugResources UP-TO-DATE
+> Task :unison-app:prepareComposeResourcesTaskForAndroidDebug NO-SOURCE
+> Task :unison-app:prepareComposeResourcesTaskForAndroidMain NO-SOURCE
+> Task :unison-app:javaPreCompileDebug UP-TO-DATE
+> Task :whisper-kmp:extractDeepLinksDebug UP-TO-DATE
+> Task :unison-app:preDebugAndroidTestBuild SKIPPED
+> Task :unison-app:copyNonXmlValueResourcesForAndroidInstrumentedTest NO-SOURCE
+> Task :unison-app:copyNonXmlValueResourcesForCommonMain NO-SOURCE
+> Task :unison-app:generateResourceAccessorsForAndroidMain NO-SOURCE
+> Task :unison-app:convertXmlValueResourcesForAndroidInstrumentedTestDebug NO-SOURCE
+> Task :unison-app:generateResourceAccessorsForAndroidDebug NO-SOURCE
+> Task :unison-app:copyNonXmlValueResourcesForAndroidInstrumentedTestDebug NO-SOURCE
+> Task :unison-app:packageDebugResources UP-TO-DATE
+> Task :unison-app:checkDebugAarMetadata UP-TO-DATE
+> Task :unison-app:prepareComposeResourcesTaskForAndroidInstrumentedTest NO-SOURCE
+> Task :unison-app:generateDebugAndroidTestResValues UP-TO-DATE
+> Task :whisper-kmp:packageDebugResources UP-TO-DATE
+> Task :unison-app:prepareComposeResourcesTaskForAndroidInstrumentedTestDebug NO-SOURCE
+> Task :unison-app:prepareComposeResourcesTaskForCommonMain UP-TO-DATE
+> Task :unison-app:checkDebugAndroidTestAarMetadata UP-TO-DATE
+> Task :whisper-kmp:compileDebugLibraryResources UP-TO-DATE
+> Task :unison-app:generateResourceAccessorsForAndroidInstrumentedTest NO-SOURCE
+> Task :unison-app:generateResourceAccessorsForCommonMain UP-TO-DATE
+> Task :unison-app:generateResourceAccessorsForAndroidInstrumentedTestDebug NO-SOURCE
+> Task :whisper-kmp:parseDebugLocalResources UP-TO-DATE
+> Task :unison-app:parseDebugLocalResources UP-TO-DATE
+> Task :unison-app:generateDebugAndroidTestResources UP-TO-DATE
+> Task :unison-app:mapDebugAndroidTestSourceSetPaths UP-TO-DATE
+> Task :unison-app:javaPreCompileDebugAndroidTest UP-TO-DATE
+> Task :unison-app:generateActualResourceCollectorsForAndroidMain UP-TO-DATE
+> Task :unison-app:debugAssetsCopyForAGP NO-SOURCE
+> Task :unison-app:mergeDebugShaders UP-TO-DATE
+> Task :whisper-kmp:debugAssetsCopyForAGP NO-SOURCE
+> Task :unison-app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :unison-app:copyDebugComposeResourcesToAndroidAssets UP-TO-DATE
+> Task :unison-app:compileDebugShaders NO-SOURCE
+> Task :unison-app:generateDebugAssets UP-TO-DATE
+> Task :whisper-kmp:mergeDebugShaders UP-TO-DATE
+> Task :unison-app:processDebugAndroidTestManifest UP-TO-DATE
+> Task :whisper-kmp:generateDebugRFile UP-TO-DATE
+> Task :whisper-kmp:compileDebugShaders NO-SOURCE
+> Task :whisper-kmp:generateDebugAssets UP-TO-DATE
+> Task :unison-app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :unison-app:desugarDebugFileDependencies UP-TO-DATE
+> Task :unison-app:mergeDebugAndroidTestResources UP-TO-DATE
+> Task :unison-app:processDebugMainManifest UP-TO-DATE
+> Task :whisper-kmp:mergeDebugAssets UP-TO-DATE
+> Task :unison-app:mergeDebugResources UP-TO-DATE
+> Task :unison-app:processDebugManifest UP-TO-DATE
+> Task :unison-app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :unison-app:processDebugManifestForPackage UP-TO-DATE
+> Task :whisper-kmp:mergeDebugJniLibFolders UP-TO-DATE
+> Task :unison-app:validateSigningDebug UP-TO-DATE
+> Task :unison-app:writeDebugAppMetadata UP-TO-DATE
+> Task :unison-app:writeDebugSigningConfigVersions UP-TO-DATE
+> Task :unison-app:mergeDebugAssets UP-TO-DATE
+> Task :unison-app:mergeDebugAndroidTestShaders UP-TO-DATE
+> Task :unison-app:mergeExtDexDebug UP-TO-DATE
+> Task :unison-app:compileDebugAndroidTestShaders NO-SOURCE
+> Task :unison-app:generateDebugAndroidTestAssets UP-TO-DATE
+> Task :unison-app:compressDebugAssets UP-TO-DATE
+> Task :whisper-kmp:compileDebugKotlinAndroid UP-TO-DATE
+> Task :unison-app:desugarDebugAndroidTestFileDependencies UP-TO-DATE
+> Task :unison-app:copyDebugAndroidTestComposeResourcesToAndroidAssets UP-TO-DATE
+> Task :whisper-kmp:configureCMakeDebug[arm64-v8a]
+> Task :unison-app:mergeDebugAndroidTestAssets UP-TO-DATE
+> Task :whisper-kmp:compileDebugJavaWithJavac UP-TO-DATE
+> Task :whisper-kmp:processDebugJavaRes UP-TO-DATE
+> Task :unison-app:compressDebugAndroidTestAssets UP-TO-DATE
+> Task :whisper-kmp:configureCMakeDebug[x86_64]
+> Task :whisper-kmp:configureCMakeDebug[x86]
+> Task :unison-app:checkDebugAndroidTestDuplicateClasses UP-TO-DATE
+> Task :whisper-kmp:bundleLibRuntimeToDirDebug UP-TO-DATE
+> Task :whisper-kmp:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :whisper-kmp:configureCMakeDebug[armeabi-v7a]
+> Task :unison-app:mergeDebugAndroidTestJniLibFolders UP-TO-DATE
+> Task :unison-app:processDebugResources UP-TO-DATE
+> Task :unison-app:validateSigningDebugAndroidTest UP-TO-DATE
+> Task :unison-app:writeDebugAndroidTestSigningConfigVersions UP-TO-DATE
+> Task :unison-app:processDebugAndroidTestResources UP-TO-DATE
+> Task :unison-app:mergeLibDexDebug UP-TO-DATE
+> Task :unison-app:mergeLibDexDebugAndroidTest UP-TO-DATE
+> Task :unison-app:mergeExtDexDebugAndroidTest UP-TO-DATE
+> Task :unison-app:compileDebugKotlinAndroid UP-TO-DATE
+> Task :unison-app:compileDebugJavaWithJavac NO-SOURCE
+> Task :unison-app:bundleDebugClassesToCompileJar UP-TO-DATE
+> Task :unison-app:processDebugJavaRes UP-TO-DATE
+> Task :unison-app:dexBuilderDebug UP-TO-DATE
+> Task :unison-app:mergeProjectDexDebug UP-TO-DATE
+> Task :unison-app:mergeDebugJavaResource UP-TO-DATE
+> Task :whisper-kmp:buildCMakeDebug[arm64-v8a]
+> Task :whisper-kmp:buildCMakeDebug[x86]
+> Task :whisper-kmp:buildCMakeDebug[armeabi-v7a]
+> Task :whisper-kmp:buildCMakeDebug[x86_64]
+> Task :whisper-kmp:mergeDebugNativeLibs UP-TO-DATE
+> Task :whisper-kmp:copyDebugJniLibsProjectOnly UP-TO-DATE
+> Task :unison-app:mergeDebugNativeLibs UP-TO-DATE
+> Task :unison-app:stripDebugDebugSymbols UP-TO-DATE
+> Task :unison-app:mergeDebugAndroidTestNativeLibs NO-SOURCE
+> Task :unison-app:stripDebugAndroidTestDebugSymbols NO-SOURCE
+> Task :unison-app:packageDebug UP-TO-DATE
+> Task :unison-app:createDebugApkListingFileRedirect UP-TO-DATE
+> Task :unison-app:compileDebugAndroidTestKotlinAndroid
+> Task :unison-app:compileDebugAndroidTestJavaWithJavac NO-SOURCE
+> Task :unison-app:processDebugAndroidTestJavaRes UP-TO-DATE
+> Task :unison-app:mergeDebugAndroidTestJavaResource UP-TO-DATE
+> Task :unison-app:dexBuilderDebugAndroidTest
+> Task :unison-app:mergeProjectDexDebugAndroidTest
+> Task :unison-app:packageDebugAndroidTest
+> Task :unison-app:createDebugAndroidTestApkListingFileRedirect UP-TO-DATE
+
+> Task :unison-app:connectedDebugAndroidTest
+Starting 1 tests on XQ-BQ42 - 13
+
+tokyo.isseikuzumaki.unison.WhisperIntegrationTest > transcribeRealAudioFile_shouldNotCauseOutOfMemoryError[XQ-BQ42 - 13] [33mSKIPPED [0m
+
+Finished 2 tests on XQ-BQ42 - 13
+
+> Task :unison-app:connectedAndroidTest
+
+BUILD SUCCESSFUL in 27s
+100 actionable tasks: 15 executed, 85 up-to-date
+Configuration cache entry reused.
