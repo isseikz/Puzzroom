@@ -26,6 +26,12 @@ class MinaSshdRepository : SshRepository {
     private var outputWriter: PrintWriter? = null
     private var outputReader: PipedInputStream? = null
 
+    // Store credentials for creating separate SFTP sessions
+    private var connectionHost: String? = null
+    private var connectionPort: Int? = null
+    private var connectionUsername: String? = null
+    private var connectionPassword: String? = null
+
     override suspend fun connect(
         host: String,
         port: Int,
@@ -35,6 +41,12 @@ class MinaSshdRepository : SshRepository {
         return try {
             println("=== MinaSshdRepository.connect ===")
             println("Host: $host, Port: $port, Username: $username")
+
+            // Store credentials for SFTP sessions
+            connectionHost = host
+            connectionPort = port
+            connectionUsername = username
+            connectionPassword = password
 
             // 1. Create and start SSH client
             println("1. Creating SSH client...")
@@ -106,11 +118,50 @@ class MinaSshdRepository : SshRepository {
             channel = null
             session = null
             client = null
+            connectionHost = null
+            connectionPort = null
+            connectionUsername = null
+            connectionPassword = null
         }
     }
 
     override fun isConnected(): Boolean {
         return session?.isOpen == true && channel?.isOpen == true
+    }
+
+    /**
+     * Creates a separate SSH session for SFTP operations.
+     * This prevents SFTP operations from interfering with the shell channel.
+     */
+    private suspend fun <T> withSftpSession(block: suspend (SftpClient) -> T): T {
+        val host = connectionHost ?: throw IllegalStateException("Not connected")
+        val port = connectionPort ?: throw IllegalStateException("Not connected")
+        val username = connectionUsername ?: throw IllegalStateException("Not connected")
+        val password = connectionPassword ?: throw IllegalStateException("Not connected")
+
+        val sftpSshClient = SshClient.setUpDefaultClient()
+        sftpSshClient.start()
+
+        try {
+            val futureSession = sftpSshClient.connect(username, host, port)
+            val sftpSession = futureSession.verify(10, TimeUnit.SECONDS).session
+
+            try {
+                sftpSession.addPasswordIdentity(password)
+                sftpSession.auth().verify(10, TimeUnit.SECONDS)
+
+                val sftpClient = SftpClientFactory.instance().createSftpClient(sftpSession)
+                try {
+                    return block(sftpClient)
+                } finally {
+                    sftpClient.close()
+                }
+            } finally {
+                sftpSession.close()
+            }
+        } finally {
+            sftpSshClient.stop()
+        }
     }
 
     override suspend fun executeCommand(command: String): Result<String> {
@@ -175,15 +226,7 @@ class MinaSshdRepository : SshRepository {
             println("Remote: $remotePath")
             println("Local: ${localFile.absolutePath}")
 
-            val currentSession = session ?: return Result.failure(
-                IllegalStateException("Not connected to SSH server")
-            )
-
-            // Create SFTP client from the existing session
-            println("Creating SFTP client...")
-            val sftpClient: SftpClient = SftpClientFactory.instance().createSftpClient(currentSession)
-
-            try {
+            withSftpSession { sftpClient ->
                 println("Opening remote file for reading...")
                 sftpClient.read(remotePath).use { inputStream ->
                     println("Creating local file...")
@@ -206,8 +249,6 @@ class MinaSshdRepository : SshRepository {
                     }
                 }
                 Result.success(Unit)
-            } finally {
-                sftpClient.close()
             }
         } catch (e: Exception) {
             println("=== SFTP Download Failed ===")
@@ -219,13 +260,7 @@ class MinaSshdRepository : SshRepository {
 
     override suspend fun listFiles(remotePath: String): Result<List<FileEntry>> {
         return try {
-            val currentSession = session ?: return Result.failure(
-                IllegalStateException("Not connected to SSH server")
-            )
-
-            val sftpClient: SftpClient = SftpClientFactory.instance().createSftpClient(currentSession)
-
-            try {
+            withSftpSession { sftpClient ->
                 val entries = mutableListOf<FileEntry>()
                 val dirEntries = sftpClient.readDir(remotePath)
 
@@ -255,8 +290,6 @@ class MinaSshdRepository : SshRepository {
                     compareByDescending<FileEntry> { it.isDirectory }
                         .thenBy { it.name.lowercase() }
                 ))
-            } finally {
-                sftpClient.close()
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -265,19 +298,11 @@ class MinaSshdRepository : SshRepository {
 
     override suspend fun readFileContent(remotePath: String): Result<String> {
         return try {
-            val currentSession = session ?: return Result.failure(
-                IllegalStateException("Not connected to SSH server")
-            )
-
-            val sftpClient: SftpClient = SftpClientFactory.instance().createSftpClient(currentSession)
-
-            try {
+            withSftpSession { sftpClient ->
                 val content = sftpClient.read(remotePath).use { inputStream ->
                     inputStream.bufferedReader().use { it.readText() }
                 }
                 Result.success(content)
-            } finally {
-                sftpClient.close()
             }
         } catch (e: Exception) {
             Result.failure(e)
