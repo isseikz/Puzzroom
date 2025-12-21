@@ -1,4 +1,4 @@
-#  Mobile Vibe Terminal - Master Design Document
+# 📱 Mobile Vibe Terminal - Master Design Document
 
 **Project Name:** Mobile Vibe Terminal (Code Name: `mobile-vibe`)
 **Version:** 2.4.0 (Security & Compatibility Update)
@@ -11,7 +11,7 @@
 ### 1.1 コンセプト: "Vertical Vibe Coding"
 
 スマートフォン（縦画面）での開発体験を再定義する、AI時代のSSHクライアント。
-Claude Code 等の **Agentic AI** をバックエンドで動かすことを前提とし、フロントエンドは「AIへの指示(Chat)」「コード確認(View)」「動作検証(Deploy)」を、**アプリを切り替えることなくシームレスに完結させる**ことを目的とす。
+Claude Code 等の **Agentic AI** をバックエンドで動かすことを前提とし、フロントエンドは「AIへの指示(Chat)」「コード確認(View)」「動作検証(Deploy)」を、**アプリを切り替えることなくシームレスに完結させる**ことを目的とする。
 
 ### 1.2 解決する課題 (Core Problems & Solutions)
 
@@ -20,7 +20,7 @@ Claude Code 等の **Agentic AI** をバックエンドで動かすことを前�
 | **Input** | ターミナルでの1文字ずつの入力やコピペ作業が苦痛。 | **Hybrid Input UI**: Gboardのバッファ入力と、制御キーの即時送信を組み合わせた入力システム。 |
 | **Review** | コード確認のためにVimを開いたりアプリを切り替えると文脈が切れる。 | **Code Peek Overlay**: SSH経由でファイルを裏読みし、モーダルでサッと確認できるビューアを搭載。 |
 | **Deploy** | APK転送のためにクラウドやFCMアプリを経由し、AIに余計な指示が必要。 | **Magic Trigger Deploy**: ビルド完了ログを検知し、SFTPで直接APKをDL＆インストールする機能を統合。 |
-| **Persistence** | バックグラウンドに行くと接続が切れる。 | **Keep-Alive Service**: フォアグラウンドサービスによる接続維持、セキュアな自動再接続。 |
+| **Persistence** | バックグラウンドに行くと接続が切れる。 | **Keep-Alive Service**: フォアグラウンドサービスによる接続維持と、セキュアな自動再接続。 |
 
 ---
 
@@ -123,7 +123,7 @@ graph LR
 ### 4.1 SSH通信 & エミュレーション
 
 * **Session Persistence:**
-* Androidの **Foreground Service** を使用し、アプリがバックグラウンドに回ってもSSHセッショを切断しない（通知領域に常駐）。
+* Androidの **Foreground Service** を使用し、アプリがバックグラウンドに回ってもSSHセッションを切断しない（通知領域に常駐）。
 * ネットワーク切断時の自動再接続ロジック。
 
 
@@ -178,7 +178,7 @@ graph LR
 * [x] **Tech Fix:** SFTP用独立セッションの実装。
 * [x] **Tech Fix:** SFTP操作のIOスレッド化。
 
-### Phase 5: Essential Power-Ups (コア体験の完成)  PRIORITY
+### Phase 5: Essential Power-Ups (コア体験の完成) 🔥 PRIORITY
 
 *最優先フェーズ。PO要望の `byobu` 対応と、日常使いのブロッカー（切断、入力ストレス）を解消する。*
 
@@ -202,7 +202,7 @@ graph LR
 
 
 
-### Phase 6: Dev Tools Integration (開発効率化) ️ SPLIT
+### Phase 6: Dev Tools Integration (開発効率化) 🛠️ SPLIT
 
 *CUIで代替可能だが、あると便利な機能群。Phase 5完了後に着手。*
 

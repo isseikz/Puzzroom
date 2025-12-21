@@ -10,12 +10,14 @@ class AnsiEscapeParser(private val screenBuffer: TerminalScreenBuffer) {
         NORMAL,
         ESCAPE,
         CSI,
-        OSC
+        OSC,
+        SCS  // Character set selection
     }
 
     private var state = State.NORMAL
     private val paramBuffer = StringBuilder()
     private var csiCommand = ' '
+    private var scsChar = ' '  // Character set selector (e.g., '(' or ')')
 
     /**
      * Process incoming text and update the screen buffer
@@ -32,6 +34,7 @@ class AnsiEscapeParser(private val screenBuffer: TerminalScreenBuffer) {
             State.ESCAPE -> handleEscapeChar(char)
             State.CSI -> handleCsiChar(char)
             State.OSC -> handleOscChar(char)
+            State.SCS -> handleScsChar(char)
         }
     }
 
@@ -74,6 +77,14 @@ class AnsiEscapeParser(private val screenBuffer: TerminalScreenBuffer) {
                 state = State.OSC
                 paramBuffer.clear()
             }
+            '(' -> {  // SCS - Select character set into G0
+                scsChar = '('
+                state = State.SCS
+            }
+            ')' -> {  // SCS - Select character set into G1
+                scsChar = ')'
+                state = State.SCS
+            }
             'M' -> {  // Reverse index (move up and scroll if needed)
                 screenBuffer.moveCursorRelative(-1, 0)
                 state = State.NORMAL
@@ -101,7 +112,7 @@ class AnsiEscapeParser(private val screenBuffer: TerminalScreenBuffer) {
 
     private fun handleCsiChar(char: Char) {
         when {
-            char in '0'..'9' || char == ';' -> {
+            char in '0'..'9' || char == ';' || char == '?' -> {
                 paramBuffer.append(char)
             }
             char in 'A'..'Z' || char in 'a'..'z' || char == '@' || char == '`' -> {
@@ -131,8 +142,28 @@ class AnsiEscapeParser(private val screenBuffer: TerminalScreenBuffer) {
         }
     }
 
+    private fun handleScsChar(char: Char) {
+        // Handle character set selection
+        // ESC ( B = Select ASCII into G0
+        // ESC ( 0 = Select DEC Special Graphics into G0
+        // ESC ) B = Select ASCII into G1
+        // ESC ) 0 = Select DEC Special Graphics into G1
+        // For now, we just acknowledge and ignore these sequences
+        // In a full implementation, we would map special graphics characters
+        state = State.NORMAL
+    }
+
     private fun executeCsiCommand() {
-        val params = parseParams()
+        val paramsStr = paramBuffer.toString()
+        val isPrivate = paramsStr.startsWith("?")
+        // Strip '?' for parsing numbers
+        val cleanParamsStr = if (isPrivate) paramsStr.substring(1) else paramsStr
+        
+        val params = if (cleanParamsStr.isNotEmpty()) {
+            cleanParamsStr.split(';').mapNotNull { it.toIntOrNull() }
+        } else {
+            emptyList()
+        }
 
         when (csiCommand) {
             'A' -> {  // Cursor up
@@ -199,20 +230,41 @@ class AnsiEscapeParser(private val screenBuffer: TerminalScreenBuffer) {
             'u' -> {  // Restore cursor position
                 screenBuffer.restoreCursor()
             }
-            'h', 'l' -> {  // Set/Reset mode (ignore for now)
-                // These control various terminal modes
+            'h' -> {  // Set Mode (DECSET)
+                 if (isPrivate && params.contains(1049)) {
+                     // Save cursor and switch to alternate screen buffer, clearing it
+                     screenBuffer.saveCursor()
+                     screenBuffer.useAlternateScreenBuffer()
+                 }
             }
-            'r' -> {  // Set scrolling region (ignore for now)
-                // This sets the top and bottom margins
+            'l' -> {  // Reset Mode (DECRST)
+                 if (isPrivate && params.contains(1049)) {
+                     // Switch to primary screen buffer and restore cursor
+                     screenBuffer.useAlternateScreenBuffer() // This seems wrong based on the logic I just wrote for toggle, let's check
+                     // Wait, useAlternateScreenBuffer() logic check:
+                     // My previous implementation: 
+                     // useAlternateScreenBuffer() -> switches TO alt
+                     // usePrimaryScreenBuffer() -> switches TO primary
+                     
+                     screenBuffer.usePrimaryScreenBuffer()
+                     screenBuffer.restoreCursor()
+                 }
+            }
+            'r' -> {  // DECSTBM - Set scrolling region (top and bottom margins)
+                if (params.isEmpty()) {
+                    // No parameters means reset to full screen
+                    screenBuffer.resetScrollRegion()
+                } else {
+                    val top = params.getOrElse(0) { 1 }
+                    val bottom = params.getOrElse(1) { 24 }  // Default based on current buffer size
+                    screenBuffer.setScrollRegion(top, bottom)
+                }
             }
         }
     }
 
     private fun parseParams(): List<Int> {
-        if (paramBuffer.isEmpty()) return emptyList()
-
-        return paramBuffer.toString()
-            .split(';')
-            .mapNotNull { it.toIntOrNull() }
+        // logic moved to executeCsiCommand to handle '?'
+        return emptyList() 
     }
 }

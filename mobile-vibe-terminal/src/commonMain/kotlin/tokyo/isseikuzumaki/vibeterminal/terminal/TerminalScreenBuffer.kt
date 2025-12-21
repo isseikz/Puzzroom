@@ -10,14 +10,19 @@ class TerminalScreenBuffer(
     private var cols: Int = 80,
     private var rows: Int = 24
 ) {
-    // 2D array representing the screen buffer
     private var buffer: Array<Array<TerminalCell>> = createBuffer(cols, rows)
+    private var primaryBuffer: Array<Array<TerminalCell>> = buffer
+    private var alternateBuffer: Array<Array<TerminalCell>>? = null
 
     // Cursor position (0-indexed)
     var cursorRow: Int = 0
         private set
     var cursorCol: Int = 0
         private set
+    
+    // Saved cursor states for primary buffer
+    private var primaryCursorRow = 0
+    private var primaryCursorCol = 0
 
     // Current text styling
     private var currentForeground = Color.White
@@ -26,12 +31,57 @@ class TerminalScreenBuffer(
     private var isUnderline = false
     private var isReverse = false
 
-    // Saved cursor position (for save/restore cursor operations)
+    // Saved cursor position (for save/restore cursor operations within a buffer)
     private var savedCursorRow = 0
     private var savedCursorCol = 0
 
+    var isAlternateScreen: Boolean = false
+        private set
+
+    // Scroll region (DECSTBM) - 0-indexed, inclusive
+    private var scrollTop = 0
+    private var scrollBottom = rows - 1
+
     private fun createBuffer(cols: Int, rows: Int): Array<Array<TerminalCell>> {
         return Array(rows) { Array(cols) { TerminalCell.EMPTY } }
+    }
+    
+    /**
+     * Switch to the alternate screen buffer.
+     * This saves the current (primary) buffer state and creates a new empty buffer.
+     */
+    fun useAlternateScreenBuffer() {
+        if (!isAlternateScreen) {
+            // Save primary cursor state
+            primaryCursorRow = cursorRow
+            primaryCursorCol = cursorCol
+            primaryBuffer = buffer
+            
+            // Initialize alternate buffer if needed (or clear it)
+            // xterm typically clears the alternate buffer on entry
+            alternateBuffer = createBuffer(cols, rows)
+            buffer = alternateBuffer!!
+            
+            // Reset cursor for alternate buffer
+            cursorRow = 0
+            cursorCol = 0
+            
+            isAlternateScreen = true
+        }
+    }
+
+    /**
+     * Switch back to the primary screen buffer.
+     * This restores the primary buffer content and cursor state.
+     */
+    fun usePrimaryScreenBuffer() {
+        if (isAlternateScreen) {
+            buffer = primaryBuffer
+            cursorRow = primaryCursorRow
+            cursorCol = primaryCursorCol
+            alternateBuffer = null
+            isAlternateScreen = false
+        }
     }
 
     /**
@@ -56,9 +106,10 @@ class TerminalScreenBuffer(
             if (cursorCol >= cols) {
                 cursorCol = 0
                 cursorRow++
-                if (cursorRow >= rows) {
+                // Check if we need to scroll within the scroll region
+                if (cursorRow > scrollBottom) {
                     scrollUp()
-                    cursorRow = rows - 1
+                    cursorRow = scrollBottom
                 }
             }
         }
@@ -91,7 +142,15 @@ class TerminalScreenBuffer(
      * Clear the entire screen
      */
     fun clearScreen() {
-        buffer = createBuffer(cols, rows)
+        // Instead of creating a new buffer, we should clear the existing one to preserve reference if it's primary or alternate locally
+        // But for simplicity in this MVP, re-creating is fine as long as we assign it back to `buffer`
+        // However, `buffer` is a reference. 
+        // Correct approach:
+        for (r in 0 until rows) {
+            for (c in 0 until cols) {
+                buffer[r][c] = TerminalCell.EMPTY
+            }
+        }
         cursorRow = 0
         cursorCol = 0
     }
@@ -156,15 +215,46 @@ class TerminalScreenBuffer(
     }
 
     /**
-     * Scroll the screen up by one line
+     * Scroll the screen up by one line within the scroll region
      */
     private fun scrollUp() {
-        // Move all lines up
-        for (r in 0 until rows - 1) {
+        // Move lines up within scroll region only
+        for (r in scrollTop until scrollBottom) {
             buffer[r] = buffer[r + 1]
         }
-        // Clear the last line
-        buffer[rows - 1] = Array(cols) { TerminalCell.EMPTY }
+        // Clear the last line in scroll region
+        buffer[scrollBottom] = Array(cols) { TerminalCell.EMPTY }
+    }
+
+    /**
+     * Scroll the screen down by one line within the scroll region
+     */
+    private fun scrollDown() {
+        // Move lines down within scroll region only
+        for (r in scrollBottom downTo scrollTop + 1) {
+            buffer[r] = buffer[r - 1]
+        }
+        // Clear the first line in scroll region
+        buffer[scrollTop] = Array(cols) { TerminalCell.EMPTY }
+    }
+
+    /**
+     * Set scrolling region (DECSTBM)
+     * @param top Top line (1-indexed, inclusive)
+     * @param bottom Bottom line (1-indexed, inclusive)
+     */
+    fun setScrollRegion(top: Int, bottom: Int) {
+        // Convert from 1-indexed to 0-indexed
+        scrollTop = (top - 1).coerceIn(0, rows - 1)
+        scrollBottom = (bottom - 1).coerceIn(scrollTop, rows - 1)
+    }
+
+    /**
+     * Reset scrolling region to full screen
+     */
+    fun resetScrollRegion() {
+        scrollTop = 0
+        scrollBottom = rows - 1
     }
 
     /**
@@ -232,25 +322,52 @@ class TerminalScreenBuffer(
     fun resize(newCols: Int, newRows: Int) {
         if (newCols == cols && newRows == rows) return
 
-        val newBuffer = createBuffer(newCols, newRows)
-
-        // Copy existing content
-        val copyRows = minOf(rows, newRows)
-        val copyCols = minOf(cols, newCols)
-
-        for (r in 0 until copyRows) {
-            for (c in 0 until copyCols) {
-                newBuffer[r][c] = buffer[r][c]
+        // Resize the current active buffer
+        val newActiveBuffer = resizeBufferArray(buffer, cols, rows, newCols, newRows)
+        buffer = newActiveBuffer
+        
+        // Update references
+        if (isAlternateScreen) {
+            alternateBuffer = newActiveBuffer
+            // Resize primary buffer as well to stay in sync
+            primaryBuffer = resizeBufferArray(primaryBuffer, cols, rows, newCols, newRows)
+        } else {
+            primaryBuffer = newActiveBuffer
+            // If alternate buffer exists, resize it too
+            alternateBuffer?.let { alt ->
+                alternateBuffer = resizeBufferArray(alt, cols, rows, newCols, newRows)
             }
         }
 
         cols = newCols
         rows = newRows
-        buffer = newBuffer
+
+        // Reset scroll region to full screen
+        scrollTop = 0
+        scrollBottom = rows - 1
 
         // Adjust cursor position if needed
         cursorRow = cursorRow.coerceIn(0, rows - 1)
         cursorCol = cursorCol.coerceIn(0, cols - 1)
+    }
+
+    private fun resizeBufferArray(
+        source: Array<Array<TerminalCell>>,
+        oldCols: Int,
+        oldRows: Int,
+        newCols: Int,
+        newRows: Int
+    ): Array<Array<TerminalCell>> {
+        val newBuffer = createBuffer(newCols, newRows)
+        val copyRows = minOf(oldRows, newRows)
+        val copyCols = minOf(oldCols, newCols)
+
+        for (r in 0 until copyRows) {
+            for (c in 0 until copyCols) {
+                newBuffer[r][c] = source[r][c]
+            }
+        }
+        return newBuffer
     }
 
     /**

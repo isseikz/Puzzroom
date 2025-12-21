@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.runtime.remember
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
@@ -25,6 +26,7 @@ import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.TerminalScreenModel
 import tokyo.isseikuzumaki.vibeterminal.ui.components.FileExplorerSheet
 import tokyo.isseikuzumaki.vibeterminal.ui.components.CodeViewerSheet
+import tokyo.isseikuzumaki.vibeterminal.ui.components.TerminalCanvas
 
 data class TerminalScreen(
     val config: ConnectionConfig
@@ -125,18 +127,57 @@ data class TerminalScreen(
                 }
 
                 // Terminal Output - Screen Buffer Rendering
-                Box(
+                BoxWithConstraints(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
                         .padding(8.dp)
                 ) {
-                    TerminalBufferView(
-                        screenBuffer = state.screenBuffer,
-                        cursorRow = state.cursorRow,
-                        cursorCol = state.cursorCol,
-                        bufferUpdateCounter = state.bufferUpdateCounter
+                    val textMeasurer = rememberTextMeasurer()
+                    val density = androidx.compose.ui.platform.LocalDensity.current
+                    
+                    val textStyle = androidx.compose.ui.text.TextStyle(
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 14.sp
                     )
+                    
+                    // Measure character size
+                    val sampleLayout = remember(textStyle) {
+                        textMeasurer.measure(
+                            text = "W",
+                            style = textStyle
+                        )
+                    }
+                    val charWidth = sampleLayout.size.width
+                    val charHeight = sampleLayout.size.height
+                    
+                    // Calculate columns and rows
+                    val widthPx = with(density) { maxWidth.toPx().toInt() }
+                    val heightPx = with(density) { maxHeight.toPx().toInt() }
+                    
+                    val cols = (widthPx / charWidth).coerceAtLeast(1)
+                    val rows = (heightPx / charHeight).coerceAtLeast(1)
+                    
+                    // Trigger resize if changed
+                    LaunchedEffect(cols, rows) {
+                        screenModel.resize(cols, rows, widthPx, heightPx)
+                    }
+
+                    if (state.isAlternateScreen) {
+                        TerminalCanvas(
+                            buffer = state.screenBuffer,
+                            cursorRow = state.cursorRow,
+                            cursorCol = state.cursorCol,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        TerminalBufferView(
+                            screenBuffer = state.screenBuffer,
+                            cursorRow = state.cursorRow,
+                            cursorCol = state.cursorCol,
+                            bufferUpdateCounter = state.bufferUpdateCounter
+                        )
+                    }
                 }
 
                 // Buffered Input Deck with Macro Row

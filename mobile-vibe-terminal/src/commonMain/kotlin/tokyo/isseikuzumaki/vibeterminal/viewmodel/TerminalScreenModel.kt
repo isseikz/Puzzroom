@@ -3,6 +3,8 @@ package tokyo.isseikuzumaki.vibeterminal.viewmodel
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import java.io.File
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,7 +17,6 @@ import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
 import tokyo.isseikuzumaki.vibeterminal.terminal.AnsiEscapeParser
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalCell
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalScreenBuffer
-import java.io.File
 
 data class TerminalState(
     val isConnecting: Boolean = false,
@@ -26,6 +27,7 @@ data class TerminalState(
     val errorMessage: String? = null,
     val detectedApkPath: String? = null,
     val isDownloadingApk: Boolean = false,
+    val isAlternateScreen: Boolean = false,
     val bufferUpdateCounter: Int = 0  // Trigger UI updates
 ) {
     override fun equals(other: Any?): Boolean {
@@ -36,6 +38,7 @@ data class TerminalState(
                 errorMessage == other.errorMessage &&
                 detectedApkPath == other.detectedApkPath &&
                 isDownloadingApk == other.isDownloadingApk &&
+                isAlternateScreen == other.isAlternateScreen &&
                 bufferUpdateCounter == other.bufferUpdateCounter
     }
 
@@ -99,6 +102,13 @@ class TerminalScreenModel(
                         _state.update { it.copy(isConnecting = false, isConnected = true) }
                         processOutput("Connected to ${config.host}:${config.port}\n")
                         startOutputListener()
+                        
+                        // Force a resize event or prompt refresh
+                        // Triggering ENTER to get the prompt
+                        screenModelScope.launch(Dispatchers.IO) {
+                             kotlinx.coroutines.delay(500) // Small delay to let shell start
+                             sshRepository.sendInput("echo VIBE_INIT") // Send verification command
+                        }
                     },
                     onFailure = { error ->
                         println("Connection failed: ${error.message}")
@@ -166,6 +176,18 @@ class TerminalScreenModel(
     }
 
     /**
+     * Resize the terminal
+     */
+    fun resize(cols: Int, rows: Int, widthPx: Int, heightPx: Int) {
+        terminalBuffer.resize(cols, rows)
+        updateScreenState()
+        
+        screenModelScope.launch {
+            sshRepository.resizeTerminal(cols, rows, widthPx, heightPx)
+        }
+    }
+
+    /**
      * Process terminal output through the ANSI escape parser
      * and update the screen buffer
      */
@@ -183,6 +205,7 @@ class TerminalScreenModel(
                 screenBuffer = terminalBuffer.getBuffer(),
                 cursorRow = terminalBuffer.cursorRow,
                 cursorCol = terminalBuffer.cursorCol,
+                isAlternateScreen = terminalBuffer.isAlternateScreen,
                 bufferUpdateCounter = currentState.bufferUpdateCounter + 1
             )
         }

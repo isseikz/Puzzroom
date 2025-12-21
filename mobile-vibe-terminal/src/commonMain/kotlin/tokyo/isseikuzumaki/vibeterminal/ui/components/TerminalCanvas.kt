@@ -1,0 +1,90 @@
+package tokyo.isseikuzumaki.vibeterminal.ui.components
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.sp // Import sp
+import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalCell
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+
+@Composable
+fun TerminalCanvas(
+    buffer: Array<Array<TerminalCell>>,
+    cursorRow: Int,
+    cursorCol: Int,
+    modifier: Modifier = Modifier
+) {
+    val textMeasurer = rememberTextMeasurer()
+    val textStyle = TextStyle(
+        fontFamily = FontFamily.Monospace,
+        fontSize = 14.sp
+    )
+
+    // Calculate cell dimensions based on a sample char
+    val sampleLayout = textMeasurer.measure(
+        text = "W",
+        style = textStyle
+    )
+    val charWidth = sampleLayout.size.width.toFloat()
+    val charHeight = sampleLayout.size.height.toFloat()
+
+    Canvas(modifier = modifier.fillMaxSize()) {
+        // Draw background for the whole terminal
+        drawRect(color = Color.Black)
+
+        buffer.forEachIndexed { rowIndex, row ->
+            row.forEachIndexed { colIndex, cell ->
+                val x = colIndex * charWidth
+                val y = rowIndex * charHeight
+
+                // Draw cell background
+                if (cell.backgroundColor != Color.Black) {
+                    drawRect(
+                        color = cell.backgroundColor,
+                        topLeft = Offset(x, y),
+                        size = Size(charWidth, charHeight)
+                    )
+                }
+
+                // Draw cursor if active
+                if (rowIndex == cursorRow && colIndex == cursorCol) {
+                    drawRect(
+                        color = Color(0xFF00FF00), // Cursor color
+                        topLeft = Offset(x, y),
+                        size = Size(charWidth, charHeight)
+                    )
+                }
+
+                // Draw Text
+                // Determine raw text color
+                val textColor = if (rowIndex == cursorRow && colIndex == cursorCol) {
+                    Color.Black // Text inside cursor
+                } else {
+                    cell.foregroundColor
+                }
+
+                if (cell.char != ' ' && cell.char.code != 0) {
+                    drawText(
+                        textMeasurer = textMeasurer,
+                        text = cell.char.toString(),
+                        topLeft = Offset(x, y),
+                        style = textStyle.copy(
+                            color = textColor,
+                            fontWeight = if (cell.isBold) FontWeight.Bold else FontWeight.Normal,
+                            // Note: Underline/Strikethrough support in Canvas drawText might need TextLayoutResult or decoration
+                        )
+                    )
+                }
+            }
+        }
+    }
+}
