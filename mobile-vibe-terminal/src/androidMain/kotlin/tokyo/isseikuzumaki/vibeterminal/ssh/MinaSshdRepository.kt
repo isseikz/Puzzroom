@@ -8,6 +8,7 @@ import org.apache.sshd.client.channel.ChannelShell
 import org.apache.sshd.client.session.ClientSession
 import org.apache.sshd.sftp.client.SftpClient
 import org.apache.sshd.sftp.client.SftpClientFactory
+import tokyo.isseikuzumaki.vibeterminal.domain.model.FileEntry
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
 import java.io.BufferedReader
 import java.io.File
@@ -212,6 +213,73 @@ class MinaSshdRepository : SshRepository {
             println("=== SFTP Download Failed ===")
             println("Error: ${e.message}")
             e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun listFiles(remotePath: String): Result<List<FileEntry>> {
+        return try {
+            val currentSession = session ?: return Result.failure(
+                IllegalStateException("Not connected to SSH server")
+            )
+
+            val sftpClient: SftpClient = SftpClientFactory.instance().createSftpClient(currentSession)
+
+            try {
+                val entries = mutableListOf<FileEntry>()
+                val dirEntries = sftpClient.readDir(remotePath)
+
+                for (entry in dirEntries) {
+                    val attrs = entry.attributes
+                    // Skip . and ..
+                    if (entry.filename == "." || entry.filename == "..") {
+                        continue
+                    }
+
+                    entries.add(
+                        FileEntry(
+                            name = entry.filename,
+                            path = if (remotePath.endsWith("/")) {
+                                remotePath + entry.filename
+                            } else {
+                                "$remotePath/${entry.filename}"
+                            },
+                            isDirectory = attrs.isDirectory,
+                            size = attrs.size,
+                            lastModified = attrs.modifyTime.toMillis()
+                        )
+                    )
+                }
+
+                Result.success(entries.sortedWith(
+                    compareByDescending<FileEntry> { it.isDirectory }
+                        .thenBy { it.name.lowercase() }
+                ))
+            } finally {
+                sftpClient.close()
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun readFileContent(remotePath: String): Result<String> {
+        return try {
+            val currentSession = session ?: return Result.failure(
+                IllegalStateException("Not connected to SSH server")
+            )
+
+            val sftpClient: SftpClient = SftpClientFactory.instance().createSftpClient(currentSession)
+
+            try {
+                val content = sftpClient.read(remotePath).use { inputStream ->
+                    inputStream.bufferedReader().use { it.readText() }
+                }
+                Result.success(content)
+            } finally {
+                sftpClient.close()
+            }
+        } catch (e: Exception) {
             Result.failure(e)
         }
     }

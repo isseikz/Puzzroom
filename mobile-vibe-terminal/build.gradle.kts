@@ -82,8 +82,6 @@ kotlin {
                 implementation(libs.mina.sshd.core)
                 implementation(libs.mina.sshd.common)
                 implementation(libs.mina.sshd.sftp)
-                implementation(libs.room.runtime)
-                implementation(libs.room.ktx)
             }
         }
 
@@ -101,7 +99,6 @@ room {
 dependencies {
     add("kspCommonMainMetadata", libs.room.compiler)
     add("kspAndroid", libs.room.compiler)
-    add("kspDesktop", libs.room.compiler)
     add("kspIosArm64", libs.room.compiler)
     add("kspIosSimulatorArm64", libs.room.compiler)
 }

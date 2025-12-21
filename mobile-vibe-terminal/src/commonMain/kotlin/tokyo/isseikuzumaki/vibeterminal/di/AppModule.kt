@@ -2,6 +2,7 @@ package tokyo.isseikuzumaki.vibeterminal.di
 
 import org.koin.dsl.module
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.ConnectionListScreenModel
+import tokyo.isseikuzumaki.vibeterminal.viewmodel.FileExplorerScreenModel
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.TerminalScreenModel
 
 val appModule = module {
@@ -14,6 +15,8 @@ val appModule = module {
             apkInstaller = get()
         )
     }
+
+    factory { FileExplorerScreenModel(sshRepository = get()) }
 }
 
 val dataModule = module {

@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,6 +28,8 @@ import tokyo.isseikuzumaki.vibeterminal.domain.model.ConnectionConfig
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.TerminalScreenModel
 import tokyo.isseikuzumaki.vibeterminal.ui.utils.AnsiParser
+import tokyo.isseikuzumaki.vibeterminal.ui.components.FileExplorerSheet
+import tokyo.isseikuzumaki.vibeterminal.ui.components.CodeViewerSheet
 
 data class TerminalScreen(
     val config: ConnectionConfig
@@ -43,6 +46,9 @@ data class TerminalScreen(
         }
         val state by screenModel.state.collectAsState()
 
+        var showFileExplorer by remember { mutableStateOf(false) }
+        var selectedFilePath by remember { mutableStateOf<String?>(null) }
+
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -58,6 +64,18 @@ data class TerminalScreen(
                             navigator.pop()
                         }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        }
+                    },
+                    actions = {
+                        IconButton(
+                            onClick = { showFileExplorer = true },
+                            enabled = state.isConnected
+                        ) {
+                            Icon(
+                                Icons.Default.FolderOpen,
+                                "File Explorer",
+                                tint = if (state.isConnected) Color(0xFF00FF00) else Color.Gray
+                            )
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -217,6 +235,24 @@ data class TerminalScreen(
                     }
                 }
             }
+        }
+
+        // File Explorer Sheet
+        if (showFileExplorer) {
+            FileExplorerSheet(
+                onDismiss = { showFileExplorer = false },
+                onFileSelected = { file ->
+                    selectedFilePath = file.path
+                }
+            )
+        }
+
+        // Code Viewer Sheet
+        selectedFilePath?.let { filePath ->
+            CodeViewerSheet(
+                filePath = filePath,
+                onDismiss = { selectedFilePath = null }
+            )
         }
     }
 
