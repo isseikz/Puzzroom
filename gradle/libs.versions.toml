@@ -38,6 +38,7 @@ room = "2.7.1"
 ksp = "2.2.20-2.0.4"
 mina-sshd = "2.16.0"
 datastore = "1.2.0"
+timber = "5.0.1"
 
 [libraries]
 androidx-icons-core = { module = "androidx.compose.material.icons:material-icons-core", version.ref = "icons" }
@@ -105,6 +106,9 @@ mina-sshd-sftp = { module = "org.apache.sshd:sshd-sftp", version.ref = "mina-ssh
 # DataStore
 datastore = { module = "androidx.datastore:datastore", version.ref = "datastore" }
 datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
+
+# Timber Logging
+timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

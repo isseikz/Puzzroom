@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
+import timber.log.Timber
 import tokyo.isseikuzumaki.vibeterminal.domain.installer.ApkInstaller
 import java.io.File
 
@@ -11,10 +12,10 @@ class AndroidApkInstaller(private val context: Context) : ApkInstaller {
 
     override fun installApk(apkFile: File): Result<Unit> {
         return try {
-            println("=== Installing APK ===")
-            println("APK File: ${apkFile.absolutePath}")
-            println("File exists: ${apkFile.exists()}")
-            println("File size: ${apkFile.length()} bytes")
+            Timber.d("=== Installing APK ===")
+            Timber.d("APK File: ${apkFile.absolutePath}")
+            Timber.d("File exists: ${apkFile.exists()}")
+            Timber.d("File size: ${apkFile.length()} bytes")
 
             if (!apkFile.exists()) {
                 return Result.failure(IllegalArgumentException("APK file does not exist"))
@@ -27,7 +28,7 @@ class AndroidApkInstaller(private val context: Context) : ApkInstaller {
                 apkFile
             )
 
-            println("APK URI: $apkUri")
+            Timber.d("APK URI: $apkUri")
 
             // Create install intent
             val intent = Intent(Intent.ACTION_VIEW).apply {
@@ -36,15 +37,14 @@ class AndroidApkInstaller(private val context: Context) : ApkInstaller {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
 
-            println("Starting install intent...")
+            Timber.d("Starting install intent...")
             context.startActivity(intent)
-            println("=== Install Intent Started ===")
+            Timber.d("=== Install Intent Started ===")
 
             Result.success(Unit)
         } catch (e: Exception) {
-            println("=== Install Failed ===")
-            println("Error: ${e.message}")
-            e.printStackTrace()
+            Timber.e(e, "=== Install Failed ===")
+            Timber.e("Error: ${e.message}")
             Result.failure(e)
         }
     }

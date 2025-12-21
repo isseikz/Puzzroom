@@ -17,6 +17,7 @@ import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
 import tokyo.isseikuzumaki.vibeterminal.terminal.AnsiEscapeParser
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalCell
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalScreenBuffer
+import tokyo.isseikuzumaki.vibeterminal.util.Logger
 
 data class TerminalState(
     val isConnecting: Boolean = false,
@@ -67,25 +68,24 @@ class TerminalScreenModel(
     private val outputAccumulator = StringBuilder()
 
     init {
-        println("=== TerminalScreenModel init ===")
-        println("Config: $config")
-        println("Repository: $sshRepository")
+        Logger.d("=== TerminalScreenModel init ===")
+        Logger.d("Config: $config")
+        Logger.d("Repository: $sshRepository")
         try {
             connectToServer()
         } catch (e: Exception) {
-            println("=== ERROR in TerminalScreenModel init ===")
-            e.printStackTrace()
+            Logger.e(e, "=== ERROR in TerminalScreenModel init ===")
         }
     }
 
     private fun connectToServer() {
-        println("=== connectToServer called ===")
+        Logger.d("=== connectToServer called ===")
         screenModelScope.launch {
             try {
-                println("Starting connection...")
+                Logger.d("Starting connection...")
                 _state.update { it.copy(isConnecting = true, errorMessage = null) }
 
-                println("Calling sshRepository.connect...")
+                Logger.d("Calling sshRepository.connect...")
                 val result = withContext(Dispatchers.IO) {
                     sshRepository.connect(
                         host = config.host,
@@ -94,18 +94,17 @@ class TerminalScreenModel(
                         password = config.password
                     )
                 }
-                println("Connection result: $result")
+                Logger.d("Connection result: $result")
 
                 result.fold(
                     onSuccess = {
-                        println("Connection successful!")
+                        Logger.d("Connection successful!")
                         _state.update { it.copy(isConnecting = false, isConnected = true) }
                         processOutput("Connected to ${config.host}:${config.port}\n")
                         startOutputListener()
                     },
                     onFailure = { error ->
-                        println("Connection failed: ${error.message}")
-                        error.printStackTrace()
+                        Logger.e(error, "Connection failed: ${error.message}")
                         _state.update {
                             it.copy(
                                 isConnecting = false,
@@ -117,8 +116,7 @@ class TerminalScreenModel(
                     }
                 )
             } catch (e: Exception) {
-                println("=== EXCEPTION in connectToServer ===")
-                e.printStackTrace()
+                Logger.e(e, "=== EXCEPTION in connectToServer ===")
                 _state.update {
                     it.copy(
                         isConnecting = false,
@@ -148,8 +146,8 @@ class TerminalScreenModel(
                     // Check for Magic Deploy pattern
                     deployPattern.find(outputAccumulator.toString())?.let { matchResult ->
                         val apkPath = matchResult.groupValues[1].trim()
-                        println("=== Magic Deploy Detected ===")
-                        println("APK Path: $apkPath")
+                        Logger.d("=== Magic Deploy Detected ===")
+                        Logger.d("APK Path: $apkPath")
                         _state.update { it.copy(detectedApkPath = apkPath) }
                     }
                 }
@@ -235,15 +233,15 @@ class TerminalScreenModel(
                     apkPath
                 }
 
-                println("Original path: $apkPath")
-                println("Expanded path: $expandedPath")
+                Logger.d("Original path: $apkPath")
+                Logger.d("Expanded path: $expandedPath")
                 processOutput("→ Resolving path: $expandedPath\n")
 
                 val cacheDir = apkInstaller.getCacheDir()
                 val localApkFile = File(cacheDir, "downloaded_app.apk")
 
                 // Download via SFTP
-                println("Starting SFTP download...")
+                Logger.d("Starting SFTP download...")
                 val downloadResult = withContext(Dispatchers.IO) {
                     sshRepository.downloadFile(expandedPath, localApkFile)
                 }
@@ -251,7 +249,7 @@ class TerminalScreenModel(
                 downloadResult.fold(
                     onSuccess = {
                         processOutput("✅ Download complete: ${localApkFile.length()} bytes\n")
-                        println("Download successful, installing APK...")
+                        Logger.d("Download successful, installing APK...")
 
                         // Install APK
                         val installResult = apkInstaller.installApk(localApkFile)

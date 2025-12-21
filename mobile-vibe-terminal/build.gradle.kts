@@ -74,6 +74,7 @@ kotlin {
             implementation(libs.mina.sshd.sftp)
             implementation(libs.room.runtime)
             implementation(libs.room.ktx)
+            implementation(libs.timber)
         }
 
         val desktopMain by getting {

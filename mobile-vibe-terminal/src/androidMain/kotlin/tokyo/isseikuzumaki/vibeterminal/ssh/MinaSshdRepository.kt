@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.withContext
 import org.apache.sshd.client.SshClient
+import timber.log.Timber
 import org.apache.sshd.client.channel.ChannelShell
 import org.apache.sshd.client.session.ClientSession
 import org.apache.sshd.common.channel.PtyMode
@@ -43,8 +44,8 @@ class MinaSshdRepository : SshRepository {
         password: String
     ): Result<Unit> {
         return try {
-            println("=== MinaSshdRepository.connect ===")
-            println("Host: $host, Port: $port, Username: $username")
+            Timber.d("=== MinaSshdRepository.connect ===")
+            Timber.d("Host: $host, Port: $port, Username: $username")
 
             // Store credentials for SFTP sessions
             connectionHost = host
@@ -53,34 +54,34 @@ class MinaSshdRepository : SshRepository {
             connectionPassword = password
 
             // 1. Create and start SSH client
-            println("1. Creating SSH client...")
+            Timber.d("1. Creating SSH client...")
             val sshClient = SshClient.setUpDefaultClient()
-            println("2. Starting SSH client...")
+            Timber.d("2. Starting SSH client...")
             sshClient.start()
             client = sshClient
-            println("3. SSH client started")
+            Timber.d("3. SSH client started")
 
             // 2. Connect to server with timeout
-            println("4. Connecting to server...")
+            Timber.d("4. Connecting to server...")
             val futureSession = sshClient.connect(username, host, port)
-            println("5. Verifying connection...")
+            Timber.d("5. Verifying connection...")
             val clientSession = futureSession.verify(10, TimeUnit.SECONDS).session
             session = clientSession
-            println("6. Connection verified")
+            Timber.d("6. Connection verified")
 
             // 3. Authenticate with password
-            println("7. Adding password identity...")
+            Timber.d("7. Adding password identity...")
             clientSession.addPasswordIdentity(password)
-            println("8. Authenticating...")
+            Timber.d("8. Authenticating...")
             clientSession.auth().verify(10, TimeUnit.SECONDS)
-            println("9. Authentication successful")
+            Timber.d("9. Authentication successful")
 
             // 4. Open shell channel with PTY configuration
-            println("10. Creating shell channel...")
+            Timber.d("10. Creating shell channel...")
             val shellChannel = clientSession.createShellChannel()
 
             // 4a. Configure PTY for proper terminal emulation (byobu, tmux, vim support)
-            println("10a. Configuring PTY settings...")
+            Timber.d("10a. Configuring PTY settings...")
 
             // Set terminal type to xterm-256color (modern standard)
             shellChannel.ptyType = "xterm-256color"
@@ -102,10 +103,10 @@ class MinaSshdRepository : SshRepository {
             shellChannel.ptyWidth = 0
             shellChannel.ptyHeight = 0
 
-            println("10b. PTY configured: xterm-256color, 80x24")
+            Timber.d("10b. PTY configured: xterm-256color, 80x24")
 
             // 5. Set up piped streams to capture output
-            println("11. Setting up piped streams for output...")
+            Timber.d("11. Setting up piped streams for output...")
             val pipedIn = PipedInputStream()
             val pipedOut = PipedOutputStream(pipedIn)
             shellChannel.out = pipedOut
@@ -113,31 +114,30 @@ class MinaSshdRepository : SshRepository {
             outputReader = pipedIn
 
             // 6. Set up input stream for sending commands
-            println("12. Setting up piped streams for input...")
+            Timber.d("12. Setting up piped streams for input...")
             val inputPipedOut = PipedOutputStream()
             val inputPipedIn = PipedInputStream(inputPipedOut)
             shellChannel.`in` = inputPipedIn
             outputWriter = PrintWriter(inputPipedOut, true)
 
             // 7. Open the channel
-            println("13. Opening shell channel...")
+            Timber.d("13. Opening shell channel...")
             shellChannel.open().verify(5, TimeUnit.SECONDS)
             channel = shellChannel
-            println("14. Shell channel opened successfully")
+            Timber.d("14. Shell channel opened successfully")
 
-            println("=== SSH Connection Complete ===")
+            Timber.d("=== SSH Connection Complete ===")
             Result.success(Unit)
         } catch (e: Exception) {
-            println("=== SSH Connection Failed ===")
-            println("Error: ${e.message}")
-            e.printStackTrace()
+            Timber.e(e, "=== SSH Connection Failed ===")
+            Timber.e("Error: ${e.message}")
             disconnect()
             Result.failure(e)
         }
     }
 
     override suspend fun disconnect() {
-        println("=== MinaSshdRepository.disconnect() called ===")
+        Timber.d("=== MinaSshdRepository.disconnect() called ===")
         try {
             outputWriter?.close()
             channel?.close()
@@ -262,31 +262,30 @@ class MinaSshdRepository : SshRepository {
         try {
             val currentChannel = channel
             if (currentChannel != null && currentChannel.isOpen) {
-                println("=== Terminal Resize ===")
-                println("New size: ${cols}x${rows} (${widthPx}x${heightPx}px)")
+                Timber.d("=== Terminal Resize ===")
+                Timber.d("New size: ${cols}x${rows} (${widthPx}x${heightPx}px)")
                 currentChannel.sendWindowChange(cols, rows, widthPx, heightPx)
-                println("Window change sent successfully")
+                Timber.d("Window change sent successfully")
             } else {
-                println("Cannot resize: channel is not open")
+                Timber.w("Cannot resize: channel is not open")
             }
         } catch (e: Exception) {
-            println("Failed to send window change: ${e.message}")
-            e.printStackTrace()
+            Timber.e(e, "Failed to send window change: ${e.message}")
         }
     }
 
     override suspend fun downloadFile(remotePath: String, localFile: File): Result<Unit> {
         return try {
-            println("=== SFTP Download Start ===")
-            println("Remote: $remotePath")
-            println("Local: ${localFile.absolutePath}")
+            Timber.d("=== SFTP Download Start ===")
+            Timber.d("Remote: $remotePath")
+            Timber.d("Local: ${localFile.absolutePath}")
 
             withSftpSession { sftpClient ->
-                println("Opening remote file for reading...")
+                Timber.d("Opening remote file for reading...")
                 sftpClient.read(remotePath).use { inputStream ->
-                    println("Creating local file...")
+                    Timber.d("Creating local file...")
                     FileOutputStream(localFile).use { outputStream ->
-                        println("Copying file content...")
+                        Timber.d("Copying file content...")
                         val buffer = ByteArray(8192)
                         var bytesRead: Int
                         var totalBytes = 0L
@@ -295,20 +294,19 @@ class MinaSshdRepository : SshRepository {
                             outputStream.write(buffer, 0, bytesRead)
                             totalBytes += bytesRead
                             if (totalBytes % (1024 * 1024) == 0L) { // Log every MB
-                                println("Downloaded: ${totalBytes / (1024 * 1024)} MB")
+                                Timber.d("Downloaded: ${totalBytes / (1024 * 1024)} MB")
                             }
                         }
 
-                        println("=== SFTP Download Complete ===")
-                        println("Total bytes: $totalBytes")
+                        Timber.d("=== SFTP Download Complete ===")
+                        Timber.d("Total bytes: $totalBytes")
                     }
                 }
                 Result.success(Unit)
             }
         } catch (e: Exception) {
-            println("=== SFTP Download Failed ===")
-            println("Error: ${e.message}")
-            e.printStackTrace()
+            Timber.e(e, "=== SFTP Download Failed ===")
+            Timber.e("Error: ${e.message}")
             Result.failure(e)
         }
     }
