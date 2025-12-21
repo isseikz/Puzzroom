@@ -102,13 +102,6 @@ class TerminalScreenModel(
                         _state.update { it.copy(isConnecting = false, isConnected = true) }
                         processOutput("Connected to ${config.host}:${config.port}\n")
                         startOutputListener()
-                        
-                        // Force a resize event or prompt refresh
-                        // Triggering ENTER to get the prompt
-                        screenModelScope.launch(Dispatchers.IO) {
-                             kotlinx.coroutines.delay(500) // Small delay to let shell start
-                             sshRepository.sendInput("echo VIBE_INIT") // Send verification command
-                        }
                     },
                     onFailure = { error ->
                         println("Connection failed: ${error.message}")

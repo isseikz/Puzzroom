@@ -27,7 +27,7 @@ class MinaSshdRepository : SshRepository {
     private var client: SshClient? = null
     private var session: ClientSession? = null
     private var channel: ChannelShell? = null
-    // private var inputOutputStream: java.io.OutputStream? = null // Removed
+    private var outputWriter: PrintWriter? = null
     private var outputReader: PipedInputStream? = null
 
     // Store credentials for creating separate SFTP sessions
@@ -113,18 +113,16 @@ class MinaSshdRepository : SshRepository {
             outputReader = pipedIn
 
             // 6. Set up input stream for sending commands
-            // The channel needs an input stream, even if we don't directly write to our pipe
-            // The channel's invertedIn provides the write end automatically
-            println("12. Setting up input stream...")
+            println("12. Setting up piped streams for input...")
             val inputPipedOut = PipedOutputStream()
             val inputPipedIn = PipedInputStream(inputPipedOut)
             shellChannel.`in` = inputPipedIn
+            outputWriter = PrintWriter(inputPipedOut, true)
 
             // 7. Open the channel
             println("13. Opening shell channel...")
             shellChannel.open().verify(5, TimeUnit.SECONDS)
             channel = shellChannel
-
             println("14. Shell channel opened successfully")
 
             println("=== SSH Connection Complete ===")
@@ -141,11 +139,12 @@ class MinaSshdRepository : SshRepository {
     override suspend fun disconnect() {
         println("=== MinaSshdRepository.disconnect() called ===")
         try {
-            // inputOutputStream?.close() // No longer needed
+            outputWriter?.close()
             channel?.close()
             session?.close()
             client?.stop()
         } finally {
+            outputWriter = null
             channel = null
             session = null
             client = null
@@ -155,8 +154,6 @@ class MinaSshdRepository : SshRepository {
             connectionPassword = null
         }
     }
-    
-    // ...
 
 
     override fun isConnected(): Boolean {
@@ -243,7 +240,6 @@ class MinaSshdRepository : SshRepository {
                 if (charsRead == -1) break
 
                 val chunk = String(buffer, 0, charsRead)
-                println("SSH_RX: $chunk") // Debug Logging
                 trySend(chunk)
             }
         } catch (e: Exception) {
@@ -257,33 +253,7 @@ class MinaSshdRepository : SshRepository {
     }
 
     override suspend fun sendInput(input: String) {
-        println("SSH_TX: $input") // Debug Logging
-        try {
-             val currentChannel = channel
-             println("SSH_TX Debug: channel=$currentChannel, isOpen=${currentChannel?.isOpen}, sessionOpen=${session?.isOpen}")
-             if (currentChannel == null) {
-                 println("SSH_TX_ERROR: Channel is null")
-                 return
-             }
-             if (!currentChannel.isOpen) {
-                 println("SSH_TX_ERROR: Channel is not open")
-                 return
-             }
-             
-             // Use invertedIn which gives us an OutputStream to write TO the channel
-             val out = currentChannel.invertedIn
-             if (out == null) {
-                 println("SSH_TX_ERROR: invertedIn is null")
-                 return
-             }
-             
-             out.write((input + "\r").toByteArray(Charsets.UTF_8))
-             out.flush()
-             
-        } catch(e: Exception) {
-             println("SSH_TX_ERROR: ${e.message}")
-             e.printStackTrace()
-        }
+        outputWriter?.println(input)
     }
 
 
