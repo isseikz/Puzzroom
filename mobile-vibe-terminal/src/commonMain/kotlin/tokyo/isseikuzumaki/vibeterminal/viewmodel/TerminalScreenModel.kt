@@ -133,6 +133,8 @@ class TerminalScreenModel(
         screenModelScope.launch(Dispatchers.IO) {
             try {
                 sshRepository.getOutputStream().collect { line ->
+                    // Log received data (RX)
+                    Logger.d("SSH_RX: $line")
                     processOutput(line)
 
                     // Accumulate output for pattern detection
@@ -159,9 +161,12 @@ class TerminalScreenModel(
     }
 
     fun sendCommand(command: String) {
+
         if (command.isBlank()) return
 
         screenModelScope.launch {
+            // Log transmitted data (TX)
+            Logger.d("SSH_TX: $command")
             sshRepository.sendInput(command)
         }
     }

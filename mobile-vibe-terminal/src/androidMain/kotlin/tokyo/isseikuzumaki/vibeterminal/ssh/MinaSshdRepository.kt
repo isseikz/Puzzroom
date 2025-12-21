@@ -100,8 +100,8 @@ class MinaSshdRepository : SshRepository {
             // Set initial window size (Updated for mobile default)
             shellChannel.ptyColumns = 40
             shellChannel.ptyLines = 20
-            shellChannel.ptyWidth = 0
-            shellChannel.ptyHeight = 0
+            shellChannel.ptyWidth = 40
+            shellChannel.ptyHeight = 40
 
             Timber.d("10b. PTY configured: xterm-256color, 80x24")
 

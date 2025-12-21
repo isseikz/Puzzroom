@@ -160,7 +160,7 @@ data class TerminalScreen(
                     
                     // Trigger resize if changed
                     LaunchedEffect(cols, rows) {
-                        screenModel.resize(cols, rows, widthPx, heightPx)
+//                        screenModel.resize(cols, rows, widthPx, heightPx)
                     }
 
                     if (state.isAlternateScreen) {
