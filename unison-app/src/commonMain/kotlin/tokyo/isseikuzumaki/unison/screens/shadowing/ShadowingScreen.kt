@@ -40,6 +40,7 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,14 +57,19 @@ import tokyo.isseikuzumaki.shared.ui.atoms.AppText
 import tokyo.isseikuzumaki.shared.ui.theme.WarmError
 import tokyo.isseikuzumaki.shared.ui.theme.WarmPrimary
 import tokyo.isseikuzumaki.unison.screens.session.DemoSessionViewModel
+import tokyo.isseikuzumaki.unison.screens.session.RecordingData
 
 /**
  * Unified screen for shadowing practice
  * Supports both demo mode (with dummy data) and production mode (with real audio)
  *
+ * @param viewModel ViewModel for managing session state (optional, will create if not provided)
  * @param uri Optional URI for audio file. If null, runs in demo mode with dummy data
+ * @param transcriptionUri Optional URI for transcription file
+ * @param loadTranscription Function to load transcription content from URI (platform-specific)
+ * @param getFileNameFromUri Function to get actual file name from URI metadata (platform-specific)
  * @param onNavigateBack Callback when back button is pressed (null hides back button)
- * @param onRecordingComplete Callback when user stops recording and should review it
+ * @param onRecordingComplete Callback when user stops recording and should review it, receives RecordingData
  * @param showSeekBar Whether to show the seek bar (default true)
  * @param isDemoMode Whether to show demo banner (default based on uri)
  * @param modifier Modifier for the screen
@@ -71,19 +77,72 @@ import tokyo.isseikuzumaki.unison.screens.session.DemoSessionViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShadowingScreen(
+    viewModel: DemoSessionViewModel? = null,
     uri: String? = null,
+    transcriptionUri: String? = null,
+    loadTranscription: (suspend (String) -> String)? = null,
+    getFileNameFromUri: ((String) -> String?)? = null,
     onNavigateBack: (() -> Unit)? = null,
-    onRecordingComplete: (() -> Unit)? = null,
+    onRecordingComplete: ((RecordingData) -> Unit)? = null,
     showSeekBar: Boolean = true,
     isDemoMode: Boolean = uri == null,
     modifier: Modifier = Modifier
 ) {
-    val viewModel: DemoSessionViewModel = viewModel()
-    val shadowingData by viewModel.shadowingData.collectAsState()
+    val sessionViewModel: DemoSessionViewModel = viewModel ?: viewModel()
+    val shadowingData by sessionViewModel.shadowingData.collectAsState()
+    val recordingData by sessionViewModel.recordingData.collectAsState()
 
-    var isPlaying by remember { mutableStateOf(false) }
+    // Extract file name from URI metadata if possible, or parse from URI
+    val displayFileName = remember(uri, getFileNameFromUri) {
+        if (uri != null) {
+            // Try to get file name from metadata first (best approach)
+            val metadataName = getFileNameFromUri?.invoke(uri)
+            if (metadataName != null) {
+                metadataName
+            } else {
+                // Fallback to parsing from URI
+                try {
+                    val decoded = java.net.URLDecoder.decode(uri, "UTF-8")
+                    val rawFileName = decoded.substringAfterLast('/')
+
+                    if (rawFileName.contains(':')) {
+                        "Audio " + rawFileName.substringAfterLast(':')
+                    } else {
+                        rawFileName.substringBeforeLast('.')
+                            .replace('_', ' ')
+                            .replace('-', ' ')
+                            .split(' ')
+                            .joinToString(" ") { word ->
+                                word.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+                            }
+                    }
+                } catch (e: Exception) {
+                    "Selected Audio"
+                }
+            }
+        } else {
+            null
+        }
+    }
+
+    // Load data when URIs change
+    LaunchedEffect(uri, transcriptionUri) {
+        if (loadTranscription != null) {
+            sessionViewModel.loadShadowingData(uri, transcriptionUri, loadTranscription)
+        }
+    }
+
+    val currentPosition by sessionViewModel.currentPosition.collectAsState()
+    val isPlaying by sessionViewModel.isPlaying.collectAsState()
+
     var isRecording by remember { mutableStateOf(false) }
+    var isSeeking by remember { mutableStateOf(false) }
     var seekPosition by remember { mutableStateOf(0f) }
+
+    // Update seek position from playback when not manually seeking
+    if (!isSeeking) {
+        seekPosition = currentPosition.toFloat()
+    }
 
     Scaffold(
         topBar = {
@@ -150,7 +209,14 @@ fun ShadowingScreen(
                         ) {
                         Slider(
                             value = seekPosition,
-                            onValueChange = { seekPosition = it },
+                            onValueChange = {
+                                isSeeking = true
+                                seekPosition = it
+                            },
+                            onValueChangeFinished = {
+                                sessionViewModel.seekTo(seekPosition.toLong())
+                                isSeeking = false
+                            },
                             valueRange = 0f..shadowingData!!.durationMs.toFloat(),
                             colors = SliderDefaults.colors(
                                 thumbColor = WarmPrimary,
@@ -189,11 +255,9 @@ fun ShadowingScreen(
                         FloatingActionButton(
                             onClick = {
                                 if (isPlaying) {
-                                    viewModel.stopPreview()
-                                    isPlaying = false
+                                    sessionViewModel.stopPreview()
                                 } else {
-                                    viewModel.playPreview()
-                                    isPlaying = true
+                                    sessionViewModel.playPreview()
                                 }
                             },
                             containerColor = WarmPrimary
@@ -209,12 +273,14 @@ fun ShadowingScreen(
                         FloatingActionButton(
                             onClick = {
                                 if (isRecording) {
-                                    viewModel.stopRecording()
+                                    sessionViewModel.stopRecording()
                                     isRecording = false
-                                    // Navigate to recording review screen
-                                    onRecordingComplete?.invoke()
+                                    // Navigate to recording review screen with recording data
+                                    recordingData?.let { data ->
+                                        onRecordingComplete?.invoke(data)
+                                    }
                                 } else {
-                                    viewModel.startRecording()
+                                    sessionViewModel.startRecording()
                                     isRecording = true
                                 }
                             },
@@ -313,7 +379,7 @@ fun ShadowingScreen(
 
                         // File name
                         AppText(
-                            text = shadowingData!!.fileName,
+                            text = displayFileName ?: shadowingData!!.fileName,
                             style = MaterialTheme.typography.headlineSmall,
                             color = WarmPrimary
                         )
