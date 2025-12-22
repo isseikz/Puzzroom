@@ -163,7 +163,9 @@ data class TerminalScreen(
                     // 2. Shell has had time to initialize (wait 2s after connection)
                     // 3. Size is valid (> 0)
                     // 4. Size differs from initial 80x24
-                    LaunchedEffect(cols, rows, state.isConnected) {
+                    // TEMPORARILY DISABLED - Resize blocks SSH_TX
+                    /*
+                    LaunchedEffect(cols, rows) {
                         if (state.isConnected && cols > 0 && rows > 0) {
                             // Wait for shell initialization (prompt to appear)
                             kotlinx.coroutines.delay(2000)
@@ -174,6 +176,7 @@ data class TerminalScreen(
                             }
                         }
                     }
+                    */
 
                     if (state.isAlternateScreen) {
                         TerminalCanvas(

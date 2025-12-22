@@ -167,7 +167,8 @@ class TerminalScreenModel(
         screenModelScope.launch {
             // Log transmitted data (TX)
             Logger.d("SSH_TX: $command")
-            sshRepository.sendInput(command)
+            // Append newline to execute the command
+            sshRepository.sendInput(command + "\n")
         }
     }
 
