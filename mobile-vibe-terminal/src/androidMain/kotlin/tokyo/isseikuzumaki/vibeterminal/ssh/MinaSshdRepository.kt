@@ -62,11 +62,16 @@ class MinaSshdRepository : SshRepository {
         host: String,
         port: Int,
         username: String,
-        password: String
+        password: String,
+        initialCols: Int,
+        initialRows: Int,
+        initialWidthPx: Int,
+        initialHeightPx: Int
     ): Result<Unit> {
         return try {
             Timber.d("=== MinaSshdRepository.connect ===")
             Timber.d("Host: $host, Port: $port, Username: $username")
+            Timber.d("Initial terminal size: ${initialCols}x${initialRows} (${initialWidthPx}x${initialHeightPx}px)")
 
             // Store credentials for SFTP sessions
             connectionHost = host
@@ -118,14 +123,13 @@ class MinaSshdRepository : SshRepository {
             ptyModes[PtyMode.ISIG] = 1       // Signal handling (Ctrl+C, etc.)
             shellChannel.ptyModes = ptyModes
 
-            // Set initial window size to standard 80x24 (safe default)
-            // This prevents race conditions with shell initialization
-            shellChannel.ptyColumns = 80
-            shellChannel.ptyLines = 24
-            shellChannel.ptyWidth = 640  // 80 * 8px (approximate char width)
-            shellChannel.ptyHeight = 384 // 24 * 16px (approximate char height)
+            // Set initial window size from parameters
+            shellChannel.ptyColumns = initialCols
+            shellChannel.ptyLines = initialRows
+            shellChannel.ptyWidth = initialWidthPx
+            shellChannel.ptyHeight = initialHeightPx
 
-            Timber.d("10b. PTY configured: xterm-256color, 80x24")
+            Timber.d("10b. PTY configured: xterm-256color, ${initialCols}x${initialRows}")
 
             // 4b. Log channel window information
             Timber.d("10c. Channel window info - Local: ${shellChannel.localWindow}, Remote: ${shellChannel.remoteWindow}")

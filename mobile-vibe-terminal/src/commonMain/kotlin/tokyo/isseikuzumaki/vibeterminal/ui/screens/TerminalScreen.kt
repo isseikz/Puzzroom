@@ -159,27 +159,13 @@ data class TerminalScreen(
                     val cols = ((widthPx / charWidth) - 1).coerceAtLeast(1)
                     val rows = (heightPx / charHeight).coerceAtLeast(1)
 
-                    // TEMPORARILY DISABLED: Resize functionality
-                    // Investigating if resize is causing RX to freeze
-                    // TODO: Re-enable after verifying fix
-                    /*
-                    // Trigger resize only when:
-                    // 1. Connection is fully established
-                    // 2. Shell has had time to initialize (wait 2s after connection)
-                    // 3. Size is valid (> 0)
-                    // 4. Size differs from initial 80x24
-                    LaunchedEffect(cols, rows) {
-                        if (state.isConnected && cols > 0 && rows > 0) {
-                            // Wait for shell initialization (prompt to appear)
-                            kotlinx.coroutines.delay(2000)
-
-                            // Only resize if different from standard size
-                            if (cols != 80 || rows != 24) {
-                                screenModel.resize(cols, rows, widthPx, heightPx)
-                            }
+                    // Connect to SSH with the measured terminal size
+                    // Only trigger once when not yet connected
+                    LaunchedEffect(Unit) {
+                        if (!state.isConnected && !state.isConnecting && cols > 0 && rows > 0) {
+                            screenModel.connect(cols, rows, widthPx, heightPx)
                         }
                     }
-                    */
 
                     if (state.isAlternateScreen) {
                         TerminalCanvas(

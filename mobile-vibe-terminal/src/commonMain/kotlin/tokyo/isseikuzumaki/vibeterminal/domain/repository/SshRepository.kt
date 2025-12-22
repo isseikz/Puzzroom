@@ -5,7 +5,16 @@ import tokyo.isseikuzumaki.vibeterminal.domain.model.FileEntry
 import java.io.File
 
 interface SshRepository {
-    suspend fun connect(host: String, port: Int, username: String, password: String): Result<Unit>
+    suspend fun connect(
+        host: String,
+        port: Int,
+        username: String,
+        password: String,
+        initialCols: Int = 80,
+        initialRows: Int = 24,
+        initialWidthPx: Int = 640,
+        initialHeightPx: Int = 384
+    ): Result<Unit>
     suspend fun disconnect()
     fun isConnected(): Boolean
     suspend fun executeCommand(command: String): Result<String>

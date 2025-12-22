@@ -75,30 +75,36 @@ class TerminalScreenModel(
         Logger.d("=== TerminalScreenModel init ===")
         Logger.d("Config: $config")
         Logger.d("Repository: $sshRepository")
-        try {
-            connectToServer()
-        } catch (e: Exception) {
-            Logger.e(e, "=== ERROR in TerminalScreenModel init ===")
-        }
+        Logger.d("Waiting for terminal size before connecting...")
     }
 
-    private fun connectToServer() {
-        Logger.d("=== connectToServer called ===")
+    /**
+     * Connect to SSH server with the measured terminal size
+     */
+    fun connect(cols: Int, rows: Int, widthPx: Int, heightPx: Int) {
+        Logger.d("=== connect called with size ${cols}x${rows} ===")
         screenModelScope.launch {
             try {
                 Logger.d("Starting connection...")
                 _state.update { it.copy(isConnecting = true, errorMessage = null) }
 
-                Logger.d("Calling sshRepository.connect...")
+                Logger.d("Calling sshRepository.connect with terminal size...")
                 val result = withContext(Dispatchers.IO) {
                     sshRepository.connect(
                         host = config.host,
                         port = config.port,
                         username = config.username,
-                        password = config.password
+                        password = config.password,
+                        initialCols = cols,
+                        initialRows = rows,
+                        initialWidthPx = widthPx,
+                        initialHeightPx = heightPx
                     )
                 }
                 Logger.d("Connection result: $result")
+
+                // Update terminal buffer size to match
+                terminalBuffer.resize(cols, rows)
 
                 result.fold(
                     onSuccess = {
