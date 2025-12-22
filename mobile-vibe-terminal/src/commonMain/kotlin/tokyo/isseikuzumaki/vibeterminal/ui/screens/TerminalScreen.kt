@@ -154,17 +154,20 @@ data class TerminalScreen(
                     // Calculate columns and rows
                     val widthPx = with(density) { maxWidth.toPx().toInt() }
                     val heightPx = with(density) { maxHeight.toPx().toInt() }
-                    
-                    val cols = (widthPx / charWidth).coerceAtLeast(1)
+
+                    // Subtract 1 from cols to prevent line wrapping issues (% symbols)
+                    val cols = ((widthPx / charWidth) - 1).coerceAtLeast(1)
                     val rows = (heightPx / charHeight).coerceAtLeast(1)
 
+                    // TEMPORARILY DISABLED: Resize functionality
+                    // Investigating if resize is causing RX to freeze
+                    // TODO: Re-enable after verifying fix
+                    /*
                     // Trigger resize only when:
                     // 1. Connection is fully established
                     // 2. Shell has had time to initialize (wait 2s after connection)
                     // 3. Size is valid (> 0)
                     // 4. Size differs from initial 80x24
-                    // TEMPORARILY DISABLED - Resize blocks SSH_TX
-                    /*
                     LaunchedEffect(cols, rows) {
                         if (state.isConnected && cols > 0 && rows > 0) {
                             // Wait for shell initialization (prompt to appear)

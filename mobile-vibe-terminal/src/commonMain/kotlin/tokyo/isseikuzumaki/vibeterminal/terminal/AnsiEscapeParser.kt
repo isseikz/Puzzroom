@@ -231,23 +231,31 @@ class AnsiEscapeParser(private val screenBuffer: TerminalScreenBuffer) {
                 screenBuffer.restoreCursor()
             }
             'h' -> {  // Set Mode (DECSET)
-                 if (isPrivate && params.contains(1049)) {
-                     // Save cursor and switch to alternate screen buffer, clearing it
-                     screenBuffer.saveCursor()
-                     screenBuffer.useAlternateScreenBuffer()
+                 if (isPrivate) {
+                     when {
+                         params.contains(1049) -> {
+                             // Save cursor and switch to alternate screen buffer, clearing it
+                             screenBuffer.saveCursor()
+                             screenBuffer.useAlternateScreenBuffer()
+                         }
+                         params.contains(2004) -> {
+                             // Enable bracketed paste mode (ignore, we don't need to track this)
+                         }
+                     }
                  }
             }
             'l' -> {  // Reset Mode (DECRST)
-                 if (isPrivate && params.contains(1049)) {
-                     // Switch to primary screen buffer and restore cursor
-                     screenBuffer.useAlternateScreenBuffer() // This seems wrong based on the logic I just wrote for toggle, let's check
-                     // Wait, useAlternateScreenBuffer() logic check:
-                     // My previous implementation: 
-                     // useAlternateScreenBuffer() -> switches TO alt
-                     // usePrimaryScreenBuffer() -> switches TO primary
-                     
-                     screenBuffer.usePrimaryScreenBuffer()
-                     screenBuffer.restoreCursor()
+                 if (isPrivate) {
+                     when {
+                         params.contains(1049) -> {
+                             // Switch to primary screen buffer and restore cursor
+                             screenBuffer.usePrimaryScreenBuffer()
+                             screenBuffer.restoreCursor()
+                         }
+                         params.contains(2004) -> {
+                             // Disable bracketed paste mode (ignore)
+                         }
+                     }
                  }
             }
             'r' -> {  // DECSTBM - Set scrolling region (top and bottom margins)

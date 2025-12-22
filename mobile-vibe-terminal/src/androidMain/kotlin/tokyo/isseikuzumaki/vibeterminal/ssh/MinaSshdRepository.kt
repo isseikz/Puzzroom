@@ -4,20 +4,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apache.sshd.client.SshClient
-import timber.log.Timber
 import org.apache.sshd.client.channel.ChannelShell
 import org.apache.sshd.client.session.ClientSession
 import org.apache.sshd.common.channel.PtyMode
 import org.apache.sshd.sftp.client.SftpClient
 import org.apache.sshd.sftp.client.SftpClientFactory
+import timber.log.Timber
 import tokyo.isseikuzumaki.vibeterminal.domain.model.FileEntry
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
-import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
-import java.io.InputStreamReader
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
 import java.io.PrintWriter
@@ -29,13 +28,35 @@ class MinaSshdRepository : SshRepository {
     private var session: ClientSession? = null
     private var channel: ChannelShell? = null
     private var outputWriter: PrintWriter? = null
-    private var outputReader: PipedInputStream? = null
+
+    // Use Channel instead of PipedInputStream for non-blocking data reception
+    private val rxChannel = kotlinx.coroutines.channels.Channel<ByteArray>(
+        capacity = kotlinx.coroutines.channels.Channel.UNLIMITED
+    )
 
     // Store credentials for creating separate SFTP sessions
     private var connectionHost: String? = null
     private var connectionPort: Int? = null
     private var connectionUsername: String? = null
     private var connectionPassword: String? = null
+
+    // Custom OutputStream that writes to Channel (non-blocking)
+    private inner class ChannelOutputStream : java.io.OutputStream() {
+        override fun write(b: Int) {
+            write(byteArrayOf(b.toByte()), 0, 1)
+        }
+
+        override fun write(b: ByteArray, off: Int, len: Int) {
+            val copy = b.copyOfRange(off, off + len)
+            Timber.d("SSH_CHANNEL_WRITE: Writing ${copy.size} bytes to rxChannel")
+            val result = rxChannel.trySend(copy)
+            if (result.isFailure) {
+                Timber.e("SSH_CHANNEL_WRITE: Failed to write to channel: ${result.exceptionOrNull()?.message}")
+            } else {
+                Timber.d("SSH_CHANNEL_WRITE: Successfully wrote to channel")
+            }
+        }
+    }
 
     override suspend fun connect(
         host: String,
@@ -106,13 +127,14 @@ class MinaSshdRepository : SshRepository {
 
             Timber.d("10b. PTY configured: xterm-256color, 80x24")
 
-            // 5. Set up piped streams to capture output
-            Timber.d("11. Setting up piped streams for output...")
-            val pipedIn = PipedInputStream()
-            val pipedOut = PipedOutputStream(pipedIn)
-            shellChannel.out = pipedOut
-            shellChannel.err = pipedOut
-            outputReader = pipedIn
+            // 4b. Log channel window information
+            Timber.d("10c. Channel window info - Local: ${shellChannel.localWindow}, Remote: ${shellChannel.remoteWindow}")
+
+            // 5. Set up Channel-based output (non-blocking)
+            Timber.d("11. Setting up Channel stream for output...")
+            val channelStream = ChannelOutputStream()
+            shellChannel.out = channelStream
+            shellChannel.err = channelStream
 
             // 6. Set up input stream for sending commands
             Timber.d("12. Setting up piped streams for input...")
@@ -144,6 +166,7 @@ class MinaSshdRepository : SshRepository {
             channel?.close()
             session?.close()
             client?.stop()
+            rxChannel.close()
         } finally {
             outputWriter = null
             channel = null
@@ -227,34 +250,35 @@ class MinaSshdRepository : SshRepository {
     }
 
     override fun getOutputStream(): Flow<String> = callbackFlow {
-        val reader = outputReader ?: run {
-            close()
-            return@callbackFlow
-        }
-
-        val inputStreamReader = InputStreamReader(reader, Charsets.UTF_8)
-        val buffer = CharArray(1024)
-
-        try {
-            while (isConnected()) {
-                val charsRead = inputStreamReader.read(buffer)
-                if (charsRead == -1) break
-
-                val chunk = String(buffer, 0, charsRead)
-                trySend(chunk)
+        // Launch a coroutine to consume from rxChannel
+        val job = launch {
+            try {
+                for (bytes in rxChannel) {
+                    val text = String(bytes, Charsets.UTF_8)
+                    Timber.d("SSH_RX_RAW: Received ${bytes.size} bytes from channel")
+                    val result = trySend(text)
+                    if (result.isFailure) {
+                        Timber.e("SSH_RX_RAW: Failed to send to flow: ${result.exceptionOrNull()?.message}")
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "SSH_RX_RAW: Exception in output stream: ${e.message}")
+                close(e)
             }
-        } catch (e: Exception) {
-            // Connection closed or read error
-        } finally {
-            inputStreamReader.close()
-            close()
         }
 
-        awaitClose { inputStreamReader.close() }
+        awaitClose {
+            Timber.d("SSH_RX_RAW: Flow closed, cancelling job")
+            job.cancel()
+        }
     }
 
     override suspend fun sendInput(input: String) {
-        outputWriter?.println(input)
+        Timber.d("SSH_TX_RAW: Sending ${input.length} bytes")
+        Timber.d("SSH_TX_RAW: Content hex: ${input.toByteArray().joinToString(" ") { "%02x".format(it) }}")
+        outputWriter?.print(input)
+        outputWriter?.flush()
+        Timber.d("SSH_TX_RAW: Sent and flushed")
     }
 
 
@@ -263,15 +287,20 @@ class MinaSshdRepository : SshRepository {
         try {
             val currentChannel = channel
             if (currentChannel != null && currentChannel.isOpen) {
-                Timber.d("=== Terminal Resize ===")
-                Timber.d("New size: ${cols}x${rows} (${widthPx}x${heightPx}px)")
+                Timber.d("=== SSH Terminal Resize ===")
+                Timber.d("SSH_RESIZE: Sending window change to ${cols}x${rows} (${widthPx}x${heightPx}px)")
+                Timber.d("SSH_RESIZE: Channel open=${currentChannel.isOpen}, Closing=${currentChannel.isClosing}")
+
                 currentChannel.sendWindowChange(cols, rows, widthPx, heightPx)
-                Timber.d("Window change sent successfully")
+
+                Timber.d("SSH_RESIZE: Window change command sent successfully")
+                Timber.d("SSH_RESIZE: After resize - Channel open=${currentChannel.isOpen}")
             } else {
-                Timber.w("Cannot resize: channel is not open")
+                Timber.w("SSH_RESIZE: Cannot resize - channel is null or not open (channel=${currentChannel}, open=${currentChannel?.isOpen})")
             }
         } catch (e: Exception) {
-            Timber.e(e, "Failed to send window change: ${e.message}")
+            Timber.e(e, "SSH_RESIZE: Failed to send window change - ${e.javaClass.simpleName}: ${e.message}")
+            e.printStackTrace()
         }
     }
 

@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tokyo.isseikuzumaki.vibeterminal.domain.installer.ApkInstaller
@@ -66,6 +67,9 @@ class TerminalScreenModel(
 
     // Raw output accumulator for pattern detection
     private val outputAccumulator = StringBuilder()
+
+    // Keep track of output listener job to monitor its lifecycle
+    private var outputListenerJob: kotlinx.coroutines.Job? = null
 
     init {
         Logger.d("=== TerminalScreenModel init ===")
@@ -130,11 +134,23 @@ class TerminalScreenModel(
     }
 
     private fun startOutputListener() {
-        screenModelScope.launch(Dispatchers.IO) {
+        // Cancel any existing listener job
+        outputListenerJob?.cancel()
+
+        Logger.d("=== Starting Output Listener ===")
+        outputListenerJob = screenModelScope.launch(Dispatchers.IO) {
             try {
+                Logger.d("Output listener: Collecting from SSH output stream...")
                 sshRepository.getOutputStream().collect { line ->
                     // Log received data (RX)
                     Logger.d("SSH_RX: $line")
+
+                    // Check if job is still active
+                    if (!isActive) {
+                        Logger.w("Output listener: Job is no longer active, stopping collection")
+                        return@collect
+                    }
+
                     processOutput(line)
 
                     // Accumulate output for pattern detection
@@ -153,9 +169,23 @@ class TerminalScreenModel(
                         _state.update { it.copy(detectedApkPath = apkPath) }
                     }
                 }
+                Logger.w("Output listener: Collection completed normally (stream ended)")
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                Logger.w("Output listener: Job was cancelled: ${e.message}")
+                throw e  // Re-throw to allow proper cancellation
             } catch (e: Exception) {
+                Logger.e(e, "Output listener: Stream error: ${e.message}")
                 processOutput("Output stream error: ${e.message}\n")
                 _state.update { it.copy(isConnected = false, errorMessage = "Stream error: ${e.message}") }
+            }
+        }
+
+        // Add completion handler to detect when job finishes
+        outputListenerJob?.invokeOnCompletion { cause ->
+            when (cause) {
+                null -> Logger.d("Output listener: Job completed successfully")
+                is kotlinx.coroutines.CancellationException -> Logger.w("Output listener: Job was cancelled")
+                else -> Logger.e(cause, "Output listener: Job failed with exception")
             }
         }
     }
@@ -173,14 +203,42 @@ class TerminalScreenModel(
     }
 
     /**
+     * Ensure output listener is running. Restart if needed.
+     */
+    private fun ensureOutputListenerActive() {
+        val job = outputListenerJob
+        if (job == null || !job.isActive) {
+            Logger.w("=== Output Listener Not Active ===")
+            Logger.w("Job state: ${job?.let { "exists but inactive (isCancelled=${it.isCancelled}, isCompleted=${it.isCompleted})" } ?: "null"}")
+            if (_state.value.isConnected) {
+                Logger.w("Connection is still active, restarting output listener...")
+                startOutputListener()
+            }
+        } else {
+            Logger.d("Output listener is active")
+        }
+    }
+
+    /**
      * Resize the terminal
      */
     fun resize(cols: Int, rows: Int, widthPx: Int, heightPx: Int) {
+        Logger.d("=== Terminal Resize Request ===")
+        Logger.d("Size: ${cols}x${rows} (${widthPx}x${heightPx}px)")
+
+        // Check output listener status before resize
+        Logger.d("Before resize - checking output listener status...")
+        ensureOutputListenerActive()
+
         terminalBuffer.resize(cols, rows)
         updateScreenState()
-        
+
         screenModelScope.launch {
             sshRepository.resizeTerminal(cols, rows, widthPx, heightPx)
+
+            // Check output listener status after resize
+            Logger.d("After resize - checking output listener status...")
+            ensureOutputListenerActive()
         }
     }
 
@@ -210,6 +268,9 @@ class TerminalScreenModel(
 
     fun disconnect() {
         screenModelScope.launch {
+            Logger.d("=== Disconnecting ===")
+            outputListenerJob?.cancel()
+            outputListenerJob = null
             sshRepository.disconnect()
             _state.update { it.copy(isConnected = false) }
             processOutput("Disconnected\n")
