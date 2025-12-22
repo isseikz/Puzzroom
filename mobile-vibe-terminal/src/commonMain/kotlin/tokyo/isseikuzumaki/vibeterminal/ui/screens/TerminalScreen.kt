@@ -27,6 +27,7 @@ import tokyo.isseikuzumaki.vibeterminal.viewmodel.TerminalScreenModel
 import tokyo.isseikuzumaki.vibeterminal.ui.components.FileExplorerSheet
 import tokyo.isseikuzumaki.vibeterminal.ui.components.CodeViewerSheet
 import tokyo.isseikuzumaki.vibeterminal.ui.components.TerminalCanvas
+import tokyo.isseikuzumaki.vibeterminal.ui.components.macro.MacroInputPanel
 
 data class TerminalScreen(
     val config: ConnectionConfig
@@ -188,76 +189,21 @@ data class TerminalScreen(
                 if (state.isConnected) {
                     var inputText by remember { mutableStateOf("") }
 
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color(0xFF1A1A1A))
-                    ) {
-                        // Macro Row - Common terminal keys
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState())
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            MacroButton("ESC") { screenModel.sendCommand("\u001B") }
-                            MacroButton("TAB") { screenModel.sendCommand("\t") }
-                            MacroButton("CTRL+C") { screenModel.sendCommand("\u0003") }
-                            MacroButton("CTRL+D") { screenModel.sendCommand("\u0004") }
-                            MacroButton("CTRL+Z") { screenModel.sendCommand("\u001A") }
-                            MacroButton("|") { inputText += "|" }
-                            MacroButton("->") { inputText += " -> " }
-                            MacroButton("&&") { inputText += " && " }
-                            MacroButton("||") { inputText += " || " }
-                            MacroButton("~/") { inputText += "~/" }
-                            MacroButton("../") { inputText += "../" }
+                    MacroInputPanel(
+                        state = state,
+                        inputText = inputText,
+                        onInputChange = { inputText = it },
+                        onSendCommand = { command ->
+                            screenModel.sendCommand(command)
+                            inputText = ""
+                        },
+                        onDirectSend = { sequence ->
+                            screenModel.sendCommand(sequence)
+                        },
+                        onTabSelected = { tab ->
+                            screenModel.selectMacroTab(tab)
                         }
-
-                        HorizontalDivider(color = Color(0xFF00FF00).copy(alpha = 0.3f), thickness = 1.dp)
-
-                        // Buffered Input Field
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            OutlinedTextField(
-                                value = inputText,
-                                onValueChange = { inputText = it },
-                                placeholder = { Text("Enter command...", color = Color.Gray) },
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedTextColor = Color(0xFF00FF00),
-                                    unfocusedTextColor = Color(0xFF00FF00),
-                                    focusedContainerColor = Color.Black,
-                                    unfocusedContainerColor = Color.Black,
-                                    cursorColor = Color(0xFF00FF00),
-                                    focusedBorderColor = Color(0xFF00FF00),
-                                    unfocusedBorderColor = Color(0xFF00FF00).copy(alpha = 0.5f)
-                                ),
-                                modifier = Modifier.weight(1f),
-                                textStyle = androidx.compose.ui.text.TextStyle(
-                                    fontFamily = FontFamily.Monospace,
-                                    fontSize = 14.sp
-                                )
-                            )
-
-                            Button(
-                                onClick = {
-                                    screenModel.sendCommand(inputText)
-                                    inputText = ""
-                                },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF00FF00),
-                                    contentColor = Color.Black
-                                ),
-                                modifier = Modifier.padding(start = 8.dp)
-                            ) {
-                                Text("Send", fontSize = 14.sp)
-                            }
-                        }
-                    }
+                    )
                 }
             }
         }
@@ -279,25 +225,6 @@ data class TerminalScreen(
                 sshRepository = sshRepository,
                 filePath = filePath,
                 onDismiss = { selectedFilePath = null }
-            )
-        }
-    }
-
-    @Composable
-    private fun MacroButton(label: String, onClick: () -> Unit) {
-        Button(
-            onClick = onClick,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF2A2A2A),
-                contentColor = Color(0xFF00FF00)
-            ),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-            modifier = Modifier.height(36.dp)
-        ) {
-            Text(
-                text = label,
-                fontSize = 12.sp,
-                fontFamily = FontFamily.Monospace
             )
         }
     }
