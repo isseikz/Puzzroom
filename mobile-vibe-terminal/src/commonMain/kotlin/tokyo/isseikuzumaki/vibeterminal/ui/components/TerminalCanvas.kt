@@ -38,6 +38,13 @@ fun TerminalCanvas(
     val charHeight = sampleLayout.size.height.toFloat()
 
     Canvas(modifier = modifier.fillMaxSize()) {
+        // Safety check: ensure valid dimensions
+        if (charWidth <= 0f || charHeight <= 0f || size.width <= 0f || size.height <= 0f) {
+            // Canvas not yet sized or invalid dimensions, just draw black background
+            drawRect(color = Color.Black)
+            return@Canvas
+        }
+
         // Draw background for the whole terminal
         drawRect(color = Color.Black)
 
@@ -45,6 +52,11 @@ fun TerminalCanvas(
             row.forEachIndexed { colIndex, cell ->
                 val x = colIndex * charWidth
                 val y = rowIndex * charHeight
+
+                // Safety check: ensure position is within canvas bounds
+                if (x < 0f || y < 0f || x >= size.width || y >= size.height) {
+                    return@forEachIndexed
+                }
 
                 // Draw cell background
                 if (cell.backgroundColor != Color.Black) {
@@ -73,16 +85,19 @@ fun TerminalCanvas(
                 }
 
                 if (cell.char != ' ' && cell.char.code != 0) {
-                    drawText(
-                        textMeasurer = textMeasurer,
-                        text = cell.char.toString(),
-                        topLeft = Offset(x, y),
-                        style = textStyle.copy(
-                            color = textColor,
-                            fontWeight = if (cell.isBold) FontWeight.Bold else FontWeight.Normal,
-                            // Note: Underline/Strikethrough support in Canvas drawText might need TextLayoutResult or decoration
+                    // Additional safety check before drawing text
+                    if (x + charWidth <= size.width && y + charHeight <= size.height) {
+                        drawText(
+                            textMeasurer = textMeasurer,
+                            text = cell.char.toString(),
+                            topLeft = Offset(x, y),
+                            style = textStyle.copy(
+                                color = textColor,
+                                fontWeight = if (cell.isBold) FontWeight.Bold else FontWeight.Normal,
+                                // Note: Underline/Strikethrough support in Canvas drawText might need TextLayoutResult or decoration
+                            )
                         )
-                    )
+                    }
                 }
             }
         }
