@@ -18,6 +18,7 @@ import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
 import tokyo.isseikuzumaki.vibeterminal.terminal.AnsiEscapeParser
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalCell
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalScreenBuffer
+import tokyo.isseikuzumaki.vibeterminal.ui.components.macro.MacroTab
 import tokyo.isseikuzumaki.vibeterminal.util.Logger
 
 data class TerminalState(
@@ -30,7 +31,9 @@ data class TerminalState(
     val detectedApkPath: String? = null,
     val isDownloadingApk: Boolean = false,
     val isAlternateScreen: Boolean = false,
-    val bufferUpdateCounter: Int = 0  // Trigger UI updates
+    val bufferUpdateCounter: Int = 0,  // Trigger UI updates
+    val selectedMacroTab: MacroTab = MacroTab.BASIC,
+    val hasAutoSwitchedToNav: Boolean = false
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -41,7 +44,9 @@ data class TerminalState(
                 detectedApkPath == other.detectedApkPath &&
                 isDownloadingApk == other.isDownloadingApk &&
                 isAlternateScreen == other.isAlternateScreen &&
-                bufferUpdateCounter == other.bufferUpdateCounter
+                bufferUpdateCounter == other.bufferUpdateCounter &&
+                selectedMacroTab == other.selectedMacroTab &&
+                hasAutoSwitchedToNav == other.hasAutoSwitchedToNav
     }
 
     override fun hashCode(): Int {
@@ -209,6 +214,13 @@ class TerminalScreenModel(
     }
 
     /**
+     * Select a macro tab
+     */
+    fun selectMacroTab(tab: MacroTab) {
+        _state.update { it.copy(selectedMacroTab = tab) }
+    }
+
+    /**
      * Ensure output listener is running. Restart if needed.
      */
     private fun ensureOutputListenerActive() {
@@ -262,12 +274,19 @@ class TerminalScreenModel(
      */
     private fun updateScreenState() {
         _state.update { currentState ->
+            val newIsAlternateScreen = terminalBuffer.isAlternateScreen
+            val shouldAutoSwitch = newIsAlternateScreen &&
+                                   !currentState.isAlternateScreen &&
+                                   !currentState.hasAutoSwitchedToNav
+
             currentState.copy(
                 screenBuffer = terminalBuffer.getBuffer(),
                 cursorRow = terminalBuffer.cursorRow,
                 cursorCol = terminalBuffer.cursorCol,
-                isAlternateScreen = terminalBuffer.isAlternateScreen,
-                bufferUpdateCounter = currentState.bufferUpdateCounter + 1
+                isAlternateScreen = newIsAlternateScreen,
+                bufferUpdateCounter = currentState.bufferUpdateCounter + 1,
+                selectedMacroTab = if (shouldAutoSwitch) MacroTab.VIM else currentState.selectedMacroTab,
+                hasAutoSwitchedToNav = shouldAutoSwitch || currentState.hasAutoSwitchedToNav
             )
         }
     }
