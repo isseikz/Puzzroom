@@ -91,6 +91,7 @@ fun ShadowingScreen(
     val sessionViewModel: DemoSessionViewModel = viewModel ?: viewModel()
     val shadowingData by sessionViewModel.shadowingData.collectAsState()
     val recordingData by sessionViewModel.recordingData.collectAsState()
+<<<<<<< HEAD
 
     // Extract file name from URI metadata if possible, or parse from URI
     val displayFileName = remember(uri, getFileNameFromUri) {
@@ -132,6 +133,8 @@ fun ShadowingScreen(
         }
     }
 
+=======
+>>>>>>> origin/main
     val currentPosition by sessionViewModel.currentPosition.collectAsState()
     val isPlaying by sessionViewModel.isPlaying.collectAsState()
 
@@ -144,6 +147,16 @@ fun ShadowingScreen(
         seekPosition = currentPosition.toFloat()
     }
 
+<<<<<<< HEAD
+=======
+    // Load data when URIs change
+    LaunchedEffect(uri, transcriptionUri) {
+        if (loadTranscription != null) {
+            sessionViewModel.loadShadowingData(uri, transcriptionUri, loadTranscription)
+        }
+    }
+
+>>>>>>> origin/main
     Scaffold(
         topBar = {
             TopAppBar(
@@ -397,7 +410,9 @@ fun ShadowingScreen(
 
                         // Transcript card
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(400.dp),
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceVariant
                             ),
@@ -414,11 +429,17 @@ fun ShadowingScreen(
 
                                 VerticalSpacer(height = 12.dp)
 
-                                AppText(
-                                    text = shadowingData!!.transcript,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .verticalScroll(rememberScrollState())
+                                ) {
+                                    AppText(
+                                        text = shadowingData!!.transcript,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
 
