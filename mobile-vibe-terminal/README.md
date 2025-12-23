@@ -114,7 +114,7 @@ deployPattern = "DEPLOY_HERE: (.*)"
 
 - [DesignDocument.md](docs/DesignDocument.md) - 設計書
 - [TestCoverage.md](docs/TestCoverage.md) - テストカバレッジ
-- [Xterm-Control-Sequenses.html](docs/Xterm-Control-Sequenses.html) - Xterm制御シーケンス
+- [Xterm-Control-Sequences.html](docs/Xterm-Control-Sequences.html) - Xterm制御シーケンス
 
 ## ライセンス (License)
 
