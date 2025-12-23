@@ -57,3 +57,9 @@ Carthage/
 
 ## JavaScript
 node_modules/
+
+# Test logs
+test_execution.log
+test_execution_retry.log
+test_final.log
+test_final_fixed.log
