@@ -14,4 +14,7 @@ class ConnectionRepositoryStub : ConnectionRepository {
     override suspend fun updateLastUsed(connectionId: Long) {}
     override suspend fun getLastActiveConnectionId(): Long? = null
     override suspend fun setLastActiveConnectionId(connectionId: Long?) {}
+    override suspend fun savePassword(connectionId: Long, password: String) {}
+    override suspend fun getPassword(connectionId: Long): String? = null
+    override suspend fun deletePassword(connectionId: Long) {}
 }

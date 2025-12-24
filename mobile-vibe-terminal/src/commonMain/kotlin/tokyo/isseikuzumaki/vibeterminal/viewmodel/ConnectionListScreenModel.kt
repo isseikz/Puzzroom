@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import tokyo.isseikuzumaki.vibeterminal.domain.model.ConnectionConfig
 import tokyo.isseikuzumaki.vibeterminal.domain.model.SavedConnection
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.ConnectionRepository
 
@@ -78,6 +79,80 @@ class ConnectionListScreenModel(
     fun updateLastUsed(connectionId: Long) {
         screenModelScope.launch {
             connectionRepository.updateLastUsed(connectionId)
+        }
+    }
+
+    fun loadPassword(connectionId: Long, onLoaded: (String?) -> Unit) {
+        screenModelScope.launch {
+            try {
+                val password = connectionRepository.getPassword(connectionId)
+                onLoaded(password)
+            } catch (e: Exception) {
+                onLoaded(null)
+            }
+        }
+    }
+
+    fun savePassword(connectionId: Long, password: String) {
+        screenModelScope.launch {
+            try {
+                connectionRepository.savePassword(connectionId, password)
+            } catch (e: Exception) {
+                _state.update { it.copy(errorMessage = "Failed to save password: ${e.message}") }
+            }
+        }
+    }
+
+    fun deletePassword(connectionId: Long) {
+        screenModelScope.launch {
+            try {
+                connectionRepository.deletePassword(connectionId)
+            } catch (e: Exception) {
+                // Silently fail
+            }
+        }
+    }
+
+    fun checkAndRestoreLastSession(onResult: (ConnectionConfig?) -> Unit) {
+        screenModelScope.launch {
+            try {
+                // Get last active connection ID
+                val lastConnectionId = connectionRepository.getLastActiveConnectionId()
+                if (lastConnectionId == null) {
+                    onResult(null)
+                    return@launch
+                }
+
+                // Get connection details
+                val connection = connectionRepository.getConnectionById(lastConnectionId)
+                if (connection == null || !connection.isAutoReconnect) {
+                    onResult(null)
+                    return@launch
+                }
+
+                // Get saved password
+                val password = connectionRepository.getPassword(lastConnectionId)
+                if (password == null) {
+                    // No saved password, cannot auto-restore
+                    onResult(null)
+                    return@launch
+                }
+
+                // Create ConnectionConfig for auto-restore
+                val config = ConnectionConfig(
+                    host = connection.host,
+                    port = connection.port,
+                    username = connection.username,
+                    password = password,
+                    connectionId = connection.id,
+                    startupCommand = connection.startupCommand
+                )
+
+                onResult(config)
+            } catch (e: Exception) {
+                // If anything fails, just show connection list
+                onResult(null)
+            }
         }
     }
 

@@ -12,6 +12,7 @@ import tokyo.isseikuzumaki.vibeterminal.domain.installer.ApkInstaller
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.ConnectionRepository
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
 import tokyo.isseikuzumaki.vibeterminal.installer.AndroidApkInstaller
+import tokyo.isseikuzumaki.vibeterminal.security.PasswordEncryptionHelper
 import tokyo.isseikuzumaki.vibeterminal.ssh.MinaSshdRepository
 
 actual fun platformModule() = module {
@@ -25,6 +26,8 @@ actual fun platformModule() = module {
         createDataStore(context)
     }
 
+    single { PasswordEncryptionHelper() }
+
     factory<SshRepository> { MinaSshdRepository() }
 
     factory<ApkInstaller> {
@@ -35,6 +38,7 @@ actual fun platformModule() = module {
     factory<ConnectionRepository> {
         val database = get<AppDatabase>()
         val dataStore = get<DataStore<Preferences>>()
-        ConnectionRepositoryImpl(database.serverConnectionDao(), dataStore)
+        val passwordEncryption = get<PasswordEncryptionHelper>()
+        ConnectionRepositoryImpl(database.serverConnectionDao(), dataStore, passwordEncryption)
     }
 }
