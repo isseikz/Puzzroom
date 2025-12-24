@@ -33,6 +33,9 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.text.input.ImeAction
 
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.InputMode
 import androidx.compose.foundation.clickable
@@ -139,6 +142,16 @@ data class TerminalScreen(
                                 cmdInput = newValue
                             }
                         },
+                        keyboardOptions = KeyboardOptions(
+                            autoCorrect = false,
+                            imeAction = ImeAction.Send
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onSend = {
+                                screenModel.sendInput("\r", appendNewline = false)
+                                cmdInput = TextFieldValue(" ")
+                            }
+                        ),
                         modifier = Modifier
                             .size(1.dp)
                             .focusRequester(focusRequester)
