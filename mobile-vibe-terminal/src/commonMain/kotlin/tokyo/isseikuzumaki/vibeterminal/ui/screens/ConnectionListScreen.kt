@@ -22,6 +22,7 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.koin.koinScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import androidx.compose.runtime.LaunchedEffect
 import tokyo.isseikuzumaki.vibeterminal.domain.model.ConnectionConfig
 import tokyo.isseikuzumaki.vibeterminal.domain.model.SavedConnection
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.ConnectionListScreenModel
@@ -38,6 +39,16 @@ class ConnectionListScreen : Screen {
         var showPasswordDialog by remember { mutableStateOf(false) }
         var selectedConnection by remember { mutableStateOf<SavedConnection?>(null) }
         var password by remember { mutableStateOf("") }
+        var savePassword by remember { mutableStateOf(false) }
+
+        // Check for auto-restore on startup
+        LaunchedEffect(Unit) {
+            screenModel.checkAndRestoreLastSession { config ->
+                if (config != null) {
+                    navigator.push(TerminalScreen(config))
+                }
+            }
+        }
 
         Scaffold(
             topBar = {
@@ -97,8 +108,12 @@ class ConnectionListScreen : Screen {
                                 connection = connection,
                                 onConnect = {
                                     selectedConnection = connection
-                                    password = ""
-                                    showPasswordDialog = true
+                                    // Try to load saved password
+                                    screenModel.loadPassword(connection.id) { savedPwd ->
+                                        password = savedPwd ?: ""
+                                        savePassword = savedPwd != null
+                                        showPasswordDialog = true
+                                    }
                                 },
                                 onEdit = { screenModel.showEditDialog(connection) },
                                 onDelete = { screenModel.deleteConnection(connection) }
@@ -123,11 +138,21 @@ class ConnectionListScreen : Screen {
             PasswordDialog(
                 connection = selectedConnection!!,
                 password = password,
+                savePassword = savePassword,
                 onPasswordChange = { password = it },
+                onSavePasswordChange = { savePassword = it },
                 onDismiss = { showPasswordDialog = false },
                 onConnect = {
                     showPasswordDialog = false
                     screenModel.updateLastUsed(selectedConnection!!.id)
+
+                    // Save password if checkbox is checked
+                    if (savePassword) {
+                        screenModel.savePassword(selectedConnection!!.id, password)
+                    } else {
+                        screenModel.deletePassword(selectedConnection!!.id)
+                    }
+
                     navigator.push(
                         TerminalScreen(
                             ConnectionConfig(
@@ -322,7 +347,9 @@ class ConnectionListScreen : Screen {
     private fun PasswordDialog(
         connection: SavedConnection,
         password: String,
+        savePassword: Boolean,
         onPasswordChange: (String) -> Unit,
+        onSavePasswordChange: (Boolean) -> Unit,
         onDismiss: () -> Unit,
         onConnect: () -> Unit
     ) {
@@ -342,8 +369,24 @@ class ConnectionListScreen : Screen {
                         label = { Text("Password") },
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        singleLine = true
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = savePassword,
+                            onCheckedChange = onSavePasswordChange
+                        )
+                        Text(
+                            text = "Remember password (stored securely)",
+                            modifier = Modifier.padding(start = 8.dp),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                 }
             },
             confirmButton = {

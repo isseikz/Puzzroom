@@ -314,6 +314,30 @@ class TerminalScreenModel(
     }
 
     /**
+     * Disconnect and clear last active session, then execute callback.
+     * This ensures the session is cleared BEFORE navigating back to ConnectionList.
+     */
+    fun disconnectAndClearSession(onComplete: () -> Unit) {
+        screenModelScope.launch {
+            Logger.d("=== Disconnecting and clearing session ===")
+
+            // First, clear the last active connection ID
+            connectionRepository.setLastActiveConnectionId(null)
+            Logger.d("Cleared last active connection ID")
+
+            // Then disconnect SSH
+            outputListenerJob?.cancel()
+            outputListenerJob = null
+            sshRepository.disconnect()
+            _state.update { it.copy(isConnected = false) }
+            processOutput("Disconnected\n")
+
+            // Finally, execute callback (navigate back)
+            onComplete()
+        }
+    }
+
+    /**
      * Download APK from remote server and install it
      */
     fun downloadAndInstallApk() {

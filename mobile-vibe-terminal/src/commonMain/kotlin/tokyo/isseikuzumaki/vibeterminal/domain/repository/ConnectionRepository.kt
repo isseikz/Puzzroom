@@ -47,4 +47,20 @@ interface ConnectionRepository {
      * Set the last active connection ID for auto-restore
      */
     suspend fun setLastActiveConnectionId(connectionId: Long?)
+
+    /**
+     * Save encrypted password for a connection
+     */
+    suspend fun savePassword(connectionId: Long, password: String)
+
+    /**
+     * Get decrypted password for a connection
+     * @return the password, or null if not saved
+     */
+    suspend fun getPassword(connectionId: Long): String?
+
+    /**
+     * Delete saved password for a connection
+     */
+    suspend fun deletePassword(connectionId: Long)
 }

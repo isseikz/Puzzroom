@@ -59,8 +59,9 @@ data class TerminalScreen(
                     },
                     navigationIcon = {
                         IconButton(onClick = {
-                            screenModel.disconnect()
-                            navigator.pop()
+                            screenModel.disconnectAndClearSession {
+                                navigator.pop()
+                            }
                         }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                         }

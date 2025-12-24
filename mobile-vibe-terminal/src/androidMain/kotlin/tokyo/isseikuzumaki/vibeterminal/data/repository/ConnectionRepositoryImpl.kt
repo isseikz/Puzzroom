@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -11,14 +12,17 @@ import tokyo.isseikuzumaki.vibeterminal.data.database.dao.ServerConnectionDao
 import tokyo.isseikuzumaki.vibeterminal.data.database.entity.ServerConnection
 import tokyo.isseikuzumaki.vibeterminal.domain.model.SavedConnection
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.ConnectionRepository
+import tokyo.isseikuzumaki.vibeterminal.security.PasswordEncryptionHelper
 
 class ConnectionRepositoryImpl(
     private val dao: ServerConnectionDao,
-    private val dataStore: DataStore<Preferences>
+    private val dataStore: DataStore<Preferences>,
+    private val passwordEncryption: PasswordEncryptionHelper
 ) : ConnectionRepository {
 
     companion object {
         private val LAST_ACTIVE_CONNECTION_ID = longPreferencesKey("last_active_connection_id")
+        private fun passwordKey(connectionId: Long) = stringPreferencesKey("password_$connectionId")
     }
 
     override fun getAllConnections(): Flow<List<SavedConnection>> {
@@ -61,6 +65,31 @@ class ConnectionRepositoryImpl(
             } else {
                 preferences.remove(LAST_ACTIVE_CONNECTION_ID)
             }
+        }
+    }
+
+    override suspend fun savePassword(connectionId: Long, password: String) {
+        val encryptedPassword = passwordEncryption.encryptPassword(password)
+        dataStore.edit { preferences ->
+            preferences[passwordKey(connectionId)] = encryptedPassword
+        }
+    }
+
+    override suspend fun getPassword(connectionId: Long): String? {
+        val encryptedPassword = dataStore.data.first()[passwordKey(connectionId)]
+        return encryptedPassword?.let {
+            try {
+                passwordEncryption.decryptPassword(it)
+            } catch (e: Exception) {
+                // If decryption fails, return null
+                null
+            }
+        }
+    }
+
+    override suspend fun deletePassword(connectionId: Long) {
+        dataStore.edit { preferences ->
+            preferences.remove(passwordKey(connectionId))
         }
     }
 
