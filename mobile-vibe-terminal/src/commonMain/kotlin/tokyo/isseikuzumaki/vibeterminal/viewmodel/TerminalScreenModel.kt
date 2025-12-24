@@ -21,6 +21,10 @@ import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalScreenBuffer
 import tokyo.isseikuzumaki.vibeterminal.ui.components.macro.MacroTab
 import tokyo.isseikuzumaki.vibeterminal.util.Logger
 
+enum class InputMode {
+    COMMAND, TEXT
+}
+
 data class TerminalState(
     val isConnecting: Boolean = false,
     val isConnected: Boolean = false,
@@ -33,7 +37,10 @@ data class TerminalState(
     val isAlternateScreen: Boolean = false,
     val bufferUpdateCounter: Int = 0,  // Trigger UI updates
     val selectedMacroTab: MacroTab = MacroTab.BASIC,
-    val hasAutoSwitchedToNav: Boolean = false
+    val hasAutoSwitchedToNav: Boolean = false,
+    val inputMode: InputMode = InputMode.COMMAND,
+    val isCtrlActive: Boolean = false,
+    val isAltActive: Boolean = false
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -46,11 +53,18 @@ data class TerminalState(
                 isAlternateScreen == other.isAlternateScreen &&
                 bufferUpdateCounter == other.bufferUpdateCounter &&
                 selectedMacroTab == other.selectedMacroTab &&
-                hasAutoSwitchedToNav == other.hasAutoSwitchedToNav
+                hasAutoSwitchedToNav == other.hasAutoSwitchedToNav &&
+                inputMode == other.inputMode &&
+                isCtrlActive == other.isCtrlActive &&
+                isAltActive == other.isAltActive
     }
 
     override fun hashCode(): Int {
-        return bufferUpdateCounter
+        var result = bufferUpdateCounter
+        result = 31 * result + inputMode.hashCode()
+        result = 31 * result + isCtrlActive.hashCode()
+        result = 31 * result + isAltActive.hashCode()
+        return result
     }
 }
 
@@ -212,16 +226,59 @@ class TerminalScreenModel(
         }
     }
 
-    fun sendCommand(command: String) {
-
-        if (command.isBlank()) return
+    fun sendInput(text: String, appendNewline: Boolean = false) {
+        if (text.isEmpty()) return
 
         screenModelScope.launch {
-            // Log transmitted data (TX)
-            Logger.d("SSH_TX: $command")
-            // Append newline to execute the command
-            sshRepository.sendInput(command + "\n")
+            var toSend = if (appendNewline) text + "\n" else text
+            
+            val currentState = _state.value
+            var modified = false
+            
+            if (toSend.length == 1) {
+                var char = toSend[0]
+                
+                if (currentState.isCtrlActive) {
+                    if (char in 'a'..'z' || char in 'A'..'Z') {
+                        // Convert to control character (A=1, B=2, ...)
+                        char = (char.uppercaseChar().code - 'A'.code + 1).toChar()
+                        toSend = char.toString()
+                        modified = true
+                    }
+                }
+                
+                if (currentState.isAltActive) {
+                    toSend = "\u001B" + toSend
+                    modified = true
+                }
+            }
+            
+            if (modified) {
+                _state.update { it.copy(isCtrlActive = false, isAltActive = false) }
+            }
+            
+            Logger.d("SSH_TX: $toSend")
+            sshRepository.sendInput(toSend)
         }
+    }
+
+    fun setInputMode(mode: InputMode) {
+        _state.update { it.copy(inputMode = mode) }
+    }
+
+    fun toggleInputMode() {
+        _state.update {
+            val nextMode = if (it.inputMode == InputMode.COMMAND) InputMode.TEXT else InputMode.COMMAND
+            it.copy(inputMode = nextMode)
+        }
+    }
+
+    fun toggleCtrl() {
+        _state.update { it.copy(isCtrlActive = !it.isCtrlActive) }
+    }
+
+    fun toggleAlt() {
+        _state.update { it.copy(isAltActive = !it.isAltActive) }
     }
 
     /**

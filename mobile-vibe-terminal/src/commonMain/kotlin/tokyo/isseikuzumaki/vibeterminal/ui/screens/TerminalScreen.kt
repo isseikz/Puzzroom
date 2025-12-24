@@ -29,6 +29,14 @@ import tokyo.isseikuzumaki.vibeterminal.ui.components.CodeViewerSheet
 import tokyo.isseikuzumaki.vibeterminal.ui.components.TerminalCanvas
 import tokyo.isseikuzumaki.vibeterminal.ui.components.macro.MacroInputPanel
 
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.input.TextFieldValue
+
+import tokyo.isseikuzumaki.vibeterminal.viewmodel.InputMode
+import androidx.compose.foundation.clickable
+
 data class TerminalScreen(
     val config: ConnectionConfig
 ) : Screen {
@@ -47,6 +55,9 @@ data class TerminalScreen(
 
         var showFileExplorer by remember { mutableStateOf(false) }
         var selectedFilePath by remember { mutableStateOf<String?>(null) }
+
+        val focusRequester = remember { FocusRequester() }
+        var cmdInput by remember { mutableStateOf(TextFieldValue(" ")) }
 
         Scaffold(
             topBar = {
@@ -84,25 +95,6 @@ data class TerminalScreen(
                         navigationIconContentColor = Color(0xFF00FF00)
                     )
                 )
-            },
-            floatingActionButton = {
-                // Magic Deploy FAB
-                if (state.detectedApkPath != null) {
-                    FloatingActionButton(
-                        onClick = { screenModel.downloadAndInstallApk() },
-                        containerColor = Color(0xFF00FF00),
-                        contentColor = Color.Black
-                    ) {
-                        if (state.isDownloadingApk) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                color = Color.Black
-                            )
-                        } else {
-                            Text("🚀", fontSize = 24.sp)
-                        }
-                    }
-                }
             }
         ) { padding ->
             Column(
@@ -129,12 +121,44 @@ data class TerminalScreen(
                     )
                 }
 
+                // Hidden Command Input (captures software keyboard in CMD mode)
+                if (state.isConnected && state.inputMode == InputMode.COMMAND) {
+                    BasicTextField(
+                        value = cmdInput,
+                        onValueChange = { newValue ->
+                            if (newValue.text.length > 1) {
+                                // Character typed
+                                val newChars = newValue.text.substring(1)
+                                screenModel.sendInput(newChars, appendNewline = false)
+                                cmdInput = TextFieldValue(" ")
+                            } else if (newValue.text.isEmpty()) {
+                                // Backspace
+                                screenModel.sendInput("\u007F", appendNewline = false)
+                                cmdInput = TextFieldValue(" ")
+                            } else {
+                                cmdInput = newValue
+                            }
+                        },
+                        modifier = Modifier
+                            .size(1.dp)
+                            .focusRequester(focusRequester)
+                    )
+
+                    LaunchedEffect(state.inputMode) {
+                        focusRequester.requestFocus()
+                    }
+                }
+
                 // Terminal Output - Screen Buffer Rendering
                 BoxWithConstraints(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
                         .padding(8.dp)
+                        .clickable(
+                            enabled = state.inputMode == InputMode.COMMAND,
+                            onClick = { focusRequester.requestFocus() }
+                        )
                 ) {
                     val textMeasurer = rememberTextMeasurer()
                     val density = androidx.compose.ui.platform.LocalDensity.current
@@ -189,21 +213,30 @@ data class TerminalScreen(
 
                 // Buffered Input Deck with Macro Row
                 if (state.isConnected) {
-                    var inputText by remember { mutableStateOf("") }
+                    var inputText by remember { mutableStateOf(TextFieldValue("")) }
 
                     MacroInputPanel(
                         state = state,
                         inputText = inputText,
                         onInputChange = { inputText = it },
                         onSendCommand = { command ->
-                            screenModel.sendCommand(command)
-                            inputText = ""
+                            screenModel.sendInput(command, appendNewline = true)
+                            inputText = TextFieldValue("")
                         },
                         onDirectSend = { sequence ->
-                            screenModel.sendCommand(sequence)
+                            screenModel.sendInput(sequence, appendNewline = false)
                         },
                         onTabSelected = { tab ->
                             screenModel.selectMacroTab(tab)
+                        },
+                        onToggleInputMode = {
+                            screenModel.toggleInputMode()
+                        },
+                        onToggleCtrl = {
+                            screenModel.toggleCtrl()
+                        },
+                        onToggleAlt = {
+                            screenModel.toggleAlt()
                         }
                     )
                 }
