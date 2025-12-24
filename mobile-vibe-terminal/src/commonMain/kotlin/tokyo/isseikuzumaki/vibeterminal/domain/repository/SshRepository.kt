@@ -13,7 +13,8 @@ interface SshRepository {
         initialCols: Int = 80,
         initialRows: Int = 24,
         initialWidthPx: Int = 640,
-        initialHeightPx: Int = 384
+        initialHeightPx: Int = 384,
+        startupCommand: String? = null
     ): Result<Unit>
     suspend fun disconnect()
     fun isConnected(): Boolean

@@ -1,9 +1,12 @@
 package tokyo.isseikuzumaki.vibeterminal.di
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import org.koin.dsl.module
 import tokyo.isseikuzumaki.vibeterminal.data.database.AppDatabase
 import tokyo.isseikuzumaki.vibeterminal.data.database.getRoomDatabase
+import tokyo.isseikuzumaki.vibeterminal.data.datastore.createDataStore
 import tokyo.isseikuzumaki.vibeterminal.data.repository.ConnectionRepositoryImpl
 import tokyo.isseikuzumaki.vibeterminal.domain.installer.ApkInstaller
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.ConnectionRepository
@@ -17,6 +20,11 @@ actual fun platformModule() = module {
         getRoomDatabase(context)
     }
 
+    single<DataStore<Preferences>> {
+        val context = get<Context>()
+        createDataStore(context)
+    }
+
     factory<SshRepository> { MinaSshdRepository() }
 
     factory<ApkInstaller> {
@@ -26,6 +34,7 @@ actual fun platformModule() = module {
 
     factory<ConnectionRepository> {
         val database = get<AppDatabase>()
-        ConnectionRepositoryImpl(database.serverConnectionDao())
+        val dataStore = get<DataStore<Preferences>>()
+        ConnectionRepositoryImpl(database.serverConnectionDao(), dataStore)
     }
 }

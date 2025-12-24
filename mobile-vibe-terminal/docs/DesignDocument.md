@@ -190,6 +190,10 @@ graph LR
 
 
 * [ ] **Background Persistence:** Foreground Service 実装。
+* [ ] **Auto Session Restore:** アプリ終了・再起動時の自動接続復帰機能。
+  * ViewModel保持による画面回転時のセッション維持。
+  * 最後に使用したConnectionProfileを記憶し、アプリ再起動時に自動再接続。
+  * スタートアップコマンド（tmux attach等）の自動実行サポート。
 
 
 * **Connectivity & Security:**
@@ -222,3 +226,9 @@ graph LR
 
 * **DataStore + Keystore:** Android公式の [Security Best Practices](https://developer.android.com/topic/security/best-practices) に従い、マスターキーをKeystoreに置き、そのキーでDataStoreの値を暗号化/復号してください。
 * **Alternate Screen:** ターミナルViewModelは `isAlternateScreen: Boolean` という状態を持ち、これが `true` のときは `LazyColumn` (Chat) ではなく、全画面の `TerminalCanvas` (xterm) を表示するように分岐させてください。
+* **Auto Session Restore Implementation:**
+  * **SshClient Interface**: `isConnected` プロパティと `startShell()` メソッドに `startupCommand` パラメータを追加。
+  * **ViewModel Lifecycle**: `checkAndRestoreSession()` を画面遷移時に呼び出し、接続状態を確認して必要に応じて自動復帰。
+  * **Startup Command Injection**: Apache MINA の `ClientChannel.invertedIn` を使用して、シェル起動直後にコマンドを送信。
+  * **Connection Profile**: Room Entity に `startupCommand` および `isAutoReconnect` フィールドを追加。
+  * **Last Active Tracking**: Repository に最後に使用した ProfileID を保存・取得するメソッドを追加。

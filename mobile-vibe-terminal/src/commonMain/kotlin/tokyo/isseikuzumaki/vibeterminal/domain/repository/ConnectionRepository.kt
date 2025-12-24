@@ -37,4 +37,14 @@ interface ConnectionRepository {
      * Update the last used timestamp for a connection
      */
     suspend fun updateLastUsed(connectionId: Long)
+
+    /**
+     * Get the last active connection ID for auto-restore
+     */
+    suspend fun getLastActiveConnectionId(): Long?
+
+    /**
+     * Set the last active connection ID for auto-restore
+     */
+    suspend fun setLastActiveConnectionId(connectionId: Long?)
 }

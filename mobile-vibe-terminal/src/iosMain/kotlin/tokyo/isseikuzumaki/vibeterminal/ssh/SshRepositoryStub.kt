@@ -7,7 +7,17 @@ import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
 import java.io.File
 
 class SshRepositoryStub : SshRepository {
-    override suspend fun connect(host: String, port: Int, username: String, password: String): Result<Unit> {
+    override suspend fun connect(
+        host: String,
+        port: Int,
+        username: String,
+        password: String,
+        initialCols: Int,
+        initialRows: Int,
+        initialWidthPx: Int,
+        initialHeightPx: Int,
+        startupCommand: String?
+    ): Result<Unit> {
         return Result.failure(NotImplementedError("SSH not supported on iOS yet"))
     }
     override suspend fun disconnect() {}
@@ -26,4 +36,5 @@ class SshRepositoryStub : SshRepository {
     override suspend fun readFileContent(remotePath: String): Result<String> {
         return Result.failure(NotImplementedError("SFTP not supported on iOS yet"))
     }
+    override suspend fun resizeTerminal(cols: Int, rows: Int, widthPx: Int, heightPx: Int) {}
 }

@@ -25,6 +25,7 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import tokyo.isseikuzumaki.vibeterminal.domain.model.ConnectionConfig
 import tokyo.isseikuzumaki.vibeterminal.domain.model.SavedConnection
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.ConnectionListScreenModel
+import tokyo.isseikuzumaki.vibeterminal.ui.components.StartUpCommandInput
 
 class ConnectionListScreen : Screen {
     @OptIn(ExperimentalMaterial3Api::class)
@@ -133,7 +134,9 @@ class ConnectionListScreen : Screen {
                                 host = selectedConnection!!.host,
                                 port = selectedConnection!!.port,
                                 username = selectedConnection!!.username,
-                                password = password
+                                password = password,
+                                connectionId = selectedConnection!!.id,
+                                startupCommand = selectedConnection!!.startupCommand
                             )
                         )
                     )
@@ -220,37 +223,68 @@ class ConnectionListScreen : Screen {
         var host by remember { mutableStateOf(connection?.host ?: "") }
         var port by remember { mutableStateOf(connection?.port?.toString() ?: "22") }
         var username by remember { mutableStateOf(connection?.username ?: "") }
+        var startupCommand by remember { mutableStateOf(connection?.startupCommand ?: "") }
+        var isAutoReconnect by remember { mutableStateOf(connection?.isAutoReconnect ?: false) }
 
         AlertDialog(
             onDismissRequest = onDismiss,
             title = { Text(if (connection == null) "Add Connection" else "Edit Connection") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
                         label = { Text("Name") },
-                        singleLine = true
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = host,
                         onValueChange = { host = it },
                         label = { Text("Host") },
-                        singleLine = true
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = port,
                         onValueChange = { port = it },
                         label = { Text("Port") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = username,
                         onValueChange = { username = it },
                         label = { Text("Username") },
-                        singleLine = true
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
                     )
+
+                    // Startup Command Input
+                    StartUpCommandInput(
+                        command = startupCommand,
+                        onCommandChange = { startupCommand = it },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Auto Reconnect Checkbox
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = isAutoReconnect,
+                            onCheckedChange = { isAutoReconnect = it }
+                        )
+                        Text(
+                            text = "Auto-reconnect on app restart",
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
                 }
             },
             confirmButton = {
@@ -265,7 +299,9 @@ class ConnectionListScreen : Screen {
                             authType = "password",
                             createdAt = connection?.createdAt ?: System.currentTimeMillis(),
                             lastUsedAt = connection?.lastUsedAt,
-                            deployPattern = connection?.deployPattern
+                            deployPattern = connection?.deployPattern,
+                            startupCommand = startupCommand.ifBlank { null },
+                            isAutoReconnect = isAutoReconnect
                         )
                         onSave(savedConnection)
                     },
