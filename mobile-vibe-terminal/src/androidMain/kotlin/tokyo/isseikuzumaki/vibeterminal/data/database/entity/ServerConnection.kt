@@ -14,5 +14,7 @@ data class ServerConnection(
     val authType: String, // "password" or "key"
     val createdAt: Long,
     val lastUsedAt: Long? = null,
-    val deployPattern: String? = ">> VIBE_DEPLOY: (.*)" // Default regex pattern for deploy detection
+    val deployPattern: String? = ">> VIBE_DEPLOY: (.*)", // Default regex pattern for deploy detection
+    val startupCommand: String? = null, // Command to execute on shell startup (e.g., "tmux attach || tmux new")
+    val isAutoReconnect: Boolean = false // Enable automatic reconnection on app restart
 )

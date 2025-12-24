@@ -57,7 +57,8 @@ data class TerminalState(
 class TerminalScreenModel(
     private val config: ConnectionConfig,
     private val sshRepository: SshRepository,
-    private val apkInstaller: ApkInstaller
+    private val apkInstaller: ApkInstaller,
+    private val connectionRepository: tokyo.isseikuzumaki.vibeterminal.domain.repository.ConnectionRepository
 ) : ScreenModel {
 
     private val _state = MutableStateFlow(TerminalState())
@@ -103,7 +104,8 @@ class TerminalScreenModel(
                         initialCols = cols,
                         initialRows = rows,
                         initialWidthPx = widthPx,
-                        initialHeightPx = heightPx
+                        initialHeightPx = heightPx,
+                        startupCommand = config.startupCommand
                     )
                 }
                 Logger.d("Connection result: $result")
@@ -116,6 +118,15 @@ class TerminalScreenModel(
                         Logger.d("Connection successful!")
                         _state.update { it.copy(isConnecting = false, isConnected = true) }
                         processOutput("Connected to ${config.host}:${config.port}\n")
+
+                        // Save as last active connection for auto-restore
+                        config.connectionId?.let { id ->
+                            screenModelScope.launch {
+                                connectionRepository.setLastActiveConnectionId(id)
+                                connectionRepository.updateLastUsed(id)
+                            }
+                        }
+
                         startOutputListener()
                     },
                     onFailure = { error ->

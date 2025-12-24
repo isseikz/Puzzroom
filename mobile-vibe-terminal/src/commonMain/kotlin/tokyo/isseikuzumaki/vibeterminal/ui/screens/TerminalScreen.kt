@@ -39,8 +39,9 @@ data class TerminalScreen(
         val navigator = LocalNavigator.currentOrThrow
         val sshRepository = koinInject<SshRepository>()
         val apkInstaller = koinInject<tokyo.isseikuzumaki.vibeterminal.domain.installer.ApkInstaller>()
+        val connectionRepository = koinInject<tokyo.isseikuzumaki.vibeterminal.domain.repository.ConnectionRepository>()
         val screenModel = remember(config) {
-            TerminalScreenModel(config, sshRepository, apkInstaller)
+            TerminalScreenModel(config, sshRepository, apkInstaller, connectionRepository)
         }
         val state by screenModel.state.collectAsState()
 

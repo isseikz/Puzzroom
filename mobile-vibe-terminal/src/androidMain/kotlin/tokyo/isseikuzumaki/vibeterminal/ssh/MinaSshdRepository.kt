@@ -66,7 +66,8 @@ class MinaSshdRepository : SshRepository {
         initialCols: Int,
         initialRows: Int,
         initialWidthPx: Int,
-        initialHeightPx: Int
+        initialHeightPx: Int,
+        startupCommand: String?
     ): Result<Unit> {
         return try {
             Timber.d("=== MinaSshdRepository.connect ===")
@@ -152,6 +153,16 @@ class MinaSshdRepository : SshRepository {
             shellChannel.open().verify(5, TimeUnit.SECONDS)
             channel = shellChannel
             Timber.d("14. Shell channel opened successfully")
+
+            // 8. Execute startup command if provided
+            if (!startupCommand.isNullOrBlank()) {
+                Timber.d("15. Executing startup command: $startupCommand")
+                // Small delay to ensure shell is ready
+                kotlinx.coroutines.delay(100)
+                outputWriter?.println(startupCommand)
+                outputWriter?.flush()
+                Timber.d("16. Startup command sent")
+            }
 
             Timber.d("=== SSH Connection Complete ===")
             Result.success(Unit)

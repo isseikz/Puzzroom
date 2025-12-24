@@ -12,5 +12,7 @@ data class SavedConnection(
     val authType: String, // "password" or "key"
     val createdAt: Long,
     val lastUsedAt: Long? = null,
-    val deployPattern: String? = ">> VIBE_DEPLOY: (.*)"
+    val deployPattern: String? = ">> VIBE_DEPLOY: (.*)",
+    val startupCommand: String? = null, // Command to execute on shell startup (e.g., "tmux attach || tmux new")
+    val isAutoReconnect: Boolean = false // Enable automatic reconnection on app restart
 )

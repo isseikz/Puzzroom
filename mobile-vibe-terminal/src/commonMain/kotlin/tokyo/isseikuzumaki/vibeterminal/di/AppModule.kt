@@ -12,7 +12,8 @@ val appModule = module {
         TerminalScreenModel(
             config = params.get(),
             sshRepository = get(),
-            apkInstaller = get()
+            apkInstaller = get(),
+            connectionRepository = get()
         )
     }
 

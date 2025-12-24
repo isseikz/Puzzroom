@@ -5,5 +5,6 @@ data class ConnectionConfig(
     val port: Int = 22,
     val username: String,
     val password: String,
-    val connectionId: Long? = null
+    val connectionId: Long? = null,
+    val startupCommand: String? = null
 )

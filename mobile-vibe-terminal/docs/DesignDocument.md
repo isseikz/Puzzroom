@@ -20,7 +20,7 @@ Claude Code 等の **Agentic AI** をバックエンドで動かすことを前�
 | **Input** | ターミナルでの1文字ずつの入力やコピペ作業が苦痛。 | **Hybrid Input UI**: Gboardのバッファ入力と、制御キーの即時送信を組み合わせた入力システム。 |
 | **Review** | コード確認のためにVimを開いたりアプリを切り替えると文脈が切れる。 | **Code Peek Overlay**: SSH経由でファイルを裏読みし、モーダルでサッと確認できるビューアを搭載。 |
 | **Deploy** | APK転送のためにクラウドやFCMアプリを経由し、AIに余計な指示が必要。 | **Magic Trigger Deploy**: ビルド完了ログを検知し、SFTPで直接APKをDL＆インストールする機能を統合。 |
-| **Persistence** | バックグラウンドに行くと接続が切れる。 | **Keep-Alive Service**: フォアグラウンドサービスによる接続維持と、セキュアな自動再接続。 |
+| **Persistence** | アプリ再起動で接続と作業状態が失われる。 | **Auto Session Restore**: 最後のSSH接続を記憶し、tmux/screen等のスタートアップコマンドを自動実行して作業を復帰。 |
 
 ---
 
@@ -67,6 +67,8 @@ graph TD
     Data -.-> KeyStore
 
 ```
+
+**注**: Foreground Serviceは将来的な機能として位置づけられており、現在はAuto Session Restore（tmux/screen + 自動再接続）で代替しています。
 
 ---
 
@@ -122,9 +124,11 @@ graph LR
 
 ### 4.1 SSH通信 & エミュレーション
 
-* **Session Persistence:**
-* Androidの **Foreground Service** を使用し、アプリがバックグラウンドに回ってもSSHセッションを切断しない（通知領域に常駐）。
-* ネットワーク切断時の自動再接続ロジック。
+* **Session Persistence & Auto Restore:**
+* **Auto Session Restore** (✅ 実装済み): アプリ再起動時に最後の接続を自動復元。
+  * DataStoreで最後にアクティブだった接続IDを追跡。
+  * 起動コマンド（tmux attach等）を自動実行してセッションを復帰。
+* **Background Persistence** (将来検討): Foreground Serviceによるバックグラウンド接続維持は、iOS対応時の技術的課題と合わせて検討予定。
 
 
 * **xterm-256color Compliance:**
@@ -153,7 +157,7 @@ graph LR
 
 ## 5. データベース設計 (Room)
 
-**Table: `server_connections**`
+**Table: `server_connections**` (Schema Version: 3)
 
 | Column | Type | Note |
 | --- | --- | --- |
@@ -166,6 +170,11 @@ graph LR
 | `key_alias` | String? | Keystore内の鍵エイリアス（パスワード保存用） |
 | `key_path` | String? | 秘密鍵ファイルのパス |
 | `deploy_pattern` | String? | 監視ログパターン |
+| `startupCommand` | String? | シェル起動時に実行するコマンド（例: "tmux attach \|\| tmux new"） |
+| `isAutoReconnect` | Boolean | アプリ再起動時の自動再接続フラグ |
+
+**Migration History:**
+* v2 → v3: `startupCommand` および `isAutoReconnect` カラムを追加（Auto Session Restore機能対応）
 
 ---
 
@@ -189,7 +198,12 @@ graph LR
 * Window Resize シグナル送信。
 
 
-* [ ] **Background Persistence:** Foreground Service 実装。
+* [x] **Auto Session Restore:** アプリ終了・再起動時の自動接続復帰機能。 ✅ COMPLETE
+  * ViewModel保持による画面回転時のセッション維持。
+  * 最後に使用したConnectionProfileを記憶し、アプリ再起動時に自動再接続。
+  * スタートアップコマンド（tmux attach等）の自動実行サポート。
+  * DataStoreによる最後にアクティブな接続の追跡。
+  * プリセット付きStartUpCommandInputコンポーネント。
 
 
 * **Connectivity & Security:**
@@ -216,9 +230,24 @@ graph LR
 * [ ] iOS用 SSHライブラリ (C-Interop) の選定と実装。
 * [ ] UIのiOS調整。
 
+### Phase 8: Advanced Persistence (高度な永続化) 🔮 FUTURE
+
+*iOS対応後に検討する、プラットフォーム横断的な接続維持の課題。*
+
+* [ ] **Background Persistence:** Foreground Service（Android）/ Background Tasks（iOS）による接続維持。
+  * **課題**: iOSではバックグラウンドでの長時間接続維持に制限がある。
+  * **代替案検討**: tmux/screen + Auto Session Restoreの組み合わせで十分なユースケースが多い。
+  * **実装判断**: ユーザーフィードバックとiOS対応時の技術調査を経て決定。
+
 ---
 
 ## 7. 実装に向けた技術メモ (Technical Notes)
 
 * **DataStore + Keystore:** Android公式の [Security Best Practices](https://developer.android.com/topic/security/best-practices) に従い、マスターキーをKeystoreに置き、そのキーでDataStoreの値を暗号化/復号してください。
 * **Alternate Screen:** ターミナルViewModelは `isAlternateScreen: Boolean` という状態を持ち、これが `true` のときは `LazyColumn` (Chat) ではなく、全画面の `TerminalCanvas` (xterm) を表示するように分岐させてください。
+* **Auto Session Restore Implementation:**
+  * **SshClient Interface**: `isConnected` プロパティと `startShell()` メソッドに `startupCommand` パラメータを追加。
+  * **ViewModel Lifecycle**: `checkAndRestoreSession()` を画面遷移時に呼び出し、接続状態を確認して必要に応じて自動復帰。
+  * **Startup Command Injection**: Apache MINA の `ClientChannel.invertedIn` を使用して、シェル起動直後にコマンドを送信。
+  * **Connection Profile**: Room Entity に `startupCommand` および `isAutoReconnect` フィールドを追加。
+  * **Last Active Tracking**: Repository に最後に使用した ProfileID を保存・取得するメソッドを追加。
