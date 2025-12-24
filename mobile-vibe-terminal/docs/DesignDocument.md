@@ -1,9 +1,9 @@
 # 📱 Mobile Vibe Terminal - Master Design Document
 
 **Project Name:** Mobile Vibe Terminal (Code Name: `mobile-vibe`)
-**Version:** 2.4.0 (Security & Compatibility Update)
-**Date:** 2025-12-21
-**Target Platform:** Android (Primary), Desktop/JVM (Secondary), **iOS (Future)**
+**Version:** 2.5.1 (The "Smart Context" Update)
+**Date:** 2025-12-25
+**Target Platform:** Android (Primary), Desktop/JVM (Secondary), iOS (Future)
 **Language:** Kotlin (Kotlin Multiplatform)
 
 ## 1. プロジェクト概要 (Executive Summary)
@@ -11,64 +11,57 @@
 ### 1.1 コンセプト: "Vertical Vibe Coding"
 
 スマートフォン（縦画面）での開発体験を再定義する、AI時代のSSHクライアント。
-Claude Code 等の **Agentic AI** をバックエンドで動かすことを前提とし、フロントエンドは「AIへの指示(Chat)」「コード確認(View)」「動作検証(Deploy)」を、**アプリを切り替えることなくシームレスに完結させる**ことを目的とする。
+Claude Code 等の **Agentic AI** をバックエンドで動かすことを前提とし、フロントエンドは「AIへの指示(Chat)」「コード確認(View)」「動作検証(Deploy)」を、アプリを切り替えることなくシームレスに完結させることを目的とする。
 
 ### 1.2 解決する課題 (Core Problems & Solutions)
 
 | 課題領域 | 現状の課題 | Mobile Vibe Terminal の解決策 |
-| --- | --- | --- |
-| **Input** | ターミナルでの1文字ずつの入力やコピペ作業が苦痛。 | **Hybrid Input UI**: Gboardのバッファ入力と、制御キーの即時送信を組み合わせた入力システム。 |
+|---|---|---|
+| **Input** | VIM操作と長文チャット入力の要件が相反し、どちらも使いづらい。 | **Context-Aware Hybrid Input**: 実行中のアプリ（Vim/Shell/AI）に応じて、入力欄の有無とツールバーを最適化するハイブリッド入力システム。 |
+| **Context** | AIに「このファイルを見て」と指示する際、パスの手打ちが苦痛。 | **File Picker Integration**: アプリ内のファイルブラウザから、選択したファイルのパスを直接ターミナル入力欄に注入する機能。 |
 | **Review** | コード確認のためにVimを開いたりアプリを切り替えると文脈が切れる。 | **Code Peek Overlay**: SSH経由でファイルを裏読みし、モーダルでサッと確認できるビューアを搭載。 |
-| **Deploy** | APK転送のためにクラウドやFCMアプリを経由し、AIに余計な指示が必要。 | **Magic Trigger Deploy**: ビルド完了ログを検知し、SFTPで直接APKをDL＆インストールする機能を統合。 |
 | **Persistence** | アプリ再起動で接続と作業状態が失われる。 | **Auto Session Restore**: 最後のSSH接続を記憶し、tmux/screen等のスタートアップコマンドを自動実行して作業を復帰。 |
 
 ---
 
 ## 2. システムアーキテクチャ (Technical Architecture)
 
-Kotlin Multiplatform (KMP) を採用。共通ロジックを最大化しつつ、プラットフォーム固有機能（SSH実装、セキュリティ、サービス）を抽象化して扱う。
+Kotlin Multiplatform (KMP) を採用。共通ロジックを最大化しつつ、コンテキスト検知やSSH制御を抽象化して扱う。
 
 ### 2.1 技術スタック (Tech Stack)
 
-| レイヤー | 技術/ライブラリ | 選定理由 |
-| --- | --- | --- |
+| レイヤー | 技術/ライブラリ | 用途 |
+|---|---|---|
 | **Language** | **Kotlin 2.0+** | K2コンパイラによる高速ビルドと安全性。 |
 | **UI Framework** | **Compose Multiplatform** | Android/Desktop/iOSでUIコードを共有。 |
-| **Navigation** | **Voyager** | KMP標準のナビゲーション。ScreenModelによるMVVMを実現。 |
-| **DI** | **Koin** | アノテーション不要、DSLベースでKMP設定が容易。 |
-| **Database** | **Room (KMP)** | SQLiteの抽象化。サーバー設定の永続化に使用。 |
-| **Persistence** | **DataStore** | `SharedPreferences` のモダンな代替。設定保存用。 |
-| **Security** | **Android Keystore** | 暗号鍵のハードウェア管理。認証情報の保護に使用。 |
-| **SSH Core** | **Apache MINA** (Android/JVM) | 非同期処理に強く、xterm準拠の実装が可能。 |
+| **Navigation** | **Voyager** | ScreenModelによるMVVMアーキテクチャ。 |
+| **DI** | **Koin** | DSLベースの依存性注入。 |
+| **Database** | **Room (KMP)** | サーバー設定の永続化。 |
+| **SSH Core** | **Apache MINA** | 非同期処理に強いSSH実装。 |
 
 ### 2.2 モジュール構成図
 
 ```mermaid
 graph TD
     subgraph "Shared (commonMain)"
-        UI[<b>UI Layer</b><br>Compose Screens<br>Voyager Nav]
-        VM[<b>ScreenModel</b><br>ViewModel Logic]
-        Domain[<b>Domain Layer</b><br>Interfaces (SshRepo)<br>DeployUseCase]
+        UI[<b>UI Layer</b><br>Compose Screens]
+        InputMgr[<b>Context Input Mgr</b><br>Profile Switching Logic]
+        Domain[<b>Domain Layer</b><br>Interfaces (SshRepo)<br>UseCases]
         Data[<b>Data Layer</b><br>Room DB<br>DataStore]
     end
 
     subgraph "Android (androidMain)"
         Mina[<b>Apache MINA SSHD</b>]
-        InstallerA[<b>Package Installer</b>]
-        Service[<b>Foreground Service</b><br>Connection Keep-Alive]
+        OscParser[<b>OSC Parser</b><br>Window Title Detection]
         KeyStore[<b>Android Keystore</b><br>Credential Encryption]
     end
 
-    UI --> VM
-    VM --> Domain
-    Domain --> Data
+    UI --> InputMgr
+    InputMgr --> OscParser
+    InputMgr --> Domain
     Domain -.-> Mina
-    Domain -.-> Service
     Data -.-> KeyStore
-
 ```
-
-**注**: Foreground Serviceは将来的な機能として位置づけられており、現在はAuto Session Restore（tmux/screen + 自動再接続）で代替しています。
 
 ---
 
@@ -80,174 +73,125 @@ graph TD
 
 ```mermaid
 graph LR
-    Launch((Launch)) --> Connection[<b>Connection Mgr</b><br>Server Grid]
-    Connection -->|Connect| Terminal[<b>Main Terminal</b><br>Chat/xterm Mode]
+    Terminal[<b>Main Terminal</b>] -->|Toolbar: Text Mode| InputBar[<b>Input Area Visible</b>]
+    Terminal -->|Toolbar: Cmd Mode| RawKey[<b>Direct Key Send</b>]
     
-    Terminal -->|Swipe/Btn| FileSheet[<b>File Explorer</b><br>Half Modal]
-    FileSheet -->|Tap File| CodeSheet[<b>Code Viewer</b><br>Full Modal]
-    
-    Terminal -->|Detect APK| InstallDialog[<b>Install Dialog</b><br>System Intent]
-    
-    Terminal -->|Menu| Settings[<b>Settings</b><br>Dialog]
-
+    Terminal -->|Toolbar: /add| FilePicker[<b>File Explorer (Picker Mode)</b>]
+    FilePicker -->|Select File| InputBar
 ```
 
-### 3.2 詳細要件
+### 3.2 詳細要件: Context-Aware Input System
 
-#### A. Main Terminal (Core Experience)
+コンテキスト（使用中のアプリ）に応じて、以下の2つのモードとツールバーを動的に切り替える。
 
-* **Display Modes:** 以下の2モードを動的に切り替える。
-1. **Chat Mode (Default):** `LazyColumn` ベース。過去の履歴を閲覧可能。Claude Code の出力に適している。
-2. **xterm Mode (Application Mode):** `Canvas` または固定Textベース。`byobu`, `vim`, `tmux` が "Alternate Screen Buffer" を要求した際に切り替わる。全画面描画。
+#### A. Command Mode (Default / VIM / Shell)
+* **UI:** 下部のテキスト入力欄（Input Bar）は非表示。
+* **Action:** ソフトウェアキーボードのタップを直接SSHへ送信。
+* **Nav Tab:** 矢印キーはターミナルへのカーソル移動 (`\033[A`等) として動作。
+* **Toolbar:** Esc, Tab, Ctrl (Sticky/Toggle), |, ->
 
+#### B. Text Mode (AI Agent / Commenting)
+* **UI:** 下部にテキスト入力欄と送信ボタンを表示。
+* **Action:** Android IME（音声入力、グライド入力）を使用可能。送信ボタンで一括送信。
+* **Nav Tab:** 矢印キーは**入力欄内のカーソル移動（推敲用）**として動作。
+* **Toolbar:** Text Mode切替, Paste, Markdown記号, /Cmds
 
-* **Hybrid Input System:**
-* **Buffer Field:** 通常の文字入力用。
-* **Direct Keys:** `TAB`, `CTRL`, `ESC`, `Arrow Keys` はバッファを経由せず即時送信。
+#### C. Dynamic Toolbar Profiles
+現在のコンテキストに応じてツールバーの内容を変化させる。
+* **Vim Profile:** Esc, :, /, u, Ctrl
+* **Claude Code Profile:** 📂/add, /cost, 🛑STOP, Markdown, Enter(Approve)
+* **Kotlin Profile:** fun, val, ->, ${}
 
-
-* **Macro Row:** キーボード上部に `ESC`, `TAB`, `CTRL+C`, `|`, `->` 等を配置。
-
-#### B. File Explorer & Viewer
-
-* **Explorer:** `ModalBottomSheet`。パンくずリスト（Breadcrumbs）。
-* **Smart Initial Path:** デフォルトはホームディレクトリ(`~`)。可能であればターミナルの `pwd` に同期。
-
-#### C. Connection Manager
-
-* グリッドレイアウトのカード表示。
-* パスワード/鍵パスフレーズは `******` で表示（内部的には暗号化保存）。
+#### D. File Explorer & Picker
+* **Viewer Mode:** ファイルを開く（既存機能）。
+* **Picker Mode (New):** ファイルを選択し、そのパス文字列を呼び出し元の入力欄に返す。複数選択時はスペース区切りで連結する。
 
 ---
 
 ## 4. 機能詳細 (Logic Specification)
 
-### 4.1 SSH通信 & エミュレーション
-
-* **Session Persistence & Auto Restore:**
-* **Auto Session Restore** (✅ 実装済み): アプリ再起動時に最後の接続を自動復元。
-  * DataStoreで最後にアクティブだった接続IDを追跡。
-  * 起動コマンド（tmux attach等）を自動実行してセッションを復帰。
-* **Background Persistence** (将来検討): Foreground Serviceによるバックグラウンド接続維持は、iOS対応時の技術的課題と合わせて検討予定。
-
-
-* **xterm-256color Compliance:**
-* 接続時に環境変数 `TERM=xterm-256color` を送信。
-* Alternate Screen Buffer シーケンス (`\e[?1049h`) 対応。
-* Window Resize Signal (`SIGWINCH`) 対応。
-
-
+### 4.1 SSH通信 & コンテキスト検知
+* **Window Title Parsing:**
+  * 受信ストリームから `OSC 0;Title\007` 等のエスケープシーケンスを監視。
+  * タイトル文字列（例: "vi MainActivity.kt", "claude"）を解析し、UIプロファイルを自動切り替え。
+* **xterm-256color Compliance:** `TERM=xterm-256color` 送信により、Vim等のタイトル設定機能を有効化。
 
 ### 4.2 Security (Credential Storage)
-
 * **Encryption Strategy:**
-* 生のパスワードをDataStoreやDBに保存しない。
-* **Android Keystore** で `AES/GCM/NoPadding` の鍵ペアを生成・管理。
-* 認証情報は暗号化されたバイト列として **DataStore** に保存する。
-* `EncryptedSharedPreferences` は使用しない。
+  * 生のパスワードは保存しない。
+  * **Android Keystore** で生成した鍵ペアを使用し、認証情報を暗号化して **DataStore** に保存。
 
-
-
-### 4.3 Native Quick Deploy
-
-* **Logic:** ログ `>> VIBE_DEPLOY: (path)` を監視 → SFTPダウンロード → `PackageInstaller` 起動。
-* **Permissions:** `REQUEST_INSTALL_PACKAGES` および `POST_NOTIFICATIONS` (Android 13+)。
+### 4.3 Claude Code Integration
+* **Shortcut Commands:** `/cost`, `/clear`, `/compact` 等の定型文メニュー実装。
+* **Panic Button:** `Ctrl+C` を即座に送信する専用ボタン（AIの暴走停止用）。
 
 ---
 
 ## 5. データベース設計 (Room)
 
-**Table: `server_connections**` (Schema Version: 3)
+**Table: `server_connections`** (Schema Version: 3)
 
 | Column | Type | Note |
-| --- | --- | --- |
+|---|---|---|
 | `id` | Long (PK) | Auto Increment |
 | `alias` | String | 表示名 |
 | `host` | String | IP / Domain |
-| `port` | Int | Default: 22 |
-| `username` | String | User |
-| `auth_method` | Enum | PASSWORD / KEY_PAIR |
-| `key_alias` | String? | Keystore内の鍵エイリアス（パスワード保存用） |
-| `key_path` | String? | 秘密鍵ファイルのパス |
-| `deploy_pattern` | String? | 監視ログパターン |
-| `startupCommand` | String? | シェル起動時に実行するコマンド（例: "tmux attach \|\| tmux new"） |
+| `startupCommand` | String? | シェル起動時に実行するコマンド（例: "tmux attach"） |
 | `isAutoReconnect` | Boolean | アプリ再起動時の自動再接続フラグ |
-
-**Migration History:**
-* v2 → v3: `startupCommand` および `isAutoReconnect` カラムを追加（Auto Session Restore機能対応）
+| ... | ... | (その他の接続情報はv2.4.0準拠) |
 
 ---
 
-## 6. 実装ロードマップ (Roadmap)
+## 6. 実装ロードマップ (Implementation Roadmap)
 
-### Phase 4: Explorer & Polish (完成度向上) ✅ COMPLETE
+優先順位の原則: 「基礎的な入力体験の修復」→「独自価値の提供」→「自動化・洗練」
 
-* [x] File Explorer / Code Viewer の実装。
-* [x] Connection Manager (DB連携) の実装。
-* [x] **Tech Fix:** SFTP用独立セッションの実装。
-* [x] **Tech Fix:** SFTP操作のIOスレッド化。
+### Phase 4: Foundation & Security (Completed) ✅
+*   **Auto Session Restore:** アプリ再起動時の自動接続復帰 (Implemented).
+*   **Secure Storage:** Android Keystore + DataStore による認証情報の暗号化保存 (Implemented in v2.4.1).
+*   **File Explorer:** 基本的なファイルブラウジングとViewer機能 (Implemented).
 
-### Phase 5: Essential Power-Ups (コア体験の完成) 🔥 PRIORITY
+### Phase 5: Hybrid Input Foundation (UX Critical) 🔥
+**ステータス: 未実装 (最優先着手)**
+**目標:** VIMなどの既存ツールと、日本語入力（IME）が競合する現状の「使いづらさ」を解消する。
 
-*最優先フェーズ。PO要望の `byobu` 対応と、日常使いのブロッカー（切断、入力ストレス）を解消する。*
+* [ ] **Manual Mode Switching (UI):**
+  * コマンドモード（入力欄なし）とテキストモード（入力欄あり）を切り替えるState管理。
+  * ツールバーへのモード切替ボタン配置。
+* [ ] **Smart Nav Tab (Logic):**
+  * テキストモード時は矢印キーが「入力欄内のカーソル移動」になるようイベントハンドラを分岐。
+* [ ] **Sticky Modifier Keys (Input):**
+  * Ctrl / Alt キーを「押しっぱなし（Toggle）」状態に保持するロジックの実装。
 
-* **Terminal Core:**
-* [ ] **xterm-256color Compliance:**
-* Alternate Screen Buffer 対応 (`byobu`/`vim` 表示用)。
-* Canvasベースのレンダラー実装（xtermモード用）。
-* Window Resize シグナル送信。
+### Phase 6: AI Agent Integration (USP - Unique Selling Proposition) 🚀
+**ステータス: 未実装 (Phase 5完了後)**
+**目標:** 「スマホでClaude Codeを使うならこのアプリしかない」というキラー機能を実装する。
 
+* [ ] **File Picker "Path Injection" Mode:**
+  * `FileExplorerScreen` に「パス選択モード」を追加実装。
+  * ファイル選択時に絶対パス（可能な場合は相対パス）を呼び出し元に返す処理。
+* [ ] **Claude Toolbar Profile:**
+  * 📂 `/add` ボタン（Picker連携）、🛑 `STOP (Ctrl+C)` ボタンの配置。
+  * よく使うコマンドのメニュー化。
 
-* [x] **Auto Session Restore:** アプリ終了・再起動時の自動接続復帰機能。 ✅ COMPLETE
-  * ViewModel保持による画面回転時のセッション維持。
-  * 最後に使用したConnectionProfileを記憶し、アプリ再起動時に自動再接続。
-  * スタートアップコマンド（tmux attach等）の自動実行サポート。
-  * DataStoreによる最後にアクティブな接続の追跡。
-  * プリセット付きStartUpCommandInputコンポーネント。
+### Phase 7: Context Automation (Smart Polish) ✨
+**ステータス: 未実装**
+**目標:** 手動で行っていたモード切替を自動化し、体験を洗練させる。
 
+* [ ] **OSC Title Parser:** SSHストリーム解析とアプリ名抽出。
+* [ ] **Auto Profile Switching:** 解析結果に基づくプロファイル自動適用。
+* [ ] **Advanced Rendering:** Canvasベースのレンダラー実装 (xterm Alternate Screen対応)。
 
-* **Connectivity & Security:**
-* [ ] **Secure Storage:** DataStore + Keystore による暗号化保存実装。
-* [ ] **Public Key Auth:** 鍵認証のサポート（OpenSSH/PEM読み込み）。
+### Phase 8: DevOps & Expansion (Future) 🛠️
+**ステータス: 未実装**
 
-
-* **Input:**
-* [ ] **Hybrid Input:** `TAB`/`CTRL` の即時送信ロジック実装。
-
-
-
-### Phase 6: Dev Tools Integration (開発効率化) 🛠️ SPLIT
-
-*CUIで代替可能だが、あると便利な機能群。Phase 5完了後に着手。*
-
-* [ ] **Magic Deploy (Auto):** 設定トグル追加と、通知経由でのインストーラー起動。
-* [ ] **Git Visualizer:** `git log` / `diff` のGUI表示。
-* [ ] **Context Sync:** `cd Here` 機能とディレクトリ同期。
-* [ ] **SFTP Caching:** `LruCache` によるレスポンス向上。
-
-### Phase 7: iOS Expansion (将来対応) ☁️ MOVED
-
-* [ ] iOS用 SSHライブラリ (C-Interop) の選定と実装。
-* [ ] UIのiOS調整。
-
-### Phase 8: Advanced Persistence (高度な永続化) 🔮 FUTURE
-
-*iOS対応後に検討する、プラットフォーム横断的な接続維持の課題。*
-
-* [ ] **Background Persistence:** Foreground Service（Android）/ Background Tasks（iOS）による接続維持。
-  * **課題**: iOSではバックグラウンドでの長時間接続維持に制限がある。
-  * **代替案検討**: tmux/screen + Auto Session Restoreの組み合わせで十分なユースケースが多い。
-  * **実装判断**: ユーザーフィードバックとiOS対応時の技術調査を経て決定。
+* [ ] **Magic Deploy:** ログ監視によるAPK自動インストール。
+* [ ] **iOS Support:** KMPのiOS対応。
 
 ---
 
-## 7. 実装に向けた技術メモ (Technical Notes)
+## 7. プロダクトオーナー判断 (Product Owner Notes)
 
-* **DataStore + Keystore:** Android公式の [Security Best Practices](https://developer.android.com/topic/security/best-practices) に従い、マスターキーをKeystoreに置き、そのキーでDataStoreの値を暗号化/復号してください。
-* **Alternate Screen:** ターミナルViewModelは `isAlternateScreen: Boolean` という状態を持ち、これが `true` のときは `LazyColumn` (Chat) ではなく、全画面の `TerminalCanvas` (xterm) を表示するように分岐させてください。
-* **Auto Session Restore Implementation:**
-  * **SshClient Interface**: `isConnected` プロパティと `startShell()` メソッドに `startupCommand` パラメータを追加。
-  * **ViewModel Lifecycle**: `checkAndRestoreSession()` を画面遷移時に呼び出し、接続状態を確認して必要に応じて自動復帰。
-  * **Startup Command Injection**: Apache MINA の `ClientChannel.invertedIn` を使用して、シェル起動直後にコマンドを送信。
-  * **Connection Profile**: Room Entity に `startupCommand` および `isAutoReconnect` フィールドを追加。
-  * **Last Active Tracking**: Repository に最後に使用した ProfileID を保存・取得するメソッドを追加。
+**優先順位の根拠:**
+* **Phase 5 (Input) が最優先:** 現状の「VimでCtrlキーが押しにくい」「コメント入力時に入力欄が邪魔」という二重苦は、アプリの利用継続を阻害する欠陥レベルの課題であるため。
+* **Phase 6 (AI) の戦略的価値:** スマホでのパス手打ちは最大のペインポイントであり、これを解決するFile Picker連携は他社製アプリに対する決定的な差別化要因となる。自動化（Phase 7）よりも先に実装し、早期に価値を提供する。
