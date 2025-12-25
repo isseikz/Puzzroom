@@ -36,6 +36,8 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.ui.platform.LocalDensity
 
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.InputMode
 import androidx.compose.foundation.clickable
@@ -100,10 +102,24 @@ data class TerminalScreen(
                 )
             }
         ) { padding ->
+            // IME (keyboard) offset calculation for sliding UI upward when keyboard appears
+            val density = LocalDensity.current
+            val imeInsets = WindowInsets.ime
+            val imeBottomPx = remember { derivedStateOf { imeInsets.getBottom(density) } }
+            val imeOffsetDp by animateDpAsState(
+                targetValue = if (imeBottomPx.value > 0) {
+                    -with(density) { imeBottomPx.value.toDp() }
+                } else {
+                    0.dp
+                },
+                label = "imeOffset"
+            )
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
+                    .offset(y = imeOffsetDp)
                     .background(Color.Black)
             ) {
                 // Connection Status
@@ -190,20 +206,33 @@ data class TerminalScreen(
                     }
                     val charWidth = sampleLayout.size.width
                     val charHeight = sampleLayout.size.height
-                    
-                    // Calculate columns and rows
-                    val widthPx = with(density) { maxWidth.toPx().toInt() }
-                    val heightPx = with(density) { maxHeight.toPx().toInt() }
 
-                    // Subtract 1 from cols to prevent line wrapping issues (% symbols)
-                    val cols = ((widthPx / charWidth) - 1).coerceAtLeast(1)
-                    val rows = (heightPx / charHeight).coerceAtLeast(1)
+                    // Calculate columns and rows - locked at initial calculation to prevent resize
+                    val terminalSize = remember {
+                        val widthPx = with(density) { maxWidth.toPx().toInt() }
+                        val heightPx = with(density) { maxHeight.toPx().toInt() }
+                        val cols = ((widthPx / charWidth) - 1).coerceAtLeast(1)
+                        val rows = (heightPx / charHeight).coerceAtLeast(1)
+
+                        object {
+                            val cols = cols
+                            val rows = rows
+                            val widthPx = widthPx
+                            val heightPx = heightPx
+                        }
+                    }
 
                     // Connect to SSH with the measured terminal size
                     // Only trigger once when not yet connected
                     LaunchedEffect(Unit) {
-                        if (!state.isConnected && !state.isConnecting && cols > 0 && rows > 0) {
-                            screenModel.connect(cols, rows, widthPx, heightPx)
+                        if (!state.isConnected && !state.isConnecting &&
+                            terminalSize.cols > 0 && terminalSize.rows > 0) {
+                            screenModel.connect(
+                                terminalSize.cols,
+                                terminalSize.rows,
+                                terminalSize.widthPx,
+                                terminalSize.heightPx
+                            )
                         }
                     }
 
@@ -287,7 +316,7 @@ data class TerminalScreen(
         // Force recomposition when buffer updates
         key(bufferUpdateCounter) {
             Column(
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxWidth()
             ) {
                 if (screenBuffer.isEmpty()) {
                     // Show empty state
