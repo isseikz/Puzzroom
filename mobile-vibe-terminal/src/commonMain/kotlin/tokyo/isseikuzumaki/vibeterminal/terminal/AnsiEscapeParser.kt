@@ -17,6 +17,7 @@ class AnsiEscapeParser(private val screenBuffer: TerminalScreenBuffer) {
     private var state = State.NORMAL
     private val paramBuffer = StringBuilder()
     private var csiCommand = ' '
+    private var csiIntermediate = ' '  // Intermediate byte for CSI sequences (e.g., Space in "CSI Ps SP q")
     private var scsChar = ' '  // Character set selector (e.g., '(' or ')')
 
     /**
@@ -72,6 +73,7 @@ class AnsiEscapeParser(private val screenBuffer: TerminalScreenBuffer) {
             '[' -> {  // CSI (Control Sequence Introducer)
                 state = State.CSI
                 paramBuffer.clear()
+                csiIntermediate = ' '
             }
             ']' -> {  // OSC (Operating System Command)
                 state = State.OSC
@@ -114,6 +116,10 @@ class AnsiEscapeParser(private val screenBuffer: TerminalScreenBuffer) {
         when {
             char in '0'..'9' || char == ';' || char == '?' -> {
                 paramBuffer.append(char)
+            }
+            char == ' ' -> {
+                // Space is an intermediate byte (e.g., in "CSI Ps SP q" for DECSCUSR)
+                csiIntermediate = char
             }
             char in 'A'..'Z' || char in 'a'..'z' || char == '@' || char == '`' -> {
                 csiCommand = char
@@ -158,11 +164,26 @@ class AnsiEscapeParser(private val screenBuffer: TerminalScreenBuffer) {
         val isPrivate = paramsStr.startsWith("?")
         // Strip '?' for parsing numbers
         val cleanParamsStr = if (isPrivate) paramsStr.substring(1) else paramsStr
-        
+
         val params = if (cleanParamsStr.isNotEmpty()) {
             cleanParamsStr.split(';').mapNotNull { it.toIntOrNull() }
         } else {
             emptyList()
+        }
+
+        // Handle sequences with intermediate bytes (e.g., CSI Ps SP q for DECSCUSR)
+        if (csiIntermediate == ' ' && csiCommand == 'q') {
+            // DECSCUSR - Set Cursor Style
+            // Ps values:
+            //   0, 1 = blinking block
+            //   2 = steady block
+            //   3 = blinking underline
+            //   4 = steady underline
+            //   5 = blinking bar
+            //   6 = steady bar
+            // For now, we just consume this command to prevent 'q' from appearing on screen
+            // TODO: In the future, we could update cursor appearance in the UI layer
+            return
         }
 
         when (csiCommand) {
