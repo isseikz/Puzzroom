@@ -42,6 +42,13 @@ class TerminalScreenBuffer(
     private var scrollTop = 0
     private var scrollBottom = rows - 1
 
+    /**
+     * Get current scroll region (for testing and debugging)
+     * Returns (top, bottom) as 0-indexed, inclusive bounds
+     */
+    val scrollRegion: Pair<Int, Int>
+        get() = Pair(scrollTop, scrollBottom)
+
     private fun createBuffer(cols: Int, rows: Int): Array<Array<TerminalCell>> {
         return Array(rows) { Array(cols) { TerminalCell.EMPTY } }
     }
@@ -218,24 +225,32 @@ class TerminalScreenBuffer(
      * Scroll the screen up by one line within the scroll region
      */
     private fun scrollUp() {
-        // Move lines up within scroll region only
+        // Move lines up within scroll region only (deep copy cells, not array references)
         for (r in scrollTop until scrollBottom) {
-            buffer[r] = buffer[r + 1]
+            for (c in 0 until cols) {
+                buffer[r][c] = buffer[r + 1][c]
+            }
         }
         // Clear the last line in scroll region
-        buffer[scrollBottom] = Array(cols) { TerminalCell.EMPTY }
+        for (c in 0 until cols) {
+            buffer[scrollBottom][c] = TerminalCell.EMPTY
+        }
     }
 
     /**
      * Scroll the screen down by one line within the scroll region
      */
     private fun scrollDown() {
-        // Move lines down within scroll region only
+        // Move lines down within scroll region only (deep copy cells, not array references)
         for (r in scrollBottom downTo scrollTop + 1) {
-            buffer[r] = buffer[r - 1]
+            for (c in 0 until cols) {
+                buffer[r][c] = buffer[r - 1][c]
+            }
         }
         // Clear the first line in scroll region
-        buffer[scrollTop] = Array(cols) { TerminalCell.EMPTY }
+        for (c in 0 until cols) {
+            buffer[scrollTop][c] = TerminalCell.EMPTY
+        }
     }
 
     /**

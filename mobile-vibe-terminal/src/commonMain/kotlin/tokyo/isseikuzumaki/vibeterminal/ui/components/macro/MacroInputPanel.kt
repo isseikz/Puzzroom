@@ -171,7 +171,9 @@ fun MacroInputPanel(
 
                 Button(
                     onClick = {
-                        if (inputText.text.isNotBlank()) {
+                        if (inputText.text.isEmpty()) {
+                            onDirectSend("\r")
+                        } else {
                             onSendCommand(inputText.text)
                         }
                     },
@@ -181,7 +183,7 @@ fun MacroInputPanel(
                     ),
                     modifier = Modifier.padding(start = 8.dp)
                 ) {
-                    Text("Send", fontSize = 14.sp)
+                    Text(if (inputText.text.isEmpty()) "Enter" else "Send", fontSize = 14.sp)
                 }
             }
         }
