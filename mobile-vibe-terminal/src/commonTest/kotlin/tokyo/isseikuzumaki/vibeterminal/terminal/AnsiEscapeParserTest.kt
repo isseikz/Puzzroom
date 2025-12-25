@@ -552,4 +552,97 @@ class AnsiEscapeParserTest {
         assertEquals(3, buffer.cursorRow, "Should move up one line")
         assertEquals(4, buffer.cursorCol, "Column should not change")
     }
+
+    // ========== DECSCUSR - Set Cursor Style ==========
+
+    @Test
+    fun testDECSCUSR_BlinkingBlock() {
+        val (parser, buffer) = createParser()
+        buffer.moveCursor(1, 1)
+
+        parser.processText("\u001B[1 q")  // CSI 1 SP q - Blinking block cursor
+        parser.processText("X")
+
+        // The 'q' should not appear on screen - it should be consumed by the parser
+        assertEquals('X', buffer.getBuffer()[0][0].char, "Only 'X' should be written, not 'q'")
+        assertEquals(' ', buffer.getBuffer()[0][1].char, "Position after 'X' should be empty")
+    }
+
+    @Test
+    fun testDECSCUSR_SteadyBlock() {
+        val (parser, buffer) = createParser()
+        buffer.moveCursor(1, 1)
+
+        parser.processText("\u001B[2 q")  // CSI 2 SP q - Steady block cursor
+        parser.processText("X")
+
+        assertEquals('X', buffer.getBuffer()[0][0].char, "Only 'X' should be written, not 'q'")
+        assertEquals(' ', buffer.getBuffer()[0][1].char, "Position after 'X' should be empty")
+    }
+
+    @Test
+    fun testDECSCUSR_BlinkingUnderline() {
+        val (parser, buffer) = createParser()
+        buffer.moveCursor(1, 1)
+
+        parser.processText("\u001B[3 q")  // CSI 3 SP q - Blinking underline cursor
+        parser.processText("X")
+
+        assertEquals('X', buffer.getBuffer()[0][0].char, "Only 'X' should be written, not 'q'")
+    }
+
+    @Test
+    fun testDECSCUSR_SteadyUnderline() {
+        val (parser, buffer) = createParser()
+        buffer.moveCursor(1, 1)
+
+        parser.processText("\u001B[4 q")  // CSI 4 SP q - Steady underline cursor
+        parser.processText("X")
+
+        assertEquals('X', buffer.getBuffer()[0][0].char, "Only 'X' should be written, not 'q'")
+    }
+
+    @Test
+    fun testDECSCUSR_BlinkingBar() {
+        val (parser, buffer) = createParser()
+        buffer.moveCursor(1, 1)
+
+        parser.processText("\u001B[5 q")  // CSI 5 SP q - Blinking bar cursor
+        parser.processText("X")
+
+        assertEquals('X', buffer.getBuffer()[0][0].char, "Only 'X' should be written, not 'q'")
+    }
+
+    @Test
+    fun testDECSCUSR_SteadyBar() {
+        val (parser, buffer) = createParser()
+        buffer.moveCursor(1, 1)
+
+        parser.processText("\u001B[6 q")  // CSI 6 SP q - Steady bar cursor
+        parser.processText("X")
+
+        assertEquals('X', buffer.getBuffer()[0][0].char, "Only 'X' should be written, not 'q'")
+    }
+
+    @Test
+    fun testDECSCUSR_Default() {
+        val (parser, buffer) = createParser()
+        buffer.moveCursor(1, 1)
+
+        parser.processText("\u001B[0 q")  // CSI 0 SP q - Default cursor (blinking block)
+        parser.processText("X")
+
+        assertEquals('X', buffer.getBuffer()[0][0].char, "Only 'X' should be written, not 'q'")
+    }
+
+    @Test
+    fun testDECSCUSR_NoParameter() {
+        val (parser, buffer) = createParser()
+        buffer.moveCursor(1, 1)
+
+        parser.processText("\u001B[ q")  // CSI SP q - No parameter (default)
+        parser.processText("X")
+
+        assertEquals('X', buffer.getBuffer()[0][0].char, "Only 'X' should be written, not 'q'")
+    }
 }
