@@ -13,6 +13,7 @@ import android.view.Display
 import android.view.WindowManager
 import androidx.core.app.NotificationCompat
 import tokyo.isseikuzumaki.vibeterminal.R
+import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalStateProvider
 import tokyo.isseikuzumaki.vibeterminal.util.Logger
 
 /**
@@ -151,7 +152,15 @@ class TerminalService : Service() {
         try {
             Logger.d("Creating presentation for display ${display.displayId}")
 
-            presentation = TerminalPresentation(this, display)
+            presentation = TerminalPresentation(
+                outerContext = this,
+                display = display,
+                onDisplaySizeCalculated = { cols, rows, widthPx, heightPx ->
+                    Logger.d("Secondary display size calculated: ${cols}x${rows} (${widthPx}x${heightPx}px)")
+                    // Request terminal resize via TerminalStateProvider
+                    TerminalStateProvider.requestResize(cols, rows, widthPx, heightPx)
+                }
+            )
             Logger.d("TerminalPresentation instance created")
 
             // Note: Do NOT set window type manually. Presentation API handles this automatically.

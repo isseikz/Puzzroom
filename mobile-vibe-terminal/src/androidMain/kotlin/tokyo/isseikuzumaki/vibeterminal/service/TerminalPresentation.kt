@@ -21,6 +21,12 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalDensity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -44,10 +50,13 @@ import tokyo.isseikuzumaki.vibeterminal.util.Logger
  *
  * Implements LifecycleOwner and SavedStateRegistryOwner to support
  * ComposeView which requires these for proper Compose lifecycle management.
+ *
+ * @param onDisplaySizeCalculated Callback invoked when display size is calculated
  */
 class TerminalPresentation(
     outerContext: Context,
-    display: Display
+    display: Display,
+    private val onDisplaySizeCalculated: (cols: Int, rows: Int, widthPx: Int, heightPx: Int) -> Unit
 ) : Presentation(outerContext, display), LifecycleOwner, SavedStateRegistryOwner {
 
     private val lifecycleRegistry = LifecycleRegistry(this)
@@ -66,6 +75,9 @@ class TerminalPresentation(
 
             // Initialize SavedStateRegistry
             savedStateRegistryController.performRestore(savedInstanceState)
+
+            // Calculate display size for terminal
+            calculateAndNotifyDisplaySize()
 
             // Create ComposeView for Compose UI
             val composeView = ComposeView(context).apply {
@@ -90,6 +102,46 @@ class TerminalPresentation(
         } catch (e: Exception) {
             Logger.e(e, "Exception in TerminalPresentation onCreate")
             throw e
+        }
+    }
+
+    /**
+     * Calculate terminal size based on secondary display dimensions.
+     * Uses the same font size as TerminalCanvas (14sp).
+     */
+    private fun calculateAndNotifyDisplaySize() {
+        try {
+            // Get display metrics
+            val displayMetrics = context.resources.displayMetrics
+            val widthPx = displayMetrics.widthPixels
+            val heightPx = displayMetrics.heightPixels
+
+            Logger.d("Secondary display size: ${widthPx}x${heightPx}px")
+
+            // Calculate character size using same logic as TerminalCanvas
+            // Font size: 14sp
+            val fontSizeSp = 14f
+            val density = displayMetrics.density
+            val fontSizePx = fontSizeSp * density
+
+            // Approximate char dimensions (monospace font)
+            // charWidth ≈ fontSizePx * 0.6 (typical monospace ratio)
+            // charHeight ≈ fontSizePx * 1.2 (line height)
+            val charWidth = (fontSizePx * 0.6f).toInt()
+            val charHeight = (fontSizePx * 1.2f).toInt()
+
+            Logger.d("Character size: ${charWidth}x${charHeight}px (font: ${fontSizePx}px)")
+
+            // Calculate terminal dimensions
+            val cols = (widthPx / charWidth).coerceAtLeast(1)
+            val rows = (heightPx / charHeight).coerceAtLeast(1)
+
+            Logger.d("Calculated terminal size: ${cols} cols x ${rows} rows")
+
+            // Notify callback
+            onDisplaySizeCalculated(cols, rows, widthPx, heightPx)
+        } catch (e: Exception) {
+            Logger.e(e, "Failed to calculate display size")
         }
     }
 

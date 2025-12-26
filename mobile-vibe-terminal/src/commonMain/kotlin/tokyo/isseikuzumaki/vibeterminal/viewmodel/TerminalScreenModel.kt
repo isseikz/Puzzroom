@@ -97,6 +97,12 @@ class TerminalScreenModel(
         Logger.d("Config: $config")
         Logger.d("Repository: $sshRepository")
         Logger.d("Waiting for terminal size before connecting...")
+
+        // Register resize callback from secondary display
+        TerminalStateProvider.onResizeRequest = { cols, rows, widthPx, heightPx ->
+            Logger.d("Resize request from secondary display: ${cols}x${rows}")
+            resizeTerminal(cols, rows, widthPx, heightPx)
+        }
     }
 
     /**
@@ -386,6 +392,41 @@ class TerminalScreenModel(
                 Logger.e(e, "Failed to clear TerminalStateProvider")
             }
             processOutput("Disconnected\n")
+        }
+    }
+
+    /**
+     * Resize the terminal to the specified dimensions.
+     * This is typically called when the secondary display size changes.
+     *
+     * @param cols Number of columns
+     * @param rows Number of rows
+     * @param widthPx Terminal width in pixels
+     * @param heightPx Terminal height in pixels
+     */
+    fun resizeTerminal(cols: Int, rows: Int, widthPx: Int, heightPx: Int) {
+        Logger.d("Resizing terminal to ${cols}x${rows} (${widthPx}x${heightPx}px)")
+        screenModelScope.launch {
+            try {
+                if (_state.value.isConnected) {
+                    // Resize PTY on the server side
+                    withContext(Dispatchers.IO) {
+                        sshRepository.resizeTerminal(cols, rows, widthPx, heightPx)
+                    }
+
+                    // Resize local terminal buffer
+                    terminalBuffer.resize(cols, rows)
+
+                    // Trigger state update to refresh UI
+                    updateScreenState()
+
+                    Logger.d("Terminal resized successfully to ${cols}x${rows}")
+                } else {
+                    Logger.w("Cannot resize: terminal not connected")
+                }
+            } catch (e: Exception) {
+                Logger.e(e, "Failed to resize terminal")
+            }
         }
     }
 

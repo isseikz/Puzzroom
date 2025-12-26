@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.asStateFlow
  *
  * The TerminalScreenModel updates this provider whenever the terminal
  * state changes, and the secondary display presentation reads from it.
+ *
+ * Also handles resize requests from secondary display to terminal.
  */
 object TerminalStateProvider {
 
@@ -51,6 +53,12 @@ object TerminalStateProvider {
     val state: StateFlow<TerminalDisplayState> = _state.asStateFlow()
 
     /**
+     * Callback for resize requests from secondary display.
+     * Set by TerminalScreenModel to handle resize requests.
+     */
+    var onResizeRequest: ((cols: Int, rows: Int, widthPx: Int, heightPx: Int) -> Unit)? = null
+
+    /**
      * Update the terminal state.
      * Should be called by TerminalScreenModel whenever the terminal state changes.
      */
@@ -68,6 +76,14 @@ object TerminalStateProvider {
             isAlternateScreen = isAlternateScreen,
             isConnected = isConnected
         )
+    }
+
+    /**
+     * Request terminal resize.
+     * Called by secondary display when its size is calculated.
+     */
+    fun requestResize(cols: Int, rows: Int, widthPx: Int, heightPx: Int) {
+        onResizeRequest?.invoke(cols, rows, widthPx, heightPx)
     }
 
     /**
