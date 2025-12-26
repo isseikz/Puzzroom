@@ -27,6 +27,9 @@ import tokyo.isseikuzumaki.vibeterminal.domain.model.ConnectionConfig
 import tokyo.isseikuzumaki.vibeterminal.domain.model.SavedConnection
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.ConnectionListScreenModel
 import tokyo.isseikuzumaki.vibeterminal.ui.components.StartUpCommandInput
+import tokyo.isseikuzumaki.vibeterminal.platform.launchSecondaryDisplay
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.sp
 
 class ConnectionListScreen : Screen {
     @OptIn(ExperimentalMaterial3Api::class)
@@ -35,6 +38,7 @@ class ConnectionListScreen : Screen {
         val navigator = LocalNavigator.currentOrThrow
         val screenModel = koinScreenModel<ConnectionListScreenModel>()
         val state by screenModel.state.collectAsState()
+        val context = LocalContext.current
 
         var showPasswordDialog by remember { mutableStateOf(false) }
         var selectedConnection by remember { mutableStateOf<SavedConnection?>(null) }
@@ -57,7 +61,20 @@ class ConnectionListScreen : Screen {
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color(0xFF1A1A1A),
                         titleContentColor = Color(0xFF00FF00)
-                    )
+                    ),
+                    actions = {
+                        // PoC: Secondary Display Test Button (Android only)
+                        Button(
+                            onClick = { launchSecondaryDisplay(context) },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.Red,
+                                contentColor = Color.White
+                            ),
+                            modifier = Modifier.padding(end = 8.dp)
+                        ) {
+                            Text("Test Display", fontSize = 12.sp)
+                        }
+                    }
                 )
             },
             floatingActionButton = {

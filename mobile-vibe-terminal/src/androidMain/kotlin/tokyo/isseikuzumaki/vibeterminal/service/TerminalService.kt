@@ -1,0 +1,166 @@
+package tokyo.isseikuzumaki.vibeterminal.service
+
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.Service
+import android.content.Context
+import android.content.Intent
+import android.hardware.display.DisplayManager
+import android.os.Build
+import android.os.IBinder
+import android.view.Display
+import android.view.WindowManager
+import androidx.core.app.NotificationCompat
+import tokyo.isseikuzumaki.vibeterminal.R
+import tokyo.isseikuzumaki.vibeterminal.util.Logger
+
+/**
+ * Foreground Service for maintaining secondary display presentation.
+ *
+ * This service:
+ * 1. Runs as a foreground service to maintain process priority
+ * 2. Monitors DisplayManager for secondary display connections
+ * 3. Shows TerminalPresentation on detected secondary displays
+ * 4. Uses TYPE_APPLICATION_OVERLAY to persist across app switches
+ */
+class TerminalService : Service() {
+
+    private var presentation: TerminalPresentation? = null
+    private lateinit var displayManager: DisplayManager
+    private lateinit var notificationManager: NotificationManager
+
+    companion object {
+        private const val NOTIFICATION_CHANNEL_ID = "secondary_display_channel"
+        private const val NOTIFICATION_ID = 1
+        private const val NOTIFICATION_CHANNEL_NAME = "Secondary Display"
+    }
+
+    // Display listener for monitoring secondary display connection/disconnection
+    private val displayListener = object : DisplayManager.DisplayListener {
+        override fun onDisplayAdded(displayId: Int) {
+            Logger.d("Display added: $displayId")
+            updatePresentation()
+        }
+
+        override fun onDisplayRemoved(displayId: Int) {
+            Logger.d("Display removed: $displayId")
+            if (presentation?.display?.displayId == displayId) {
+                dismissPresentation()
+            }
+        }
+
+        override fun onDisplayChanged(displayId: Int) {
+            Logger.d("Display changed: $displayId")
+            // Optionally handle display configuration changes
+        }
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        Logger.d("TerminalService onCreate")
+
+        displayManager = getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+        notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        // Register display listener
+        displayManager.registerDisplayListener(displayListener, null)
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Logger.d("TerminalService onStartCommand")
+
+        // Create notification channel (required for Android 8.0+)
+        createNotificationChannel()
+
+        // Start as foreground service with notification
+        val notification = createNotification()
+        startForeground(NOTIFICATION_ID, notification)
+
+        // Check for existing secondary displays and show presentation
+        updatePresentation()
+
+        return START_STICKY
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                NOTIFICATION_CHANNEL_ID,
+                NOTIFICATION_CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Secondary display terminal service"
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    private fun createNotification(): Notification {
+        return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+            .setContentTitle("Secondary Display Active")
+            .setContentText("Terminal is displayed on external screen")
+            .setSmallIcon(android.R.drawable.ic_dialog_info)  // Use system icon for PoC
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
+    }
+
+    private fun updatePresentation() {
+        // If presentation already exists, don't create another
+        if (presentation != null) {
+            Logger.d("Presentation already exists")
+            return
+        }
+
+        // Find secondary displays
+        val displays = displayManager.displays
+        Logger.d("Found ${displays.size} displays")
+
+        // Look for a secondary display (not the default display)
+        val secondaryDisplay = displays.firstOrNull { it.displayId != Display.DEFAULT_DISPLAY }
+
+        if (secondaryDisplay != null) {
+            Logger.d("Found secondary display: ${secondaryDisplay.displayId}")
+            showPresentation(secondaryDisplay)
+        } else {
+            Logger.w("No secondary display found")
+        }
+    }
+
+    private fun showPresentation(display: Display) {
+        Logger.d("Creating presentation for display ${display.displayId}")
+
+        presentation = TerminalPresentation(this, display)
+
+        // Set window type to system overlay for persistence across app switches
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            presentation?.window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
+        } else {
+            @Suppress("DEPRECATION")
+            presentation?.window?.setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT)
+        }
+
+        try {
+            presentation?.show()
+            Logger.d("Presentation shown successfully")
+        } catch (e: WindowManager.InvalidDisplayException) {
+            Logger.e(e, "Failed to show presentation")
+            presentation = null
+        }
+    }
+
+    private fun dismissPresentation() {
+        Logger.d("Dismissing presentation")
+        presentation?.dismiss()
+        presentation = null
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        Logger.d("TerminalService onDestroy")
+        dismissPresentation()
+        displayManager.unregisterDisplayListener(displayListener)
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+}
