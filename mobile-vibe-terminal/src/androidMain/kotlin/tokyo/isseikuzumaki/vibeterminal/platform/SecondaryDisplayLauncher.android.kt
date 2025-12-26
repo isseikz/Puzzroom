@@ -19,7 +19,7 @@ import tokyo.isseikuzumaki.vibeterminal.util.Logger
  */
 actual fun launchSecondaryDisplay(context: Any?) {
     if (context !is Context) {
-        Logger.e(null, "launchSecondaryDisplay: context is not Android Context")
+        Logger.e("launchSecondaryDisplay: context is not Android Context")
         return
     }
 
