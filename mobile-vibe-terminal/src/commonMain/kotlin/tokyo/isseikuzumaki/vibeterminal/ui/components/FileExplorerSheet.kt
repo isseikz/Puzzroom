@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,7 +39,8 @@ data class FileExplorerState(
 fun FileExplorerSheet(
     sshRepository: SshRepository,
     onDismiss: () -> Unit,
-    onFileSelected: (FileEntry) -> Unit
+    onFileSelected: (FileEntry) -> Unit,
+    onInstall: (FileEntry) -> Unit
 ) {
     var state by remember { mutableStateOf(FileExplorerState()) }
     val scope = rememberCoroutineScope()
@@ -233,6 +235,10 @@ fun FileExplorerSheet(
                                         onFileSelected(file)
                                         onDismiss()
                                     }
+                                },
+                                onInstall = {
+                                    onInstall(file)
+                                    onDismiss()
                                 }
                             )
                         }
@@ -246,7 +252,8 @@ fun FileExplorerSheet(
 @Composable
 private fun FileItem(
     file: FileEntry,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onInstall: () -> Unit
 ) {
     Surface(
         modifier = Modifier
@@ -285,6 +292,16 @@ private fun FileItem(
                     )
                 }
             }
+            
+            if (!file.isDirectory && file.name.endsWith(".apk", ignoreCase = true)) {
+                IconButton(onClick = onInstall) {
+                    Icon(
+                        Icons.Default.Download, // Using Download icon for install/deploy
+                        contentDescription = "Install APK",
+                        tint = Color(0xFF00FF00)
+                    )
+                }
+            }
         }
     }
 }
@@ -294,5 +311,5 @@ private fun formatFileSize(size: Long): String {
     val units = arrayOf("B", "KB", "MB", "GB", "TB")
     val digitGroups = (log10(size.toDouble()) / log10(1024.0)).toInt()
     val formattedSize = size / 1024.0.pow(digitGroups.toDouble())
-    return "%.1f %s".format(formattedSize, units[digitGroups])
+    return "${(formattedSize * 10).toInt() / 10.0} ${units[digitGroups]}"
 }

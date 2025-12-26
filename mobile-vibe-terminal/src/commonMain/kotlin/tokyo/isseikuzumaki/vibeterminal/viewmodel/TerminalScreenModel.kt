@@ -397,8 +397,8 @@ class TerminalScreenModel(
     /**
      * Download APK from remote server and install it
      */
-    fun downloadAndInstallApk() {
-        val apkPath = _state.value.detectedApkPath ?: return
+    fun downloadAndInstallApk(path: String? = null) {
+        val apkPath = path ?: _state.value.detectedApkPath ?: return
 
         screenModelScope.launch {
             try {
@@ -440,7 +440,11 @@ class TerminalScreenModel(
                         installResult.fold(
                             onSuccess = {
                                 processOutput("🚀 Opening installer...\n")
-                                _state.update { it.copy(isDownloadingApk = false, detectedApkPath = null) }
+                                _state.update { it.copy(isDownloadingApk = false) }
+                                // Only clear detected path if we installed the detected one
+                                if (path == null) {
+                                    _state.update { it.copy(detectedApkPath = null) }
+                                }
                             },
                             onFailure = { error ->
                                 processOutput("❌ Install failed: ${error.message}\n")

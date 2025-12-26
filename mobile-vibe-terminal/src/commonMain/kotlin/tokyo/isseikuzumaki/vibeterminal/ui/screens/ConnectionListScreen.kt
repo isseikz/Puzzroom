@@ -249,6 +249,7 @@ class ConnectionListScreen : Screen {
         var port by remember { mutableStateOf(connection?.port?.toString() ?: "22") }
         var username by remember { mutableStateOf(connection?.username ?: "") }
         var startupCommand by remember { mutableStateOf(connection?.startupCommand ?: "") }
+        var deployPattern by remember { mutableStateOf(connection?.deployPattern ?: ">> VIBE_DEPLOY: (.*)") }
         var isAutoReconnect by remember { mutableStateOf(connection?.isAutoReconnect ?: false) }
 
         AlertDialog(
@@ -296,6 +297,22 @@ class ConnectionListScreen : Screen {
                         modifier = Modifier.fillMaxWidth()
                     )
 
+                    // Magic Deploy Pattern
+                    OutlinedTextField(
+                        value = deployPattern,
+                        onValueChange = { deployPattern = it },
+                        label = { Text("Magic Deploy Pattern (Regex)") },
+                        placeholder = { Text(">> VIBE_DEPLOY: (.*)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        supportingText = {
+                            Text(
+                                "Regex to detect deployable files from terminal output. Use group 1 for file path.",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    )
+
                     // Auto Reconnect Checkbox
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -324,7 +341,7 @@ class ConnectionListScreen : Screen {
                             authType = "password",
                             createdAt = connection?.createdAt ?: System.currentTimeMillis(),
                             lastUsedAt = connection?.lastUsedAt,
-                            deployPattern = connection?.deployPattern,
+                            deployPattern = deployPattern.ifBlank { null },
                             startupCommand = startupCommand.ifBlank { null },
                             isAutoReconnect = isAutoReconnect
                         )
