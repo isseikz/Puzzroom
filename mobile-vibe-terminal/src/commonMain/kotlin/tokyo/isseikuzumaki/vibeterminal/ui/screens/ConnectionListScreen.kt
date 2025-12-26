@@ -65,7 +65,13 @@ class ConnectionListScreen : Screen {
                     actions = {
                         // PoC: Secondary Display Test Button (Android only)
                         Button(
-                            onClick = { launchSecondaryDisplay(context) },
+                            onClick = {
+                                try {
+                                    launchSecondaryDisplay(context)
+                                } catch (e: Exception) {
+                                    tokyo.isseikuzumaki.vibeterminal.util.Logger.e(e, "Failed to launch secondary display")
+                                }
+                            },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.Red,
                                 contentColor = Color.White

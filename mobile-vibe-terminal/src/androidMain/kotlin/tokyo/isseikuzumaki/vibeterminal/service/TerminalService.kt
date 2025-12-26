@@ -58,29 +58,45 @@ class TerminalService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        Logger.d("TerminalService onCreate")
+        try {
+            Logger.d("TerminalService onCreate")
 
-        displayManager = getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
-        notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            displayManager = getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+            notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // Register display listener
-        displayManager.registerDisplayListener(displayListener, null)
+            // Register display listener
+            displayManager.registerDisplayListener(displayListener, null)
+            Logger.d("TerminalService onCreate completed successfully")
+        } catch (e: Exception) {
+            Logger.e(e, "Exception in TerminalService onCreate")
+            throw e
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Logger.d("TerminalService onStartCommand")
+        try {
+            Logger.d("TerminalService onStartCommand")
 
-        // Create notification channel (required for Android 8.0+)
-        createNotificationChannel()
+            // Create notification channel (required for Android 8.0+)
+            createNotificationChannel()
+            Logger.d("Notification channel created")
 
-        // Start as foreground service with notification
-        val notification = createNotification()
-        startForeground(NOTIFICATION_ID, notification)
+            // Start as foreground service with notification
+            val notification = createNotification()
+            Logger.d("Notification created")
 
-        // Check for existing secondary displays and show presentation
-        updatePresentation()
+            startForeground(NOTIFICATION_ID, notification)
+            Logger.d("Started foreground with notification")
 
-        return START_STICKY
+            // Check for existing secondary displays and show presentation
+            updatePresentation()
+            Logger.d("Presentation updated")
+
+            return START_STICKY
+        } catch (e: Exception) {
+            Logger.e(e, "Exception in TerminalService onStartCommand")
+            throw e
+        }
     }
 
     private fun createNotificationChannel() {
@@ -106,45 +122,56 @@ class TerminalService : Service() {
     }
 
     private fun updatePresentation() {
-        // If presentation already exists, don't create another
-        if (presentation != null) {
-            Logger.d("Presentation already exists")
-            return
-        }
+        try {
+            // If presentation already exists, don't create another
+            if (presentation != null) {
+                Logger.d("Presentation already exists")
+                return
+            }
 
-        // Find secondary displays
-        val displays = displayManager.displays
-        Logger.d("Found ${displays.size} displays")
+            // Find secondary displays
+            val displays = displayManager.displays
+            Logger.d("Found ${displays.size} displays")
 
-        // Look for a secondary display (not the default display)
-        val secondaryDisplay = displays.firstOrNull { it.displayId != Display.DEFAULT_DISPLAY }
+            // Look for a secondary display (not the default display)
+            val secondaryDisplay = displays.firstOrNull { it.displayId != Display.DEFAULT_DISPLAY }
 
-        if (secondaryDisplay != null) {
-            Logger.d("Found secondary display: ${secondaryDisplay.displayId}")
-            showPresentation(secondaryDisplay)
-        } else {
-            Logger.w("No secondary display found")
+            if (secondaryDisplay != null) {
+                Logger.d("Found secondary display: ${secondaryDisplay.displayId}")
+                showPresentation(secondaryDisplay)
+            } else {
+                Logger.w("No secondary display found")
+            }
+        } catch (e: Exception) {
+            Logger.e(e, "Exception in updatePresentation")
         }
     }
 
     private fun showPresentation(display: Display) {
-        Logger.d("Creating presentation for display ${display.displayId}")
-
-        presentation = TerminalPresentation(this, display)
-
-        // Set window type to system overlay for persistence across app switches
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            presentation?.window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
-        } else {
-            @Suppress("DEPRECATION")
-            presentation?.window?.setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT)
-        }
-
         try {
+            Logger.d("Creating presentation for display ${display.displayId}")
+
+            presentation = TerminalPresentation(this, display)
+            Logger.d("TerminalPresentation instance created")
+
+            // Set window type to system overlay for persistence across app switches
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                Logger.d("Setting window type to TYPE_APPLICATION_OVERLAY")
+                presentation?.window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
+            } else {
+                Logger.d("Setting window type to TYPE_SYSTEM_ALERT")
+                @Suppress("DEPRECATION")
+                presentation?.window?.setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT)
+            }
+
+            Logger.d("Calling presentation.show()")
             presentation?.show()
             Logger.d("Presentation shown successfully")
         } catch (e: WindowManager.InvalidDisplayException) {
-            Logger.e(e, "Failed to show presentation")
+            Logger.e(e, "InvalidDisplayException when showing presentation")
+            presentation = null
+        } catch (e: Exception) {
+            Logger.e(e, "Exception in showPresentation")
             presentation = null
         }
     }
