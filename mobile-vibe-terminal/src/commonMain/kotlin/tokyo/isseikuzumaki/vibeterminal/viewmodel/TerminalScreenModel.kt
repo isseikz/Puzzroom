@@ -18,6 +18,7 @@ import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
 import tokyo.isseikuzumaki.vibeterminal.terminal.AnsiEscapeParser
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalCell
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalScreenBuffer
+import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalStateProvider
 import tokyo.isseikuzumaki.vibeterminal.ui.components.macro.MacroTab
 import tokyo.isseikuzumaki.vibeterminal.util.Logger
 
@@ -357,6 +358,19 @@ class TerminalScreenModel(
                 hasAutoSwitchedToNav = shouldAutoSwitch || currentState.hasAutoSwitchedToNav
             )
         }
+
+        // Update TerminalStateProvider for secondary display
+        try {
+            TerminalStateProvider.updateState(
+                buffer = terminalBuffer.getBuffer(),
+                cursorRow = terminalBuffer.cursorRow,
+                cursorCol = terminalBuffer.cursorCol,
+                isAlternateScreen = terminalBuffer.isAlternateScreen,
+                isConnected = _state.value.isConnected
+            )
+        } catch (e: Exception) {
+            Logger.e(e, "Failed to update TerminalStateProvider")
+        }
     }
 
     fun disconnect() {
@@ -366,6 +380,11 @@ class TerminalScreenModel(
             outputListenerJob = null
             sshRepository.disconnect()
             _state.update { it.copy(isConnected = false) }
+            try {
+                TerminalStateProvider.clear()
+            } catch (e: Exception) {
+                Logger.e(e, "Failed to clear TerminalStateProvider")
+            }
             processOutput("Disconnected\n")
         }
     }
@@ -387,6 +406,11 @@ class TerminalScreenModel(
             outputListenerJob = null
             sshRepository.disconnect()
             _state.update { it.copy(isConnected = false) }
+            try {
+                TerminalStateProvider.clear()
+            } catch (e: Exception) {
+                Logger.e(e, "Failed to clear TerminalStateProvider")
+            }
             processOutput("Disconnected\n")
 
             // Finally, execute callback (navigate back)

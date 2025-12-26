@@ -75,6 +75,9 @@ kotlin {
             implementation(libs.room.runtime)
             implementation(libs.room.ktx)
             implementation(libs.timber)
+            // Explicit dependencies for ViewTree classes
+            implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.4")
+            implementation("androidx.savedstate:savedstate:1.2.1")
         }
 
         val desktopMain by getting {
