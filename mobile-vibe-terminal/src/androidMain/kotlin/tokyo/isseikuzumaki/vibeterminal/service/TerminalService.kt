@@ -154,15 +154,8 @@ class TerminalService : Service() {
             presentation = TerminalPresentation(this, display)
             Logger.d("TerminalPresentation instance created")
 
-            // Set window type to system overlay for persistence across app switches
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                Logger.d("Setting window type to TYPE_APPLICATION_OVERLAY")
-                presentation?.window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
-            } else {
-                Logger.d("Setting window type to TYPE_SYSTEM_ALERT")
-                @Suppress("DEPRECATION")
-                presentation?.window?.setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT)
-            }
+            // Note: Do NOT set window type manually. Presentation API handles this automatically.
+            // Setting TYPE_APPLICATION_OVERLAY causes "Window type mismatch" error on Android 12+
 
             Logger.d("Calling presentation.show()")
             presentation?.show()
