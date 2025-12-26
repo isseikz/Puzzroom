@@ -83,7 +83,12 @@ class TerminalScreenModel(
     private val escapeParser = AnsiEscapeParser(terminalBuffer)
 
     // Regex pattern for detecting APK deployment marker
-    private val deployPattern = Regex(""">> VIBE_DEPLOY:\s*(.+\.apk)""")
+    private val deployPattern = try {
+        Regex(config.deployPattern ?: """>> VIBE_DEPLOY:\s*(.+\.apk)""")
+    } catch (e: Exception) {
+        Logger.e(e, "Invalid regex pattern: ${config.deployPattern}. Using default.")
+        Regex(""">> VIBE_DEPLOY:\s*(.+\.apk)""")
+    }
 
     // Raw output accumulator for pattern detection
     private val outputAccumulator = StringBuilder()

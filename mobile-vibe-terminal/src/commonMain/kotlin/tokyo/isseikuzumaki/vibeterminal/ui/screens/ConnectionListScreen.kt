@@ -161,7 +161,8 @@ class ConnectionListScreen : Screen {
                                 username = selectedConnection!!.username,
                                 password = password,
                                 connectionId = selectedConnection!!.id,
-                                startupCommand = selectedConnection!!.startupCommand
+                                startupCommand = selectedConnection!!.startupCommand,
+                                deployPattern = selectedConnection!!.deployPattern
                             )
                         )
                     )
