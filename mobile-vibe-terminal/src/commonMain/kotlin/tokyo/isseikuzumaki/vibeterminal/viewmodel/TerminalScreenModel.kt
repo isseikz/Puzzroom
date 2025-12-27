@@ -138,6 +138,21 @@ class TerminalScreenModel(
                     onSuccess = {
                         Logger.d("Connection successful!")
                         _state.update { it.copy(isConnecting = false, isConnected = true) }
+
+                        // Update TerminalStateProvider immediately with connected state
+                        try {
+                            TerminalStateProvider.updateState(
+                                buffer = terminalBuffer.getBuffer(),
+                                cursorRow = terminalBuffer.cursorRow,
+                                cursorCol = terminalBuffer.cursorCol,
+                                isAlternateScreen = terminalBuffer.isAlternateScreen,
+                                isConnected = true  // Explicitly set to true
+                            )
+                            Logger.d("TerminalStateProvider updated with isConnected=true")
+                        } catch (e: Exception) {
+                            Logger.e(e, "Failed to update TerminalStateProvider on connection")
+                        }
+
                         processOutput("Connected to ${config.host}:${config.port}\n")
 
                         // Save as last active connection for auto-restore
