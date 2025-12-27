@@ -189,20 +189,20 @@ data class TerminalScreen(
                 }
 
                 // Terminal Output - Screen Buffer Rendering
-                // **New**: セカンダリディスプレイ接続中はプレースホルダーを表示
+                // **New**: セカンダリディスプレイ接続中はステータスメッセージを表示
                 if (isSecondaryConnected) {
-                    // セカンダリディスプレイで表示中のメッセージ
+                    // セカンダリディスプレイで表示中のステータス
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
                             .background(Color.Black),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.TopCenter
                     ) {
                         Text(
-                            text = "セカンダリディスプレイで表示中\n\nSecondary display is active",
+                            text = "Terminal displayed on secondary screen",
                             color = Color(0xFF00FF00),
-                            fontSize = 18.sp,
+                            fontSize = 14.sp,
                             fontFamily = FontFamily.Monospace,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.padding(16.dp)
@@ -320,8 +320,8 @@ data class TerminalScreen(
                 }
 
                 // Buffered Input Deck with Macro Row
-                // **New**: セカンダリディスプレイ接続中は非表示
-                if (state.isConnected && !isSecondaryConnected) {
+                // Show input panel when connected (visible on main display even with secondary display)
+                if (state.isConnected) {
                     var inputText by remember { mutableStateOf(TextFieldValue("")) }
 
                     MacroInputPanel(
