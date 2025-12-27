@@ -124,7 +124,7 @@ class TerminalService : Service() {
         return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
             .setContentTitle("Secondary Display Active")
             .setContentText("Terminal is displayed on external screen")
-            .setSmallIcon(android.R.drawable.ic_dialog_info)  // Use system icon for PoC
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
     }

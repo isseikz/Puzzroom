@@ -5,7 +5,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
-    <!-- Permissions for secondary display PoC -->
+    <!-- Permissions for secondary display -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
@@ -26,7 +26,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Foreground Service for secondary display PoC -->
+        <!-- Foreground Service for secondary display -->
         <service
             android:name=".service.TerminalService"
             android:enabled="true"

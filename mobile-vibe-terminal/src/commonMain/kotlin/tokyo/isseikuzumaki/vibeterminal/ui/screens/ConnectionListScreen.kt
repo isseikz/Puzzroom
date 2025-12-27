@@ -63,7 +63,7 @@ class ConnectionListScreen : Screen {
                         titleContentColor = Color(0xFF00FF00)
                     ),
                     actions = {
-                        // PoC: Secondary Display Test Button (Android only)
+                        // Secondary Display Test Button (Android only)
                         Button(
                             onClick = {
                                 try {
