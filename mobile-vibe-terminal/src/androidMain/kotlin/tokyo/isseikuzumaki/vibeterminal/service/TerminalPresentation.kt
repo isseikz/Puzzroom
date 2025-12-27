@@ -138,6 +138,9 @@ class TerminalPresentation(
 
             Logger.d("Calculated terminal size: ${cols} cols x ${rows} rows")
 
+            // **New**: TerminalStateProvider にセカンダリディスプレイのサイズを保存
+            TerminalStateProvider.setSecondaryDisplayMetrics(cols, rows, widthPx, heightPx)
+
             // Notify callback
             onDisplaySizeCalculated(cols, rows, widthPx, heightPx)
         } catch (e: Exception) {

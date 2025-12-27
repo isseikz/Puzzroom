@@ -42,12 +42,19 @@ class TerminalService : Service() {
         override fun onDisplayAdded(displayId: Int) {
             Logger.d("Display added: $displayId")
             updatePresentation()
+
+            // **New**: セカンダリディスプレイ接続を通知
+            TerminalStateProvider.setSecondaryDisplayConnected(true)
         }
 
         override fun onDisplayRemoved(displayId: Int) {
             Logger.d("Display removed: $displayId")
             if (presentation?.display?.displayId == displayId) {
                 dismissPresentation()
+
+                // **New**: セカンダリディスプレイ切断を通知
+                TerminalStateProvider.setSecondaryDisplayConnected(false)
+                TerminalStateProvider.clearSecondaryDisplayMetrics()
             }
         }
 

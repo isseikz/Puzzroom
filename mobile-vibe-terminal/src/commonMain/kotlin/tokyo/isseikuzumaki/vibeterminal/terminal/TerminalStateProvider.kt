@@ -93,4 +93,40 @@ object TerminalStateProvider {
     fun clear() {
         _state.value = TerminalDisplayState()
     }
+
+    // **New**: セカンダリディスプレイの接続状態
+    private val _isSecondaryDisplayConnected = MutableStateFlow(false)
+    val isSecondaryDisplayConnected: StateFlow<Boolean> = _isSecondaryDisplayConnected.asStateFlow()
+
+    // セカンダリディスプレイのサイズ情報
+    data class DisplayMetrics(
+        val cols: Int,
+        val rows: Int,
+        val widthPx: Int,
+        val heightPx: Int
+    )
+
+    private val _secondaryDisplayMetrics = MutableStateFlow<DisplayMetrics?>(null)
+    val secondaryDisplayMetrics: StateFlow<DisplayMetrics?> = _secondaryDisplayMetrics.asStateFlow()
+
+    /**
+     * セカンダリディスプレイの接続状態を更新
+     */
+    fun setSecondaryDisplayConnected(isConnected: Boolean) {
+        _isSecondaryDisplayConnected.value = isConnected
+    }
+
+    /**
+     * セカンダリディスプレイのサイズを設定
+     */
+    fun setSecondaryDisplayMetrics(cols: Int, rows: Int, widthPx: Int, heightPx: Int) {
+        _secondaryDisplayMetrics.value = DisplayMetrics(cols, rows, widthPx, heightPx)
+    }
+
+    /**
+     * セカンダリディスプレイのサイズ情報をクリア
+     */
+    fun clearSecondaryDisplayMetrics() {
+        _secondaryDisplayMetrics.value = null
+    }
 }
