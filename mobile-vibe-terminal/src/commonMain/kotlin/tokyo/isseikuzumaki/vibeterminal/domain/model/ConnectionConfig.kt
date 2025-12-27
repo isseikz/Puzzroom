@@ -1,5 +1,7 @@
 package tokyo.isseikuzumaki.vibeterminal.domain.model
 
+import java.io.Serializable
+
 data class ConnectionConfig(
     val host: String,
     val port: Int = 22,
@@ -7,4 +9,4 @@ data class ConnectionConfig(
     val password: String,
     val connectionId: Long? = null,
     val startupCommand: String? = null
-)
+) : Serializable
