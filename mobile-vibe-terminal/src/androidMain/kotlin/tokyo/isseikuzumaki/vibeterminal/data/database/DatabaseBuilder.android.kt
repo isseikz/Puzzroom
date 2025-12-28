@@ -13,12 +13,18 @@ private val MIGRATION_2_3 = object : Migration(2, 3) {
     }
 }
 
+private val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE server_connections ADD COLUMN monitorFilePath TEXT DEFAULT NULL")
+    }
+}
+
 fun getRoomDatabase(context: Context): AppDatabase {
     val dbFile = context.getDatabasePath("vibe_terminal.db")
     return Room.databaseBuilder<AppDatabase>(
         context = context.applicationContext,
         name = dbFile.absolutePath
     )
-    .addMigrations(MIGRATION_2_3)
+    .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
     .build()
 }

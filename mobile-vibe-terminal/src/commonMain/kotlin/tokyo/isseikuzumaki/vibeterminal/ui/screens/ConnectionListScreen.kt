@@ -184,7 +184,9 @@ class ConnectionListScreen : Screen {
                                 username = selectedConnection!!.username,
                                 password = password,
                                 connectionId = selectedConnection!!.id,
-                                startupCommand = selectedConnection!!.startupCommand
+                                startupCommand = selectedConnection!!.startupCommand,
+                                deployPattern = selectedConnection!!.deployPattern,
+                                monitorFilePath = selectedConnection!!.monitorFilePath
                             )
                         )
                     )
@@ -272,6 +274,8 @@ class ConnectionListScreen : Screen {
         var port by remember { mutableStateOf(connection?.port?.toString() ?: "22") }
         var username by remember { mutableStateOf(connection?.username ?: "") }
         var startupCommand by remember { mutableStateOf(connection?.startupCommand ?: "") }
+        var deployPattern by remember { mutableStateOf(connection?.deployPattern ?: ">> VIBE_DEPLOY: (.*)") }
+        var monitorFilePath by remember { mutableStateOf(connection?.monitorFilePath ?: "") }
         var isAutoReconnect by remember { mutableStateOf(connection?.isAutoReconnect ?: false) }
 
         AlertDialog(
@@ -319,6 +323,38 @@ class ConnectionListScreen : Screen {
                         modifier = Modifier.fillMaxWidth()
                     )
 
+                    // Monitor File Path
+                    OutlinedTextField(
+                        value = monitorFilePath,
+                        onValueChange = { monitorFilePath = it },
+                        label = { Text("Monitor File Path (Auto Deploy)") },
+                        placeholder = { Text("/path/to/app.apk") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        supportingText = {
+                            Text(
+                                "Automatically triggers deploy when this file is updated on the server.",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    )
+
+                    // Magic Deploy Pattern
+                    OutlinedTextField(
+                        value = deployPattern,
+                        onValueChange = { deployPattern = it },
+                        label = { Text("Magic Deploy Pattern (Regex)") },
+                        placeholder = { Text(">> VIBE_DEPLOY: (.*)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        supportingText = {
+                            Text(
+                                "Regex to detect deployable files from terminal output. Use group 1 for file path.",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    )
+
                     // Auto Reconnect Checkbox
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -347,9 +383,10 @@ class ConnectionListScreen : Screen {
                             authType = "password",
                             createdAt = connection?.createdAt ?: System.currentTimeMillis(),
                             lastUsedAt = connection?.lastUsedAt,
-                            deployPattern = connection?.deployPattern,
+                            deployPattern = deployPattern.ifBlank { null },
                             startupCommand = startupCommand.ifBlank { null },
-                            isAutoReconnect = isAutoReconnect
+                            isAutoReconnect = isAutoReconnect,
+                            monitorFilePath = monitorFilePath.ifBlank { null }
                         )
                         onSave(savedConnection)
                     },

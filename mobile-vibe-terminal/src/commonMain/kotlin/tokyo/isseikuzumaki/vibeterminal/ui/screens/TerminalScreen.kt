@@ -359,6 +359,9 @@ data class TerminalScreen(
                 onDismiss = { showFileExplorer = false },
                 onFileSelected = { file ->
                     selectedFilePath = file.path
+                },
+                onInstall = { file ->
+                    screenModel.downloadAndInstallApk(file.path)
                 }
             )
         }

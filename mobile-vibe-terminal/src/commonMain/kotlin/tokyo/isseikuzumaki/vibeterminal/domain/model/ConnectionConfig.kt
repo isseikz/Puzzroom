@@ -8,5 +8,7 @@ data class ConnectionConfig(
     val username: String,
     val password: String,
     val connectionId: Long? = null,
-    val startupCommand: String? = null
+    val startupCommand: String? = null,
+    val deployPattern: String? = null,
+    val monitorFilePath: String? = null
 ) : Serializable
