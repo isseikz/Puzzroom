@@ -7,6 +7,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -93,6 +94,17 @@ data class TerminalScreen(
                         }
                     },
                     actions = {
+                        IconButton(
+                            onClick = { screenModel.downloadAndInstallApk(config.monitorFilePath) },
+                            enabled = state.isConnected && !config.monitorFilePath.isNullOrBlank()
+                        ) {
+                            Icon(
+                                Icons.Default.Download,
+                                "Manual Deploy",
+                                tint = if (state.isConnected && !config.monitorFilePath.isNullOrBlank()) Color(0xFF00FF00) else Color.Gray
+                            )
+                        }
+
                         IconButton(
                             onClick = { showFileExplorer = true },
                             enabled = state.isConnected
