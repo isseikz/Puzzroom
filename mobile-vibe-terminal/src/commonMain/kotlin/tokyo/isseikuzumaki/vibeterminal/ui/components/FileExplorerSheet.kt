@@ -12,11 +12,14 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -255,6 +258,8 @@ private fun FileItem(
     onClick: () -> Unit,
     onInstall: () -> Unit
 ) {
+    val clipboardManager = LocalClipboardManager.current
+    
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -291,6 +296,18 @@ private fun FileItem(
                         color = Color.Gray
                     )
                 }
+            }
+            
+            // Copy Path Button
+            IconButton(onClick = {
+                clipboardManager.setText(AnnotatedString(file.path))
+            }) {
+                Icon(
+                    Icons.Default.ContentCopy,
+                    contentDescription = "Copy Path",
+                    tint = Color.Gray,
+                    modifier = Modifier.size(20.dp)
+                )
             }
             
             if (!file.isDirectory && file.name.endsWith(".apk", ignoreCase = true)) {
