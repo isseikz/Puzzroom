@@ -168,11 +168,6 @@ class TerminalScreenModel(
                             }
                         }
 
-                        // Start background file monitoring if configured
-                        config.monitorFilePath?.let { path ->
-                            startFileMonitoring(path)
-                        }
-
                         startOutputListener()
                     },
                     onFailure = { error ->
@@ -318,37 +313,6 @@ class TerminalScreenModel(
      */
     fun selectMacroTab(tab: MacroTab) {
         _state.update { it.copy(selectedMacroTab = tab) }
-    }
-
-    /**
-     * Start background file monitoring on the server
-     */
-    private fun startFileMonitoring(path: String) {
-        screenModelScope.launch {
-            Logger.d("Starting file monitoring for: $path")
-            
-            // This command works on both macOS (stat -f %m) and Linux (stat -c %Y)
-            // It runs in the background (&) and won't block the shell
-            val monitorCmd = """
-                (
-                TARGET="$path"
-                GET_MOD_TIME() {
-                    stat -f "%m" "${'$'}TARGET" 2>/dev/null || stat -c "%Y" "${'$'}TARGET" 2>/dev/null || echo 0
-                }
-                LAST=$(GET_MOD_TIME)
-                while true; do
-                    sleep 2
-                    NEW=$(GET_MOD_TIME)
-                    if [ "${'$'}NEW" != "${'$'}LAST" ] && [ "${'$'}NEW" != "0" ]; then
-                        echo ">> VIBE_DEPLOY: ${'$'}TARGET"
-                        LAST="${'$'}NEW"
-                    fi
-                done
-                ) > /dev/null 2>&1 &
-            """.trimIndent().replace("\n", " ")
-            
-            sshRepository.sendInput("$monitorCmd\n")
-        }
     }
 
     /**
