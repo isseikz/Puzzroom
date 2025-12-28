@@ -162,7 +162,8 @@ class ConnectionListScreen : Screen {
                                 password = password,
                                 connectionId = selectedConnection!!.id,
                                 startupCommand = selectedConnection!!.startupCommand,
-                                deployPattern = selectedConnection!!.deployPattern
+                                deployPattern = selectedConnection!!.deployPattern,
+                                monitorFilePath = selectedConnection!!.monitorFilePath
                             )
                         )
                     )
@@ -251,6 +252,7 @@ class ConnectionListScreen : Screen {
         var username by remember { mutableStateOf(connection?.username ?: "") }
         var startupCommand by remember { mutableStateOf(connection?.startupCommand ?: "") }
         var deployPattern by remember { mutableStateOf(connection?.deployPattern ?: ">> VIBE_DEPLOY: (.*)") }
+        var monitorFilePath by remember { mutableStateOf(connection?.monitorFilePath ?: "") }
         var isAutoReconnect by remember { mutableStateOf(connection?.isAutoReconnect ?: false) }
 
         AlertDialog(
@@ -296,6 +298,22 @@ class ConnectionListScreen : Screen {
                         command = startupCommand,
                         onCommandChange = { startupCommand = it },
                         modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Monitor File Path
+                    OutlinedTextField(
+                        value = monitorFilePath,
+                        onValueChange = { monitorFilePath = it },
+                        label = { Text("Monitor File Path (Auto Deploy)") },
+                        placeholder = { Text("/path/to/app.apk") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        supportingText = {
+                            Text(
+                                "Automatically triggers deploy when this file is updated on the server.",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     )
 
                     // Magic Deploy Pattern
@@ -344,7 +362,8 @@ class ConnectionListScreen : Screen {
                             lastUsedAt = connection?.lastUsedAt,
                             deployPattern = deployPattern.ifBlank { null },
                             startupCommand = startupCommand.ifBlank { null },
-                            isAutoReconnect = isAutoReconnect
+                            isAutoReconnect = isAutoReconnect,
+                            monitorFilePath = monitorFilePath.ifBlank { null }
                         )
                         onSave(savedConnection)
                     },

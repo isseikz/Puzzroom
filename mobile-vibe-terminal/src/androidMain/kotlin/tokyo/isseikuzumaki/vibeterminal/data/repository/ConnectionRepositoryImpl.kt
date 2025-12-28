@@ -105,7 +105,8 @@ class ConnectionRepositoryImpl(
         lastUsedAt = lastUsedAt,
         deployPattern = deployPattern,
         startupCommand = startupCommand,
-        isAutoReconnect = isAutoReconnect
+        isAutoReconnect = isAutoReconnect,
+        monitorFilePath = monitorFilePath
     )
 
     private fun SavedConnection.toEntity() = ServerConnection(
@@ -119,6 +120,7 @@ class ConnectionRepositoryImpl(
         lastUsedAt = lastUsedAt,
         deployPattern = deployPattern,
         startupCommand = startupCommand,
-        isAutoReconnect = isAutoReconnect
+        isAutoReconnect = isAutoReconnect,
+        monitorFilePath = monitorFilePath
     )
 }

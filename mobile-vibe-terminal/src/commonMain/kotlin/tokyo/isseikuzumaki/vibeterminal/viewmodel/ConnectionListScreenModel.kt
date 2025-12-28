@@ -146,7 +146,8 @@ class ConnectionListScreenModel(
                     password = password,
                     connectionId = connection.id,
                     startupCommand = connection.startupCommand,
-                    deployPattern = connection.deployPattern
+                    deployPattern = connection.deployPattern,
+                    monitorFilePath = connection.monitorFilePath
                 )
 
                 onResult(config)

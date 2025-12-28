@@ -14,5 +14,6 @@ data class SavedConnection(
     val lastUsedAt: Long? = null,
     val deployPattern: String? = ">> VIBE_DEPLOY: (.*)",
     val startupCommand: String? = null, // Command to execute on shell startup (e.g., "tmux attach || tmux new")
-    val isAutoReconnect: Boolean = false // Enable automatic reconnection on app restart
+    val isAutoReconnect: Boolean = false, // Enable automatic reconnection on app restart
+    val monitorFilePath: String? = null
 )
