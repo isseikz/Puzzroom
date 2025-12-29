@@ -114,6 +114,19 @@ graph LR
   * `ConnectionRepository`に`updateLastFileExplorerPath`/`getLastFileExplorerPath`メソッドを追加
   * `FileExplorerSheet`に`initialPath`パラメータと`onPathChanged`コールバックを追加
 
+#### F. SSH Connection State Sync (v2.6.1) ✅
+* **課題:** 画面オフ/バックグラウンド時にSSH接続が切断されても、UIが接続状態のまま表示される問題
+* **解決策:**
+  * `LifecycleResumeEffect`でアプリのフォアグラウンド復帰を検知
+  * 復帰時に`sshRepository.isConnected()`で実際の接続状態を確認
+  * 切断されていれば自動再接続を試行
+  * 再接続時にスタートアップコマンド（tmux attach等）を自動実行し、セッション復帰をサポート
+* **実装:**
+  * `TerminalState`に`isReconnecting`と端末サイズ（`lastTerminalCols`等）を追加
+  * `TerminalScreenModel.onAppResumed()`：ライフサイクル復帰時の接続確認と再接続
+  * `TerminalScreenModel.reconnect()`：保存された端末サイズとスタートアップコマンドで再接続
+  * `TerminalScreen`にReconnecting状態のUIインジケータを追加
+
 ---
 
 ## 4. 機能詳細 (Logic Specification)

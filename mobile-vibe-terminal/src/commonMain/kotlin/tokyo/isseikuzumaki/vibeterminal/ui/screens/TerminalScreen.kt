@@ -51,6 +51,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import androidx.compose.ui.text.style.TextAlign
 import tokyo.isseikuzumaki.vibeterminal.util.Logger
+import androidx.lifecycle.compose.LifecycleResumeEffect
 
 data class TerminalScreen(
     val config: ConnectionConfig
@@ -97,6 +98,14 @@ data class TerminalScreen(
         var isLoadingInitialPath by remember { mutableStateOf(false) }
         val coroutineScope = rememberCoroutineScope()
 
+        // Lifecycle observer: Check connection state when app resumes from background
+        LifecycleResumeEffect(Unit) {
+            Logger.d("TerminalScreen: Lifecycle RESUMED")
+            screenModel.onAppResumed()
+            onPauseOrDispose {
+                Logger.d("TerminalScreen: Lifecycle PAUSED or DISPOSED")
+            }
+        }
 
         Scaffold(
             topBar = {
@@ -186,6 +195,29 @@ data class TerminalScreen(
                         modifier = Modifier.fillMaxWidth(),
                         color = Color(0xFF00FF00)
                     )
+                }
+
+                // Reconnecting Status
+                if (state.isReconnecting) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF2D2D00))
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = Color(0xFFFFAA00),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Reconnecting...",
+                            color = Color(0xFFFFAA00),
+                            fontSize = 12.sp
+                        )
+                    }
                 }
 
                 // Error Message

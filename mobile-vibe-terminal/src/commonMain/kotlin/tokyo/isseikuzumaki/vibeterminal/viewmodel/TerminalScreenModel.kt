@@ -42,7 +42,13 @@ data class TerminalState(
     val inputMode: InputMode = InputMode.COMMAND,
     val isCtrlActive: Boolean = false,
     val isAltActive: Boolean = false,
-    val lastFileExplorerPath: String? = null  // Last opened path in File Explorer (loaded from database)
+    val lastFileExplorerPath: String? = null,  // Last opened path in File Explorer (loaded from database)
+    val isReconnecting: Boolean = false,  // Whether attempting to reconnect after connection loss
+    // Terminal dimensions for reconnection
+    val lastTerminalCols: Int = 80,
+    val lastTerminalRows: Int = 24,
+    val lastTerminalWidthPx: Int = 640,
+    val lastTerminalHeightPx: Int = 384
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -59,7 +65,8 @@ data class TerminalState(
                 inputMode == other.inputMode &&
                 isCtrlActive == other.isCtrlActive &&
                 isAltActive == other.isAltActive &&
-                lastFileExplorerPath == other.lastFileExplorerPath
+                lastFileExplorerPath == other.lastFileExplorerPath &&
+                isReconnecting == other.isReconnecting
     }
 
     override fun hashCode(): Int {
@@ -68,6 +75,7 @@ data class TerminalState(
         result = 31 * result + isCtrlActive.hashCode()
         result = 31 * result + isAltActive.hashCode()
         result = 31 * result + lastFileExplorerPath.hashCode()
+        result = 31 * result + isReconnecting.hashCode()
         return result
     }
 }
@@ -121,7 +129,17 @@ class TerminalScreenModel(
         screenModelScope.launch {
             try {
                 Logger.d("Starting connection...")
-                _state.update { it.copy(isConnecting = true, errorMessage = null) }
+                _state.update {
+                    it.copy(
+                        isConnecting = true,
+                        errorMessage = null,
+                        // Store terminal dimensions for potential reconnection
+                        lastTerminalCols = cols,
+                        lastTerminalRows = rows,
+                        lastTerminalWidthPx = widthPx,
+                        lastTerminalHeightPx = heightPx
+                    )
+                }
 
                 Logger.d("Calling sshRepository.connect with terminal size...")
                 val result = withContext(Dispatchers.IO) {
@@ -503,6 +521,159 @@ class TerminalScreenModel(
                 Logger.e(e, "Failed to clear TerminalStateProvider")
             }
             processOutput("Disconnected\n")
+        }
+    }
+
+    /**
+     * Called when the app comes back to foreground.
+     * Verifies the SSH connection state and reconnects if necessary.
+     */
+    fun onAppResumed() {
+        Logger.d("=== onAppResumed called ===")
+        val currentState = _state.value
+
+        // Only check if we think we're connected
+        if (!currentState.isConnected || currentState.isConnecting || currentState.isReconnecting) {
+            Logger.d("Skipping connection check: isConnected=${currentState.isConnected}, isConnecting=${currentState.isConnecting}, isReconnecting=${currentState.isReconnecting}")
+            return
+        }
+
+        screenModelScope.launch {
+            val isActuallyConnected = withContext(Dispatchers.IO) {
+                sshRepository.isConnected()
+            }
+
+            Logger.d("Connection check: UI thinks connected=${currentState.isConnected}, actually connected=$isActuallyConnected")
+
+            if (!isActuallyConnected) {
+                // Connection was lost while in background
+                Logger.w("Connection lost while in background, attempting to reconnect...")
+                processOutput("\n⚠️ Connection lost. Reconnecting...\n")
+
+                // Attempt to reconnect with the stored terminal dimensions
+                reconnect()
+            } else {
+                Logger.d("Connection is still alive")
+                // Connection is still alive, ensure output listener is running
+                ensureOutputListenerActive()
+            }
+        }
+    }
+
+    /**
+     * Attempt to reconnect to the SSH server using stored credentials and terminal dimensions.
+     */
+    private fun reconnect() {
+        val currentState = _state.value
+
+        if (currentState.isReconnecting || currentState.isConnecting) {
+            Logger.d("Already reconnecting, skipping")
+            return
+        }
+
+        screenModelScope.launch {
+            try {
+                _state.update { it.copy(isReconnecting = true, isConnected = false, errorMessage = null) }
+
+                // First, clean up the old connection
+                outputListenerJob?.cancel()
+                outputListenerJob = null
+                withContext(Dispatchers.IO) {
+                    sshRepository.disconnect()
+                }
+
+                // Attempt to reconnect
+                Logger.d("Reconnecting with terminal size ${currentState.lastTerminalCols}x${currentState.lastTerminalRows}...")
+                val result = withContext(Dispatchers.IO) {
+                    sshRepository.connect(
+                        host = config.host,
+                        port = config.port,
+                        username = config.username,
+                        password = config.password,
+                        initialCols = currentState.lastTerminalCols,
+                        initialRows = currentState.lastTerminalRows,
+                        initialWidthPx = currentState.lastTerminalWidthPx,
+                        initialHeightPx = currentState.lastTerminalHeightPx,
+                        startupCommand = config.startupCommand
+                    )
+                }
+
+                result.fold(
+                    onSuccess = {
+                        Logger.d("Reconnection successful!")
+                        _state.update { it.copy(isReconnecting = false, isConnected = true) }
+
+                        // Update TerminalStateProvider
+                        try {
+                            TerminalStateProvider.updateState(
+                                buffer = terminalBuffer.getBuffer(),
+                                cursorRow = terminalBuffer.cursorRow,
+                                cursorCol = terminalBuffer.cursorCol,
+                                isAlternateScreen = terminalBuffer.isAlternateScreen,
+                                isConnected = true
+                            )
+                        } catch (e: Exception) {
+                            Logger.e(e, "Failed to update TerminalStateProvider on reconnection")
+                        }
+
+                        processOutput("✅ Reconnected to ${config.host}:${config.port}\n")
+
+                        // Log startup command execution for user visibility
+                        if (!config.startupCommand.isNullOrBlank()) {
+                            processOutput("🔄 Executing startup command: ${config.startupCommand}\n")
+                        }
+
+                        startOutputListener()
+                    },
+                    onFailure = { error ->
+                        Logger.e(error, "Reconnection failed: ${error.message}")
+                        _state.update {
+                            it.copy(
+                                isReconnecting = false,
+                                isConnected = false,
+                                errorMessage = "Reconnection failed: ${error.message}"
+                            )
+                        }
+                        processOutput("❌ Reconnection failed: ${error.message}\n")
+                    }
+                )
+            } catch (e: Exception) {
+                Logger.e(e, "Exception during reconnection")
+                _state.update {
+                    it.copy(
+                        isReconnecting = false,
+                        isConnected = false,
+                        errorMessage = "Reconnection exception: ${e.message}"
+                    )
+                }
+                processOutput("❌ Reconnection exception: ${e.message}\n")
+            }
+        }
+    }
+
+    /**
+     * Sync the UI connection state with the actual SSH connection state.
+     * This can be called periodically or on specific events to ensure consistency.
+     */
+    fun syncConnectionState() {
+        screenModelScope.launch {
+            val currentState = _state.value
+            if (!currentState.isConnected) return@launch
+
+            val isActuallyConnected = withContext(Dispatchers.IO) {
+                sshRepository.isConnected()
+            }
+
+            if (!isActuallyConnected && currentState.isConnected) {
+                Logger.w("Connection state mismatch detected: UI says connected but SSH is disconnected")
+                _state.update {
+                    it.copy(
+                        isConnected = false,
+                        errorMessage = "Connection lost"
+                    )
+                }
+                processOutput("\n⚠️ Connection lost.\n")
+            }
         }
     }
 

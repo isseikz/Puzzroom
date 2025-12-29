@@ -79,6 +79,7 @@ kotlin {
             implementation(libs.timber)
             // Explicit dependencies for ViewTree classes
             implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.4")
+            implementation("androidx.lifecycle:lifecycle-process:2.9.4")
             implementation("androidx.savedstate:savedstate:1.2.1")
         }
 
