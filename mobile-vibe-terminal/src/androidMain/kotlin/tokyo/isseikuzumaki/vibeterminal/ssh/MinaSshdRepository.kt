@@ -30,7 +30,8 @@ class MinaSshdRepository : SshRepository {
     private var outputWriter: PrintWriter? = null
 
     // Use Channel instead of PipedInputStream for non-blocking data reception
-    private val rxChannel = kotlinx.coroutines.channels.Channel<ByteArray>(
+    // This channel is recreated on each connect() to ensure it's fresh after disconnect()
+    private var rxChannel = kotlinx.coroutines.channels.Channel<ByteArray>(
         capacity = kotlinx.coroutines.channels.Channel.UNLIMITED
     )
 
@@ -73,6 +74,18 @@ class MinaSshdRepository : SshRepository {
             Timber.d("=== MinaSshdRepository.connect ===")
             Timber.d("Host: $host, Port: $port, Username: $username")
             Timber.d("Initial terminal size: ${initialCols}x${initialRows} (${initialWidthPx}x${initialHeightPx}px)")
+
+            // Recreate rxChannel to ensure it's fresh (previous channel may have been closed)
+            Timber.d("0. Recreating rxChannel for new connection...")
+            try {
+                rxChannel.close() // Close old channel if it exists
+            } catch (e: Exception) {
+                Timber.d("Old rxChannel already closed or not initialized: ${e.message}")
+            }
+            rxChannel = kotlinx.coroutines.channels.Channel(
+                capacity = kotlinx.coroutines.channels.Channel.UNLIMITED
+            )
+            Timber.d("0. rxChannel recreated successfully")
 
             // Store credentials for SFTP sessions
             connectionHost = host
