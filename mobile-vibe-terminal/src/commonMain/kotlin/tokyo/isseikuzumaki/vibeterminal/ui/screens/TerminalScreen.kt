@@ -29,17 +29,14 @@ import tokyo.isseikuzumaki.vibeterminal.ui.components.CodeViewerSheet
 import tokyo.isseikuzumaki.vibeterminal.ui.components.TerminalCanvas
 import tokyo.isseikuzumaki.vibeterminal.ui.components.macro.MacroInputPanel
 
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.ui.platform.LocalDensity
 
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.InputMode
+import io.github.isseikz.kmpinput.TerminalInputContainer
+import io.github.isseikz.kmpinput.rememberTerminalInputContainerState
+import io.github.isseikz.kmpinput.InputMode as LibraryInputMode
 import androidx.compose.foundation.clickable
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalStateProvider
 import kotlinx.coroutines.withTimeoutOrNull
@@ -71,8 +68,27 @@ data class TerminalScreen(
         var showFileExplorer by remember { mutableStateOf(false) }
         var selectedFilePath by remember { mutableStateOf<String?>(null) }
 
-        val focusRequester = remember { FocusRequester() }
-        var cmdInput by remember { mutableStateOf(TextFieldValue(" ")) }
+        // KMP Terminal Input library state
+        val terminalInputState = rememberTerminalInputContainerState()
+
+        // Collect keyboard input from the library and send to SSH
+        LaunchedEffect(terminalInputState.isReady, state.isConnected) {
+            if (terminalInputState.isReady && state.isConnected) {
+                terminalInputState.ptyInputStream.collect { bytes ->
+                    val text = bytes.decodeToString()
+                    screenModel.sendInput(text, appendNewline = false)
+                }
+            }
+        }
+
+        // Sync input mode: when local state changes, update library
+        LaunchedEffect(state.inputMode) {
+            val libraryMode = when (state.inputMode) {
+                InputMode.COMMAND -> LibraryInputMode.RAW
+                InputMode.TEXT -> LibraryInputMode.TEXT
+            }
+            terminalInputState.setInputMode(libraryMode)
+        }
 
         Scaffold(
             topBar = {
@@ -150,44 +166,6 @@ data class TerminalScreen(
                     )
                 }
 
-                // Hidden Command Input (captures software keyboard in CMD mode)
-                if (state.isConnected && state.inputMode == InputMode.COMMAND) {
-                    BasicTextField(
-                        value = cmdInput,
-                        onValueChange = { newValue ->
-                            if (newValue.text.length > 1) {
-                                // Character typed
-                                val newChars = newValue.text.substring(1)
-                                screenModel.sendInput(newChars, appendNewline = false)
-                                cmdInput = TextFieldValue(" ")
-                            } else if (newValue.text.isEmpty()) {
-                                // Backspace
-                                screenModel.sendInput("\u007F", appendNewline = false)
-                                cmdInput = TextFieldValue(" ")
-                            } else {
-                                cmdInput = newValue
-                            }
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            autoCorrect = false,
-                            imeAction = ImeAction.Send
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onSend = {
-                                screenModel.sendInput("\r", appendNewline = false)
-                                cmdInput = TextFieldValue(" ")
-                            }
-                        ),
-                        modifier = Modifier
-                            .size(1.dp)
-                            .focusRequester(focusRequester)
-                    )
-
-                    LaunchedEffect(state.inputMode) {
-                        focusRequester.requestFocus()
-                    }
-                }
-
                 // Terminal Output - Screen Buffer Rendering
                 // **New**: セカンダリディスプレイ接続中はステータスメッセージを表示
                 if (isSecondaryConnected) {
@@ -210,15 +188,16 @@ data class TerminalScreen(
                     }
                 } else {
                     // メインディスプレイでターミナル表示
-                    BoxWithConstraints(
+                    // Wrap with TerminalInputContainer to capture keyboard input
+                    TerminalInputContainer(
+                        state = terminalInputState,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
                             .padding(8.dp)
-                            .clickable(
-                                enabled = state.inputMode == InputMode.COMMAND,
-                                onClick = { focusRequester.requestFocus() }
-                            )
+                    ) {
+                    BoxWithConstraints(
+                        modifier = Modifier.fillMaxSize()
                     ) {
                     val textMeasurer = rememberTextMeasurer()
                     val density = androidx.compose.ui.platform.LocalDensity.current
@@ -316,7 +295,8 @@ data class TerminalScreen(
                             bufferUpdateCounter = state.bufferUpdateCounter
                         )
                     }
-                    }
+                    } // BoxWithConstraints
+                    } // TerminalInputContainer
                 }
 
                 // Buffered Input Deck with Macro Row
