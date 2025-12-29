@@ -226,7 +226,7 @@ class TerminalScreenModel(
 
                     // Keep only last 10000 characters to prevent memory issues
                     if (outputAccumulator.length > 10000) {
-                        outputAccumulator.delete(0, outputAccumulator.length - 10000)
+                        outputAccumulator.deleteRange(0, outputAccumulator.length - 10000)
                     }
 
                     // Check for Magic Deploy pattern
