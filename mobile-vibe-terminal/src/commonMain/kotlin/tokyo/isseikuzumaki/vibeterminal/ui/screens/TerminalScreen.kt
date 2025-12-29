@@ -29,7 +29,10 @@ import tokyo.isseikuzumaki.vibeterminal.ui.components.CodeViewerSheet
 import tokyo.isseikuzumaki.vibeterminal.ui.components.TerminalCanvas
 import tokyo.isseikuzumaki.vibeterminal.ui.components.macro.MacroInputPanel
 
-import androidx.compose.foundation.text.BasicTextField
+import io.github.isseikz.kmpinput.TerminalInputContainer
+import io.github.isseikz.kmpinput.rememberTerminalInputContainerState
+import io.github.isseikz.kmpinput.InputMode as KmpInputMode
+
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.TextFieldValue
@@ -64,6 +67,25 @@ data class TerminalScreen(
         }
         val state by screenModel.state.collectAsState()
 
+        // Terminal Input Library State
+        val terminalInputState = rememberTerminalInputContainerState()
+
+        // Sync Input Mode (App -> Library)
+        LaunchedEffect(state.inputMode) {
+            val mode = if (state.inputMode == InputMode.TEXT) KmpInputMode.TEXT else KmpInputMode.RAW
+            terminalInputState.setInputMode(mode)
+        }
+
+        // Collect Input from Library (only when connected)
+        LaunchedEffect(terminalInputState.isReady, state.isConnected) {
+            if (terminalInputState.isReady && state.isConnected) {
+                terminalInputState.ptyInputStream.collect { bytes ->
+                    val text = bytes.decodeToString()
+                    screenModel.sendInput(text, appendNewline = false)
+                }
+            }
+        }
+
         // **New**: セカンダリディスプレイの接続状態を監視
         val isSecondaryConnected by TerminalStateProvider.isSecondaryDisplayConnected.collectAsState()
         val secondaryMetrics by TerminalStateProvider.secondaryDisplayMetrics.collectAsState()
@@ -71,8 +93,6 @@ data class TerminalScreen(
         var showFileExplorer by remember { mutableStateOf(false) }
         var selectedFilePath by remember { mutableStateOf<String?>(null) }
 
-        val focusRequester = remember { FocusRequester() }
-        var cmdInput by remember { mutableStateOf(TextFieldValue(" ")) }
 
         Scaffold(
             topBar = {
@@ -150,188 +170,145 @@ data class TerminalScreen(
                     )
                 }
 
-                // Hidden Command Input (captures software keyboard in CMD mode)
-                if (state.isConnected && state.inputMode == InputMode.COMMAND) {
-                    BasicTextField(
-                        value = cmdInput,
-                        onValueChange = { newValue ->
-                            if (newValue.text.length > 1) {
-                                // Character typed
-                                val newChars = newValue.text.substring(1)
-                                screenModel.sendInput(newChars, appendNewline = false)
-                                cmdInput = TextFieldValue(" ")
-                            } else if (newValue.text.isEmpty()) {
-                                // Backspace
-                                screenModel.sendInput("\u007F", appendNewline = false)
-                                cmdInput = TextFieldValue(" ")
-                            } else {
-                                cmdInput = newValue
-                            }
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            autoCorrect = false,
-                            imeAction = ImeAction.Send
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onSend = {
-                                screenModel.sendInput("\r", appendNewline = false)
-                                cmdInput = TextFieldValue(" ")
-                            }
-                        ),
-                        modifier = Modifier
-                            .size(1.dp)
-                            .focusRequester(focusRequester)
-                    )
-
-                    LaunchedEffect(state.inputMode) {
-                        focusRequester.requestFocus()
-                    }
-                }
-
-                // Terminal Output - Screen Buffer Rendering
-                // **New**: セカンダリディスプレイ接続中はステータスメッセージを表示
-                if (isSecondaryConnected) {
-                    // セカンダリディスプレイで表示中のステータス
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                            .background(Color.Black),
-                        contentAlignment = Alignment.TopCenter
-                    ) {
-                        Text(
-                            text = "Terminal displayed on secondary screen",
-                            color = Color(0xFF00FF00),
-                            fontSize = 14.sp,
-                            fontFamily = FontFamily.Monospace,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(16.dp)
-                        )
-                    }
-                } else {
-                    // メインディスプレイでターミナル表示
-                    BoxWithConstraints(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                            .padding(8.dp)
-                            .clickable(
-                                enabled = state.inputMode == InputMode.COMMAND,
-                                onClick = { focusRequester.requestFocus() }
+                // Terminal Input Container
+                TerminalInputContainer(
+                    state = terminalInputState,
+                    modifier = Modifier.weight(1f).fillMaxWidth()
+                ) {
+                    // Terminal Output - Screen Buffer Rendering
+                    // **New**: セカンダリディスプレイ接続中はステータスメッセージを表示
+                    if (isSecondaryConnected) {
+                        // セカンダリディスプレイで表示中のステータス
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black),
+                            contentAlignment = Alignment.TopCenter
+                        ) {
+                            Text(
+                                text = "Terminal displayed on secondary screen",
+                                color = Color(0xFF00FF00),
+                                fontSize = 14.sp,
+                                fontFamily = FontFamily.Monospace,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(16.dp)
                             )
-                    ) {
-                    val textMeasurer = rememberTextMeasurer()
-                    val density = androidx.compose.ui.platform.LocalDensity.current
-                    
-                    val textStyle = androidx.compose.ui.text.TextStyle(
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 14.sp
-                    )
-                    
-                    // Measure character size
-                    val sampleLayout = remember(textStyle) {
-                        textMeasurer.measure(
-                            text = "W",
-                            style = textStyle
-                        )
-                    }
-                    val charWidth = sampleLayout.size.width
-                    val charHeight = sampleLayout.size.height
-
-                    // Calculate columns and rows - locked at initial calculation to prevent resize
-                    val terminalSize = remember {
-                        val widthPx = with(density) { maxWidth.toPx().toInt() }
-                        val heightPx = with(density) { maxHeight.toPx().toInt() }
-                        val cols = ((widthPx / charWidth) - 1).coerceAtLeast(1)
-                        val rows = (heightPx / charHeight).coerceAtLeast(1)
-
-                        object {
-                            val cols = cols
-                            val rows = rows
-                            val widthPx = widthPx
-                            val heightPx = heightPx
                         }
-                    }
-
-                    // **New**: セカンダリディスプレイ切断時にメインディスプレイでリサイズ
-                    var previousSecondaryState by remember { mutableStateOf(isSecondaryConnected) }
-
-                    LaunchedEffect(isSecondaryConnected, terminalSize.cols, terminalSize.rows) {
-                        if (previousSecondaryState && !isSecondaryConnected) {
-                            // 接続 → 切断 へ遷移
-                            if (state.isConnected && terminalSize.cols > 0 && terminalSize.rows > 0) {
-                                Logger.d("Secondary display disconnected, resizing to main display: ${terminalSize.cols}x${terminalSize.rows}")
-                                screenModel.resizeTerminal(terminalSize.cols, terminalSize.rows, terminalSize.widthPx, terminalSize.heightPx)
-                            }
-                        }
-                        previousSecondaryState = isSecondaryConnected
-                    }
-
-                    // Connect to SSH with the measured terminal size
-                    // Only trigger once when not yet connected
-                    // **New**: セカンダリディスプレイ優先のSSH接続
-                    var hasConnected by remember { mutableStateOf(false) }
-
-                    LaunchedEffect(Unit) {
-                        if (hasConnected) return@LaunchedEffect
-
-                        // セカンダリディスプレイのサイズ取得を試みる (1秒タイムアウト)
-                        val secondarySize = withTimeoutOrNull(1000L) {
-                            TerminalStateProvider.secondaryDisplayMetrics
-                                .filterNotNull()
-                                .first()
-                        }
-
-                        if (!state.isConnected && !state.isConnecting) {
-                            if (secondarySize != null) {
-                                // セカンダリディスプレイのサイズで接続
-                                Logger.d("Connecting with secondary display size: ${secondarySize.cols}x${secondarySize.rows}")
-                                screenModel.connect(
-                                    secondarySize.cols,
-                                    secondarySize.rows,
-                                    secondarySize.widthPx,
-                                    secondarySize.heightPx
-                                )
-                            } else if (terminalSize.cols > 0 && terminalSize.rows > 0) {
-                                // メインディスプレイのサイズで接続
-                                Logger.d("Connecting with main display size: ${terminalSize.cols}x${terminalSize.rows}")
-                                screenModel.connect(terminalSize.cols, terminalSize.rows, terminalSize.widthPx, terminalSize.heightPx)
-                            }
-                            hasConnected = true
-                        }
-                    }
-
-                    if (state.isAlternateScreen) {
-                        TerminalCanvas(
-                            buffer = state.screenBuffer,
-                            cursorRow = state.cursorRow,
-                            cursorCol = state.cursorCol,
-                            modifier = Modifier.fillMaxSize()
-                        )
                     } else {
-                        TerminalBufferView(
-                            screenBuffer = state.screenBuffer,
-                            cursorRow = state.cursorRow,
-                            cursorCol = state.cursorCol,
-                            bufferUpdateCounter = state.bufferUpdateCounter
+                        // メインディスプレイでターミナル表示
+                        BoxWithConstraints(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(8.dp)
+                        ) {
+                        val textMeasurer = rememberTextMeasurer()
+                        val density = androidx.compose.ui.platform.LocalDensity.current
+                        
+                        val textStyle = androidx.compose.ui.text.TextStyle(
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 14.sp
                         )
-                    }
+                        
+                        // Measure character size
+                        val sampleLayout = remember(textStyle) {
+                            textMeasurer.measure(
+                                text = "W",
+                                style = textStyle
+                            )
+                        }
+                        val charWidth = sampleLayout.size.width
+                        val charHeight = sampleLayout.size.height
+
+                        // Calculate columns and rows - locked at initial calculation to prevent resize
+                        val terminalSize = remember {
+                            val widthPx = with(density) { maxWidth.toPx().toInt() }
+                            val heightPx = with(density) { maxHeight.toPx().toInt() }
+                            val cols = ((widthPx / charWidth) - 1).coerceAtLeast(1)
+                            val rows = (heightPx / charHeight).coerceAtLeast(1)
+
+                            object {
+                                val cols = cols
+                                val rows = rows
+                                val widthPx = widthPx
+                                val heightPx = heightPx
+                            }
+                        }
+
+                        // **New**: セカンダリディスプレイ切断時にメインディスプレイでリサイズ
+                        var previousSecondaryState by remember { mutableStateOf(isSecondaryConnected) }
+
+                        LaunchedEffect(isSecondaryConnected, terminalSize.cols, terminalSize.rows) {
+                            if (previousSecondaryState && !isSecondaryConnected) {
+                                // 接続 → 切断 へ遷移
+                                if (state.isConnected && terminalSize.cols > 0 && terminalSize.rows > 0) {
+                                    Logger.d("Secondary display disconnected, resizing to main display: ${terminalSize.cols}x${terminalSize.rows}")
+                                    screenModel.resizeTerminal(terminalSize.cols, terminalSize.rows, terminalSize.widthPx, terminalSize.heightPx)
+                                }
+                            }
+                            previousSecondaryState = isSecondaryConnected
+                        }
+
+                        // Connect to SSH with the measured terminal size
+                        // Only trigger once when not yet connected
+                        // **New**: セカンダリディスプレイ優先のSSH接続
+                        var hasConnected by remember { mutableStateOf(false) }
+
+                        LaunchedEffect(Unit) {
+                            if (hasConnected) return@LaunchedEffect
+
+                            // セカンダリディスプレイのサイズ取得を試みる (1秒タイムアウト)
+                            val secondarySize = withTimeoutOrNull(1000L) {
+                                TerminalStateProvider.secondaryDisplayMetrics
+                                    .filterNotNull()
+                                    .first()
+                            }
+
+                            if (!state.isConnected && !state.isConnecting) {
+                                if (secondarySize != null) {
+                                    // セカンダリディスプレイのサイズで接続
+                                    Logger.d("Connecting with secondary display size: ${secondarySize.cols}x${secondarySize.rows}")
+                                    screenModel.connect(
+                                        secondarySize.cols,
+                                        secondarySize.rows,
+                                        secondarySize.widthPx,
+                                        secondarySize.heightPx
+                                    )
+                                } else if (terminalSize.cols > 0 && terminalSize.rows > 0) {
+                                    // メインディスプレイのサイズで接続
+                                    Logger.d("Connecting with main display size: ${terminalSize.cols}x${terminalSize.rows}")
+                                    screenModel.connect(terminalSize.cols, terminalSize.rows, terminalSize.widthPx, terminalSize.heightPx)
+                                }
+                                hasConnected = true
+                            }
+                        }
+
+                        if (state.isAlternateScreen) {
+                            TerminalCanvas(
+                                buffer = state.screenBuffer,
+                                cursorRow = state.cursorRow,
+                                cursorCol = state.cursorCol,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            TerminalBufferView(
+                                screenBuffer = state.screenBuffer,
+                                cursorRow = state.cursorRow,
+                                cursorCol = state.cursorCol,
+                                bufferUpdateCounter = state.bufferUpdateCounter
+                            )
+                        }
+                        }
                     }
                 }
 
                 // Buffered Input Deck with Macro Row
                 // Show input panel when connected (visible on main display even with secondary display)
                 if (state.isConnected) {
-                    var inputText by remember { mutableStateOf(TextFieldValue("")) }
-
                     MacroInputPanel(
                         state = state,
-                        inputText = inputText,
-                        onInputChange = { inputText = it },
-                        onSendCommand = { command ->
-                            screenModel.sendInput(command, appendNewline = true)
-                            inputText = TextFieldValue("")
-                        },
+                        inputText = TextFieldValue(""),
+                        onInputChange = { },
+                        onSendCommand = { },
                         onDirectSend = { sequence ->
                             screenModel.sendInput(sequence, appendNewline = false)
                         },
