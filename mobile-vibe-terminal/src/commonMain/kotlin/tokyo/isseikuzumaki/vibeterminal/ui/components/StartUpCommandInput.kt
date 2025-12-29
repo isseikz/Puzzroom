@@ -18,6 +18,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import org.jetbrains.compose.resources.stringResource
+import puzzroom.mobile_vibe_terminal.generated.resources.*
 
 /**
  * Input component for startup commands with preset options
@@ -35,23 +37,29 @@ fun StartUpCommandInput(
     var expanded by remember { mutableStateOf(false) }
 
     // Preset commands with descriptions
+    val presetTmux = stringResource(Res.string.startup_preset_tmux)
+    val presetScreen = stringResource(Res.string.startup_preset_screen)
+    val presetByobu = stringResource(Res.string.startup_preset_byobu)
+    val presetLogWatch = stringResource(Res.string.startup_preset_log_watch)
+    val presetHome = stringResource(Res.string.startup_preset_home)
+
     val presets = listOf(
-        Pair("tmux attach || tmux new", "tmux (Auto)"),
-        Pair("screen -r || screen", "screen (Auto)"),
-        Pair("byobu", "byobu"),
-        Pair("tail -f /var/log/syslog", "Log Watch"),
-        Pair("cd ~ && bash", "Home Directory")
+        Pair("tmux attach || tmux new", presetTmux),
+        Pair("screen -r || screen", presetScreen),
+        Pair("byobu", presetByobu),
+        Pair("tail -f /var/log/syslog", presetLogWatch),
+        Pair("cd ~ && bash", presetHome)
     )
 
     Column(modifier = modifier) {
         OutlinedTextField(
             value = command,
             onValueChange = onCommandChange,
-            label = { Text("Startup Command (Optional)") },
-            placeholder = { Text("e.g., tmux attach || tmux new") },
+            label = { Text(stringResource(Res.string.startup_command_label)) },
+            placeholder = { Text(stringResource(Res.string.startup_command_placeholder)) },
             trailingIcon = {
                 IconButton(onClick = { expanded = true }) {
-                    Icon(Icons.Default.ArrowDropDown, "Preset Commands")
+                    Icon(Icons.Default.ArrowDropDown, stringResource(Res.string.startup_command_presets))
                 }
             },
             modifier = Modifier.fillMaxWidth(),

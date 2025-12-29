@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App -->
+    <string name="app_name">Vibe Terminal</string>
+
+    <!-- Common Actions -->
+    <string name="action_back">Retour</string>
+    <string name="action_save">Enregistrer</string>
+    <string name="action_cancel">Annuler</string>
+    <string name="action_connect">Connecter</string>
+    <string name="action_edit">Modifier</string>
+    <string name="action_delete">Supprimer</string>
+    <string name="action_dismiss">Fermer</string>
+    <string name="action_close">Fermer</string>
+
+    <!-- Connection List Screen -->
+    <string name="connection_list_title">Vibe Terminal</string>
+    <string name="connection_list_test_display">Écran de test</string>
+    <string name="connection_list_add">Ajouter une connexion</string>
+    <string name="connection_list_empty_title">Aucune connexion enregistrée</string>
+    <string name="connection_list_empty_message">Appuyez sur + pour ajouter un nouveau serveur</string>
+
+    <!-- Connection Dialog -->
+    <string name="connection_dialog_add_title">Ajouter une connexion</string>
+    <string name="connection_dialog_edit_title">Modifier la connexion</string>
+    <string name="connection_dialog_name">Nom</string>
+    <string name="connection_dialog_host">Hôte</string>
+    <string name="connection_dialog_port">Port</string>
+    <string name="connection_dialog_username">Utilisateur</string>
+    <string name="connection_dialog_monitor_path">Chemin du fichier à surveiller (Auto Deploy)</string>
+    <string name="connection_dialog_monitor_path_placeholder">/chemin/vers/app.apk</string>
+    <string name="connection_dialog_monitor_path_description">Déclenche automatiquement le déploiement lorsque ce fichier est mis à jour sur le serveur.</string>
+    <string name="connection_dialog_deploy_pattern">Pattern Magic Deploy (Regex)</string>
+    <string name="connection_dialog_deploy_pattern_placeholder">>> VIBE_DEPLOY: (.*)</string>
+    <string name="connection_dialog_deploy_pattern_description">Regex pour détecter les fichiers déployables depuis la sortie du terminal. Utilisez le groupe 1 pour le chemin.</string>
+    <string name="connection_dialog_auto_reconnect">Reconnexion automatique au redémarrage de l\'app</string>
+
+    <!-- Password Dialog -->
+    <string name="password_dialog_title">Entrer le mot de passe SSH</string>
+    <string name="password_dialog_connecting_to">Connexion à %s</string>
+    <string name="password_dialog_password">Mot de passe</string>
+    <string name="password_dialog_remember">Mémoriser le mot de passe (stocké de manière sécurisée)</string>
+
+    <!-- Terminal Screen -->
+    <string name="terminal_file_explorer">Explorateur de fichiers</string>
+    <string name="terminal_reconnecting">Reconnexion...</string>
+    <string name="terminal_secondary_display">Terminal affiché sur l\'écran secondaire</string>
+    <string name="terminal_initializing">Initialisation du terminal...</string>
+
+    <!-- File Explorer -->
+    <string name="file_explorer_title">Explorateur de fichiers</string>
+    <string name="file_explorer_root">Racine</string>
+    <string name="file_explorer_error">Erreur lors du chargement du répertoire</string>
+    <string name="file_explorer_empty">Répertoire vide</string>
+    <string name="file_explorer_install_apk">Installer APK</string>
+
+    <!-- Code Viewer -->
+    <string name="code_viewer_title">Visionneuse de code</string>
+    <string name="code_viewer_loading">Chargement du fichier...</string>
+    <string name="code_viewer_error">Erreur lors du chargement du fichier</string>
+
+    <!-- Startup Command -->
+    <string name="startup_command_label">Commande de démarrage (Optionnel)</string>
+    <string name="startup_command_placeholder">ex., tmux attach || tmux new</string>
+    <string name="startup_command_presets">Commandes prédéfinies</string>
+    <string name="startup_preset_tmux">tmux (Auto)</string>
+    <string name="startup_preset_screen">screen (Auto)</string>
+    <string name="startup_preset_byobu">byobu</string>
+    <string name="startup_preset_log_watch">Surveillance des logs</string>
+    <string name="startup_preset_home">Répertoire personnel</string>
+
+    <!-- Macro Panel -->
+    <string name="macro_text_mode">MODE TEXTE</string>
+    <string name="macro_cmd_mode">MODE CMD</string>
+    <string name="macro_ctrl">CTRL</string>
+    <string name="macro_alt">ALT</string>
+
+    <!-- Macro Tabs -->
+    <string name="macro_tab_basic">Base</string>
+    <string name="macro_tab_nav">Nav</string>
+    <string name="macro_tab_vim">Vim</string>
+    <string name="macro_tab_function">Fonction</string>
+
+    <!-- Basic Macro Keys -->
+    <string name="macro_esc">ESC</string>
+    <string name="macro_esc_desc">Échap</string>
+    <string name="macro_tab">TAB</string>
+    <string name="macro_tab_desc">Tabulation</string>
+    <string name="macro_ctrl_c">CTRL+C</string>
+    <string name="macro_ctrl_c_desc">Interrompre</string>
+    <string name="macro_ctrl_d">CTRL+D</string>
+    <string name="macro_ctrl_d_desc">EOF</string>
+    <string name="macro_ctrl_z">CTRL+Z</string>
+    <string name="macro_ctrl_z_desc">Suspendre</string>
+    <string name="macro_pipe">|</string>
+    <string name="macro_pipe_desc">Pipe</string>
+    <string name="macro_arrow">-></string>
+    <string name="macro_arrow_desc">Flèche</string>
+    <string name="macro_and">&amp;&amp;</string>
+    <string name="macro_and_desc">ET</string>
+    <string name="macro_or">||</string>
+    <string name="macro_or_desc">OU</string>
+    <string name="macro_home_dir">~/</string>
+    <string name="macro_home_dir_desc">Accueil</string>
+    <string name="macro_parent_dir">../</string>
+    <string name="macro_parent_dir_desc">Parent</string>
+
+    <!-- Navigation Macro Keys -->
+    <string name="macro_nav_up">Haut</string>
+    <string name="macro_nav_down">Bas</string>
+    <string name="macro_nav_right">Droite</string>
+    <string name="macro_nav_left">Gauche</string>
+    <string name="macro_nav_home">Début</string>
+    <string name="macro_nav_end">Fin</string>
+    <string name="macro_nav_page_up">Page haut</string>
+    <string name="macro_nav_page_down">Page bas</string>
+
+    <!-- Vim Macro Keys -->
+    <string name="macro_vim_insert">Mode insertion</string>
+    <string name="macro_vim_append">Ajouter</string>
+    <string name="macro_vim_new_line_below">Nouvelle ligne dessous</string>
+    <string name="macro_vim_new_line_above">Nouvelle ligne dessus</string>
+    <string name="macro_vim_delete_char">Supprimer caractère</string>
+    <string name="macro_vim_delete_line">Supprimer ligne</string>
+    <string name="macro_vim_copy_line">Copier ligne</string>
+    <string name="macro_vim_paste">Coller</string>
+    <string name="macro_vim_undo">Annuler</string>
+    <string name="macro_vim_redo">Refaire</string>
+    <string name="macro_vim_save">Enregistrer</string>
+    <string name="macro_vim_quit">Quitter</string>
+    <string name="macro_vim_save_quit">Enregistrer et quitter</string>
+    <string name="macro_vim_force_quit">Forcer quitter</string>
+    <string name="macro_vim_search">Rechercher</string>
+    <string name="macro_vim_next_match">Suivant</string>
+    <string name="macro_vim_prev_match">Précédent</string>
+</resources>

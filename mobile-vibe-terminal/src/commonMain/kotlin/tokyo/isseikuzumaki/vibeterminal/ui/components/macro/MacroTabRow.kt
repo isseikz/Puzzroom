@@ -9,6 +9,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
+import org.jetbrains.compose.resources.stringResource
+import puzzroom.mobile_vibe_terminal.generated.resources.*
 
 @Composable
 fun MacroTabRow(
@@ -40,10 +42,10 @@ fun MacroTabRow(
                 text = {
                     Text(
                         text = when (tab) {
-                            MacroTab.BASIC -> "Basic"
-                            MacroTab.NAV -> "Nav"
-                            MacroTab.VIM -> "Vim"
-                            MacroTab.FUNCTION -> "Function"
+                            MacroTab.BASIC -> stringResource(Res.string.macro_tab_basic)
+                            MacroTab.NAV -> stringResource(Res.string.macro_tab_nav)
+                            MacroTab.VIM -> stringResource(Res.string.macro_tab_vim)
+                            MacroTab.FUNCTION -> stringResource(Res.string.macro_tab_function)
                         },
                         fontSize = 14.sp
                     )

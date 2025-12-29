@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App -->
+    <string name="app_name">Vibe Terminal</string>
+
+    <!-- Common Actions -->
+    <string name="action_back">Back</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_connect">Connect</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_dismiss">Dismiss</string>
+    <string name="action_close">Close</string>
+
+    <!-- Connection List Screen -->
+    <string name="connection_list_title">Vibe Terminal</string>
+    <string name="connection_list_test_display">Test Display</string>
+    <string name="connection_list_add">Add Connection</string>
+    <string name="connection_list_empty_title">No saved connections</string>
+    <string name="connection_list_empty_message">Tap + to add a new server</string>
+
+    <!-- Connection Dialog -->
+    <string name="connection_dialog_add_title">Add Connection</string>
+    <string name="connection_dialog_edit_title">Edit Connection</string>
+    <string name="connection_dialog_name">Name</string>
+    <string name="connection_dialog_host">Host</string>
+    <string name="connection_dialog_port">Port</string>
+    <string name="connection_dialog_username">Username</string>
+    <string name="connection_dialog_monitor_path">Monitor File Path (Auto Deploy)</string>
+    <string name="connection_dialog_monitor_path_placeholder">/path/to/app.apk</string>
+    <string name="connection_dialog_monitor_path_description">Automatically triggers deploy when this file is updated on the server.</string>
+    <string name="connection_dialog_deploy_pattern">Magic Deploy Pattern (Regex)</string>
+    <string name="connection_dialog_deploy_pattern_placeholder">>> VIBE_DEPLOY: (.*)</string>
+    <string name="connection_dialog_deploy_pattern_description">Regex to detect deployable files from terminal output. Use group 1 for file path.</string>
+    <string name="connection_dialog_auto_reconnect">Auto-reconnect on app restart</string>
+
+    <!-- Password Dialog -->
+    <string name="password_dialog_title">Enter SSH Password</string>
+    <string name="password_dialog_connecting_to">Connecting to %s</string>
+    <string name="password_dialog_password">Password</string>
+    <string name="password_dialog_remember">Remember password (stored securely)</string>
+
+    <!-- Terminal Screen -->
+    <string name="terminal_file_explorer">File Explorer</string>
+    <string name="terminal_reconnecting">Reconnecting...</string>
+    <string name="terminal_secondary_display">Terminal displayed on secondary screen</string>
+    <string name="terminal_initializing">Initializing terminal...</string>
+
+    <!-- File Explorer -->
+    <string name="file_explorer_title">File Explorer</string>
+    <string name="file_explorer_root">Root</string>
+    <string name="file_explorer_error">Error loading directory</string>
+    <string name="file_explorer_empty">Empty directory</string>
+    <string name="file_explorer_install_apk">Install APK</string>
+
+    <!-- Code Viewer -->
+    <string name="code_viewer_title">Code Viewer</string>
+    <string name="code_viewer_loading">Loading file...</string>
+    <string name="code_viewer_error">Error loading file</string>
+
+    <!-- Startup Command -->
+    <string name="startup_command_label">Startup Command (Optional)</string>
+    <string name="startup_command_placeholder">e.g., tmux attach || tmux new</string>
+    <string name="startup_command_presets">Preset Commands</string>
+    <string name="startup_preset_tmux">tmux (Auto)</string>
+    <string name="startup_preset_screen">screen (Auto)</string>
+    <string name="startup_preset_byobu">byobu</string>
+    <string name="startup_preset_log_watch">Log Watch</string>
+    <string name="startup_preset_home">Home Directory</string>
+
+    <!-- Macro Panel -->
+    <string name="macro_text_mode">TEXT MODE</string>
+    <string name="macro_cmd_mode">CMD MODE</string>
+    <string name="macro_ctrl">CTRL</string>
+    <string name="macro_alt">ALT</string>
+
+    <!-- Macro Tabs -->
+    <string name="macro_tab_basic">Basic</string>
+    <string name="macro_tab_nav">Nav</string>
+    <string name="macro_tab_vim">Vim</string>
+    <string name="macro_tab_function">Function</string>
+
+    <!-- Basic Macro Keys -->
+    <string name="macro_esc">ESC</string>
+    <string name="macro_esc_desc">Escape</string>
+    <string name="macro_tab">TAB</string>
+    <string name="macro_tab_desc">Tab</string>
+    <string name="macro_ctrl_c">CTRL+C</string>
+    <string name="macro_ctrl_c_desc">Interrupt</string>
+    <string name="macro_ctrl_d">CTRL+D</string>
+    <string name="macro_ctrl_d_desc">EOF</string>
+    <string name="macro_ctrl_z">CTRL+Z</string>
+    <string name="macro_ctrl_z_desc">Suspend</string>
+    <string name="macro_pipe">|</string>
+    <string name="macro_pipe_desc">Pipe</string>
+    <string name="macro_arrow">-></string>
+    <string name="macro_arrow_desc">Arrow</string>
+    <string name="macro_and">&amp;&amp;</string>
+    <string name="macro_and_desc">AND</string>
+    <string name="macro_or">||</string>
+    <string name="macro_or_desc">OR</string>
+    <string name="macro_home_dir">~/</string>
+    <string name="macro_home_dir_desc">Home</string>
+    <string name="macro_parent_dir">../</string>
+    <string name="macro_parent_dir_desc">Parent</string>
+
+    <!-- Navigation Macro Keys -->
+    <string name="macro_nav_up">Up</string>
+    <string name="macro_nav_down">Down</string>
+    <string name="macro_nav_right">Right</string>
+    <string name="macro_nav_left">Left</string>
+    <string name="macro_nav_home">Home</string>
+    <string name="macro_nav_end">End</string>
+    <string name="macro_nav_page_up">Page Up</string>
+    <string name="macro_nav_page_down">Page Down</string>
+
+    <!-- Vim Macro Keys -->
+    <string name="macro_vim_insert">Insert mode</string>
+    <string name="macro_vim_append">Append</string>
+    <string name="macro_vim_new_line_below">New line below</string>
+    <string name="macro_vim_new_line_above">New line above</string>
+    <string name="macro_vim_delete_char">Delete char</string>
+    <string name="macro_vim_delete_line">Delete line</string>
+    <string name="macro_vim_copy_line">Copy line</string>
+    <string name="macro_vim_paste">Paste</string>
+    <string name="macro_vim_undo">Undo</string>
+    <string name="macro_vim_redo">Redo</string>
+    <string name="macro_vim_save">Save</string>
+    <string name="macro_vim_quit">Quit</string>
+    <string name="macro_vim_save_quit">Save &amp; quit</string>
+    <string name="macro_vim_force_quit">Force quit</string>
+    <string name="macro_vim_search">Search</string>
+    <string name="macro_vim_next_match">Next match</string>
+    <string name="macro_vim_prev_match">Prev match</string>
+</resources>
