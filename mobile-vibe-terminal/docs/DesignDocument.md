@@ -107,9 +107,12 @@ graph LR
 * **Picker Mode (New):** ファイルを選択し、そのパス文字列を呼び出し元の入力欄に返す。複数選択時はスペース区切りで連結する。
 
 #### E. Smart File Explorer Path Management (v2.6.0) ✅
-* **初回オープン:** SSHセッションのカレントディレクトリ（`pwd`コマンド結果）を初期パスとして使用。
-* **2回目以降:** セッション内で最後に開いたディレクトリパスを記憶し、次回オープン時にそのパスから開始。
-* **実装:** `TerminalState`に`lastFileExplorerPath`と`hasOpenedFileExplorer`を追加し、`FileExplorerSheet`に`initialPath`パラメータを追加。
+* **初回オープン:** SSHセッションのホームディレクトリ（`$HOME`）を初期パスとして使用。
+* **2回目以降:** 最後に開いたディレクトリパスをデータベースに永続化し、アプリ再起動後も同じパスから開始。
+* **実装:**
+  * `ServerConnection`エンティティに`lastFileExplorerPath`カラムを追加（DB v5）
+  * `ConnectionRepository`に`updateLastFileExplorerPath`/`getLastFileExplorerPath`メソッドを追加
+  * `FileExplorerSheet`に`initialPath`パラメータと`onPathChanged`コールバックを追加
 
 ---
 

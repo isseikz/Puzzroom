@@ -24,4 +24,7 @@ interface ServerConnectionDao {
 
     @Delete
     suspend fun deleteConnection(connection: ServerConnection)
+
+    @Query("UPDATE server_connections SET lastFileExplorerPath = :path WHERE id = :connectionId")
+    suspend fun updateLastFileExplorerPath(connectionId: Long, path: String?)
 }

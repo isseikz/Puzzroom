@@ -119,19 +119,19 @@ data class TerminalScreen(
                     actions = {
                         IconButton(
                             onClick = {
-                                if (!state.hasOpenedFileExplorer) {
-                                    // First time: Get current directory from SSH
-                                    isLoadingInitialPath = true
-                                    coroutineScope.launch {
-                                        val currentDir = screenModel.getRemoteCurrentDirectory()
-                                        fileExplorerInitialPath = currentDir
-                                        screenModel.markFileExplorerOpened()
-                                        isLoadingInitialPath = false
-                                        showFileExplorer = true
+                                isLoadingInitialPath = true
+                                coroutineScope.launch {
+                                    // Try to load saved path from database
+                                    val savedPath = screenModel.loadLastFileExplorerPath()
+                                    if (savedPath != null) {
+                                        // Use saved path (persisted across app restarts)
+                                        fileExplorerInitialPath = savedPath
+                                    } else {
+                                        // First time: Get home directory from SSH
+                                        val homeDir = screenModel.getRemoteHomeDirectory()
+                                        fileExplorerInitialPath = homeDir
                                     }
-                                } else {
-                                    // Subsequent times: Use last opened path or fallback to "/"
-                                    fileExplorerInitialPath = state.lastFileExplorerPath ?: "/"
+                                    isLoadingInitialPath = false
                                     showFileExplorer = true
                                 }
                             },

@@ -42,8 +42,7 @@ data class TerminalState(
     val inputMode: InputMode = InputMode.COMMAND,
     val isCtrlActive: Boolean = false,
     val isAltActive: Boolean = false,
-    val lastFileExplorerPath: String? = null,  // Last opened path in File Explorer
-    val hasOpenedFileExplorer: Boolean = false  // Whether File Explorer has been opened this session
+    val lastFileExplorerPath: String? = null  // Last opened path in File Explorer (loaded from database)
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -60,8 +59,7 @@ data class TerminalState(
                 inputMode == other.inputMode &&
                 isCtrlActive == other.isCtrlActive &&
                 isAltActive == other.isAltActive &&
-                lastFileExplorerPath == other.lastFileExplorerPath &&
-                hasOpenedFileExplorer == other.hasOpenedFileExplorer
+                lastFileExplorerPath == other.lastFileExplorerPath
     }
 
     override fun hashCode(): Int {
@@ -70,7 +68,6 @@ data class TerminalState(
         result = 31 * result + isCtrlActive.hashCode()
         result = 31 * result + isAltActive.hashCode()
         result = 31 * result + lastFileExplorerPath.hashCode()
-        result = 31 * result + hasOpenedFileExplorer.hashCode()
         return result
     }
 }
@@ -320,34 +317,55 @@ class TerminalScreenModel(
     }
 
     /**
-     * Get the current working directory from the SSH session.
+     * Get the home directory from the SSH session.
      * Used to set the initial path for File Explorer on first open.
      */
-    suspend fun getRemoteCurrentDirectory(): String {
+    suspend fun getRemoteHomeDirectory(): String {
         return try {
             val result = withContext(Dispatchers.IO) {
-                sshRepository.executeCommand("pwd")
+                sshRepository.executeCommand("echo \$HOME")
             }
             result.getOrNull()?.trim() ?: "/"
         } catch (e: Exception) {
-            Logger.e(e, "Failed to get remote current directory")
+            Logger.e(e, "Failed to get remote home directory")
             "/"
+        }
+    }
+
+    /**
+     * Load the last opened File Explorer path from the database.
+     * Returns null if no path was saved.
+     */
+    suspend fun loadLastFileExplorerPath(): String? {
+        val connectionId = config.connectionId ?: return null
+        return try {
+            val path = connectionRepository.getLastFileExplorerPath(connectionId)
+            _state.update { it.copy(lastFileExplorerPath = path) }
+            path
+        } catch (e: Exception) {
+            Logger.e(e, "Failed to load last file explorer path")
+            null
         }
     }
 
     /**
      * Update the last opened path in File Explorer.
      * This is called when the user navigates to a new directory.
+     * Persists the path to the database for use across app restarts.
      */
     fun updateLastFileExplorerPath(path: String) {
-        _state.update { it.copy(lastFileExplorerPath = path, hasOpenedFileExplorer = true) }
-    }
+        _state.update { it.copy(lastFileExplorerPath = path) }
 
-    /**
-     * Mark File Explorer as opened for this session.
-     */
-    fun markFileExplorerOpened() {
-        _state.update { it.copy(hasOpenedFileExplorer = true) }
+        // Persist to database
+        config.connectionId?.let { connectionId ->
+            screenModelScope.launch {
+                try {
+                    connectionRepository.updateLastFileExplorerPath(connectionId, path)
+                } catch (e: Exception) {
+                    Logger.e(e, "Failed to persist file explorer path")
+                }
+            }
+        }
     }
 
     /**
