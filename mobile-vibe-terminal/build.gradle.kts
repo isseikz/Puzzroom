@@ -62,6 +62,8 @@ kotlin {
 
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.datetime)
+
+            implementation("io.github.isseikz:kmp-terminal-input:1.0.0")
         }
 
         androidMain.dependencies {
