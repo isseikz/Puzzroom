@@ -279,19 +279,39 @@ data class TerminalScreen(
                         val charWidth = sampleLayout.size.width
                         val charHeight = sampleLayout.size.height
 
-                        // Calculate columns and rows - locked at initial calculation to prevent resize
-                        val terminalSize = remember {
-                            val widthPx = with(density) { maxWidth.toPx().toInt() }
-                            val heightPx = with(density) { maxHeight.toPx().toInt() }
-                            val cols = ((widthPx / charWidth) - 1).coerceAtLeast(1)
-                            val rows = (heightPx / charHeight).coerceAtLeast(1)
+                        // Calculate columns and rows based on available space
+                        // Use maxHeight as key to recalculate when layout changes (e.g., MacroInputPanel appears)
+                        val maxHeightPx = with(density) { maxHeight.toPx().toInt() }
+                        val maxWidthPx = with(density) { maxWidth.toPx().toInt() }
+
+                        val terminalSize = remember(maxWidthPx, maxHeightPx) {
+                            val cols = ((maxWidthPx / charWidth) - 1).coerceAtLeast(1)
+                            val rows = (maxHeightPx / charHeight).coerceAtLeast(1)
 
                             object {
                                 val cols = cols
                                 val rows = rows
-                                val widthPx = widthPx
-                                val heightPx = heightPx
+                                val widthPx = maxWidthPx
+                                val heightPx = maxHeightPx
                             }
+                        }
+
+                        // Track previous terminal size to detect changes
+                        var previousTerminalCols by remember { mutableStateOf(0) }
+                        var previousTerminalRows by remember { mutableStateOf(0) }
+
+                        // Resize terminal when available space changes (e.g., MacroInputPanel appears)
+                        LaunchedEffect(terminalSize.cols, terminalSize.rows, state.isConnected) {
+                            if (state.isConnected &&
+                                terminalSize.cols > 0 && terminalSize.rows > 0 &&
+                                (terminalSize.cols != previousTerminalCols || terminalSize.rows != previousTerminalRows) &&
+                                previousTerminalCols > 0 && previousTerminalRows > 0) {
+                                // Size changed after initial connection - trigger resize
+                                Logger.d("Terminal size changed: ${previousTerminalCols}x${previousTerminalRows} -> ${terminalSize.cols}x${terminalSize.rows}")
+                                screenModel.resizeTerminal(terminalSize.cols, terminalSize.rows, terminalSize.widthPx, terminalSize.heightPx)
+                            }
+                            previousTerminalCols = terminalSize.cols
+                            previousTerminalRows = terminalSize.rows
                         }
 
                         // **New**: セカンダリディスプレイ切断時にメインディスプレイでリサイズ
