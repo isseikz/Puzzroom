@@ -76,11 +76,13 @@ data class TerminalScreen(
             terminalInputState.setInputMode(mode)
         }
 
-        // Collect Input from Library
-        LaunchedEffect(terminalInputState.isReady) {
-            terminalInputState.ptyInputStream.collect { bytes ->
-                val text = bytes.decodeToString()
-                screenModel.sendInput(text, appendNewline = false)
+        // Collect Input from Library (only when connected)
+        LaunchedEffect(terminalInputState.isReady, state.isConnected) {
+            if (terminalInputState.isReady && state.isConnected) {
+                terminalInputState.ptyInputStream.collect { bytes ->
+                    val text = bytes.decodeToString()
+                    screenModel.sendInput(text, appendNewline = false)
+                }
             }
         }
 
