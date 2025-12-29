@@ -617,6 +617,12 @@ class TerminalScreenModel(
                         }
 
                         processOutput("✅ Reconnected to ${config.host}:${config.port}\n")
+
+                        // Log startup command execution for user visibility
+                        if (!config.startupCommand.isNullOrBlank()) {
+                            processOutput("🔄 Executing startup command: ${config.startupCommand}\n")
+                        }
+
                         startOutputListener()
                     },
                     onFailure = { error ->
