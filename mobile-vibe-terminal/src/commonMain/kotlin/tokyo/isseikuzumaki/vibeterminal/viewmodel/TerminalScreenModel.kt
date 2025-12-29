@@ -41,7 +41,9 @@ data class TerminalState(
     val hasAutoSwitchedToNav: Boolean = false,
     val inputMode: InputMode = InputMode.COMMAND,
     val isCtrlActive: Boolean = false,
-    val isAltActive: Boolean = false
+    val isAltActive: Boolean = false,
+    val lastFileExplorerPath: String? = null,  // Last opened path in File Explorer
+    val hasOpenedFileExplorer: Boolean = false  // Whether File Explorer has been opened this session
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -57,7 +59,9 @@ data class TerminalState(
                 hasAutoSwitchedToNav == other.hasAutoSwitchedToNav &&
                 inputMode == other.inputMode &&
                 isCtrlActive == other.isCtrlActive &&
-                isAltActive == other.isAltActive
+                isAltActive == other.isAltActive &&
+                lastFileExplorerPath == other.lastFileExplorerPath &&
+                hasOpenedFileExplorer == other.hasOpenedFileExplorer
     }
 
     override fun hashCode(): Int {
@@ -65,6 +69,8 @@ data class TerminalState(
         result = 31 * result + inputMode.hashCode()
         result = 31 * result + isCtrlActive.hashCode()
         result = 31 * result + isAltActive.hashCode()
+        result = 31 * result + lastFileExplorerPath.hashCode()
+        result = 31 * result + hasOpenedFileExplorer.hashCode()
         return result
     }
 }
@@ -311,6 +317,37 @@ class TerminalScreenModel(
 
     fun toggleAlt() {
         _state.update { it.copy(isAltActive = !it.isAltActive) }
+    }
+
+    /**
+     * Get the current working directory from the SSH session.
+     * Used to set the initial path for File Explorer on first open.
+     */
+    suspend fun getRemoteCurrentDirectory(): String {
+        return try {
+            val result = withContext(Dispatchers.IO) {
+                sshRepository.executeCommand("pwd")
+            }
+            result.getOrNull()?.trim() ?: "/"
+        } catch (e: Exception) {
+            Logger.e(e, "Failed to get remote current directory")
+            "/"
+        }
+    }
+
+    /**
+     * Update the last opened path in File Explorer.
+     * This is called when the user navigates to a new directory.
+     */
+    fun updateLastFileExplorerPath(path: String) {
+        _state.update { it.copy(lastFileExplorerPath = path, hasOpenedFileExplorer = true) }
+    }
+
+    /**
+     * Mark File Explorer as opened for this session.
+     */
+    fun markFileExplorerOpened() {
+        _state.update { it.copy(hasOpenedFileExplorer = true) }
     }
 
     /**

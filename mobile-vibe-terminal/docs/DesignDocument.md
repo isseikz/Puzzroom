@@ -1,8 +1,8 @@
 # 📱 Mobile Vibe Terminal - Master Design Document
 
 **Project Name:** Mobile Vibe Terminal (Code Name: `mobile-vibe`)
-**Version:** 2.5.1 (The "Smart Context" Update)
-**Date:** 2025-12-25
+**Version:** 2.6.0 (The "Smart File Explorer" Update)
+**Date:** 2025-12-29
 **Target Platform:** Android (Primary), Desktop/JVM (Secondary), iOS (Future)
 **Language:** Kotlin (Kotlin Multiplatform)
 
@@ -105,6 +105,11 @@ graph LR
 #### D. File Explorer & Picker
 * **Viewer Mode:** ファイルを開く（既存機能）。
 * **Picker Mode (New):** ファイルを選択し、そのパス文字列を呼び出し元の入力欄に返す。複数選択時はスペース区切りで連結する。
+
+#### E. Smart File Explorer Path Management (v2.6.0) ✅
+* **初回オープン:** SSHセッションのカレントディレクトリ（`pwd`コマンド結果）を初期パスとして使用。
+* **2回目以降:** セッション内で最後に開いたディレクトリパスを記憶し、次回オープン時にそのパスから開始。
+* **実装:** `TerminalState`に`lastFileExplorerPath`と`hasOpenedFileExplorer`を追加し、`FileExplorerSheet`に`initialPath`パラメータを追加。
 
 ---
 

@@ -45,6 +45,7 @@ import androidx.compose.ui.platform.LocalDensity
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.InputMode
 import androidx.compose.foundation.clickable
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalStateProvider
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -92,6 +93,9 @@ data class TerminalScreen(
 
         var showFileExplorer by remember { mutableStateOf(false) }
         var selectedFilePath by remember { mutableStateOf<String?>(null) }
+        var fileExplorerInitialPath by remember { mutableStateOf<String?>(null) }
+        var isLoadingInitialPath by remember { mutableStateOf(false) }
+        val coroutineScope = rememberCoroutineScope()
 
 
         Scaffold(
@@ -114,14 +118,38 @@ data class TerminalScreen(
                     },
                     actions = {
                         IconButton(
-                            onClick = { showFileExplorer = true },
-                            enabled = state.isConnected
+                            onClick = {
+                                if (!state.hasOpenedFileExplorer) {
+                                    // First time: Get current directory from SSH
+                                    isLoadingInitialPath = true
+                                    coroutineScope.launch {
+                                        val currentDir = screenModel.getRemoteCurrentDirectory()
+                                        fileExplorerInitialPath = currentDir
+                                        screenModel.markFileExplorerOpened()
+                                        isLoadingInitialPath = false
+                                        showFileExplorer = true
+                                    }
+                                } else {
+                                    // Subsequent times: Use last opened path or fallback to "/"
+                                    fileExplorerInitialPath = state.lastFileExplorerPath ?: "/"
+                                    showFileExplorer = true
+                                }
+                            },
+                            enabled = state.isConnected && !isLoadingInitialPath
                         ) {
-                            Icon(
-                                Icons.Default.FolderOpen,
-                                "File Explorer",
-                                tint = if (state.isConnected) Color(0xFF00FF00) else Color.Gray
-                            )
+                            if (isLoadingInitialPath) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = Color(0xFF00FF00),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Default.FolderOpen,
+                                    "File Explorer",
+                                    tint = if (state.isConnected) Color(0xFF00FF00) else Color.Gray
+                                )
+                            }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -330,15 +358,19 @@ data class TerminalScreen(
         }
 
         // File Explorer Sheet
-        if (showFileExplorer) {
+        if (showFileExplorer && fileExplorerInitialPath != null) {
             FileExplorerSheet(
                 sshRepository = sshRepository,
+                initialPath = fileExplorerInitialPath!!,
                 onDismiss = { showFileExplorer = false },
                 onFileSelected = { file ->
                     selectedFilePath = file.path
                 },
                 onInstall = { file ->
                     screenModel.downloadAndInstallApk(file.path)
+                },
+                onPathChanged = { path ->
+                    screenModel.updateLastFileExplorerPath(path)
                 }
             )
         }
