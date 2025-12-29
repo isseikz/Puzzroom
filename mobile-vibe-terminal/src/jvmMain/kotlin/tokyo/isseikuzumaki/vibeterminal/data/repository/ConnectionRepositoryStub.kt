@@ -12,4 +12,11 @@ class ConnectionRepositoryStub : ConnectionRepository {
     override suspend fun updateConnection(connection: SavedConnection) {}
     override suspend fun deleteConnection(connection: SavedConnection) {}
     override suspend fun updateLastUsed(connectionId: Long) {}
+    override suspend fun getLastActiveConnectionId(): Long? = null
+    override suspend fun setLastActiveConnectionId(connectionId: Long?) {}
+    override suspend fun savePassword(connectionId: Long, password: String) {}
+    override suspend fun getPassword(connectionId: Long): String? = null
+    override suspend fun deletePassword(connectionId: Long) {}
+    override suspend fun updateLastFileExplorerPath(connectionId: Long, path: String?) {}
+    override suspend fun getLastFileExplorerPath(connectionId: Long): String? = null
 }

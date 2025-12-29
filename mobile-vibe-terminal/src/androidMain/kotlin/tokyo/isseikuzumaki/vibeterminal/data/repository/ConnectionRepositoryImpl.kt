@@ -93,6 +93,14 @@ class ConnectionRepositoryImpl(
         }
     }
 
+    override suspend fun updateLastFileExplorerPath(connectionId: Long, path: String?) {
+        dao.updateLastFileExplorerPath(connectionId, path)
+    }
+
+    override suspend fun getLastFileExplorerPath(connectionId: Long): String? {
+        return dao.getConnectionById(connectionId)?.lastFileExplorerPath
+    }
+
     // Mappers
     private fun ServerConnection.toDomain() = SavedConnection(
         id = id,
@@ -106,7 +114,8 @@ class ConnectionRepositoryImpl(
         deployPattern = deployPattern,
         startupCommand = startupCommand,
         isAutoReconnect = isAutoReconnect,
-        monitorFilePath = monitorFilePath
+        monitorFilePath = monitorFilePath,
+        lastFileExplorerPath = lastFileExplorerPath
     )
 
     private fun SavedConnection.toEntity() = ServerConnection(
@@ -121,6 +130,7 @@ class ConnectionRepositoryImpl(
         deployPattern = deployPattern,
         startupCommand = startupCommand,
         isAutoReconnect = isAutoReconnect,
-        monitorFilePath = monitorFilePath
+        monitorFilePath = monitorFilePath,
+        lastFileExplorerPath = lastFileExplorerPath
     )
 }

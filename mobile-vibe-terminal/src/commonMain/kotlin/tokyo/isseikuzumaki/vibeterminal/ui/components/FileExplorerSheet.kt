@@ -38,11 +38,13 @@ data class FileExplorerState(
 @Composable
 fun FileExplorerSheet(
     sshRepository: SshRepository,
+    initialPath: String = "/",
     onDismiss: () -> Unit,
     onFileSelected: (FileEntry) -> Unit,
-    onInstall: (FileEntry) -> Unit
+    onInstall: (FileEntry) -> Unit,
+    onPathChanged: (String) -> Unit = {}
 ) {
-    var state by remember { mutableStateOf(FileExplorerState()) }
+    var state by remember { mutableStateOf(FileExplorerState(currentPath = initialPath)) }
     val scope = rememberCoroutineScope()
 
     fun generateBreadcrumbs(path: String): List<String> {
@@ -76,6 +78,8 @@ fun FileExplorerSheet(
                         isLoading = false,
                         errorMessage = null
                     )
+                    // Notify parent of path change for persistence
+                    onPathChanged(path)
                 },
                 onFailure = { error ->
                     state = state.copy(
@@ -88,7 +92,7 @@ fun FileExplorerSheet(
     }
 
     LaunchedEffect(Unit) {
-        loadDirectory("/")
+        loadDirectory(initialPath)
     }
 
     fun navigateUp() {

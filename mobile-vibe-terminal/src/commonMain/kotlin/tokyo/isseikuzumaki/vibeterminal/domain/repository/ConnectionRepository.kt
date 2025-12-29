@@ -63,4 +63,14 @@ interface ConnectionRepository {
      * Delete saved password for a connection
      */
     suspend fun deletePassword(connectionId: Long)
+
+    /**
+     * Update the last opened File Explorer path for a connection
+     */
+    suspend fun updateLastFileExplorerPath(connectionId: Long, path: String?)
+
+    /**
+     * Get the last opened File Explorer path for a connection
+     */
+    suspend fun getLastFileExplorerPath(connectionId: Long): String?
 }

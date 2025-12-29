@@ -1,6 +1,6 @@
 # Mobile Vibe Terminal
 
-**Version:** 2.4.0  
+**Version:** 2.5.0  
 **Platform:** Android, Desktop (JVM), iOS (Future)  
 **Language:** Kotlin Multiplatform
 
@@ -14,6 +14,7 @@ Mobile Vibe Terminal は、AI時代のSSHクライアントです。スマート
 - **Code Peek Overlay**: SSH経由でファイルをモーダル表示
 - **Magic Deploy**: ビルド完了を検知してAPKを自動転送・インストール
 - **Connection Management**: サーバー接続設定の永続化と管理
+- **Smart File Explorer**: SSHセッションの作業ディレクトリを起点としたファイルブラウザ
 
 ## アーキテクチャ (Architecture)
 
@@ -85,6 +86,20 @@ deployPattern = "DEPLOY_HERE: (.*)"
 ```
 
 正規表現の第1キャプチャグループ `(.*)` がファイルパスとして扱われます。
+
+### Smart File Explorer
+
+File Explorerは、使いやすさを重視したパス管理機能を提供します。
+
+**初回オープン時:**
+- SSHセッションのホームディレクトリ（`$HOME`）を初期パスとして使用
+- ユーザーのホームディレクトリからファイル探索を開始
+
+**2回目以降のオープン:**
+- 最後に開いたディレクトリをデータベースに永続化
+- アプリを再起動しても、前回開いたディレクトリから再開可能
+
+この機能により、File Explorerの使い勝手が大幅に向上し、毎回ルートディレクトリから探索する必要がなくなります。
 
 ## ビルド方法 (Build Instructions)
 

@@ -19,12 +19,18 @@ private val MIGRATION_3_4 = object : Migration(3, 4) {
     }
 }
 
+private val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE server_connections ADD COLUMN lastFileExplorerPath TEXT DEFAULT NULL")
+    }
+}
+
 fun getRoomDatabase(context: Context): AppDatabase {
     val dbFile = context.getDatabasePath("vibe_terminal.db")
     return Room.databaseBuilder<AppDatabase>(
         context = context.applicationContext,
         name = dbFile.absolutePath
     )
-    .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
+    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
     .build()
 }
