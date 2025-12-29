@@ -252,6 +252,91 @@ class AnsiEscapeParserTest {
         assertEquals(' ', screenBuffer[2][0].char, "Deleted line should be blank")
     }
 
+    // ========== Character Manipulation Commands ==========
+
+    @Test
+    fun testDeleteCharacters_DCH() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("ABCDEFGHIJ")
+        parser.processText("\u001B[1;3H")  // Move to column 3 ('C')
+        parser.processText("\u001B[2P")    // CSI 2 P - Delete 2 characters
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('A', screenBuffer[0][0].char, "A should remain")
+        assertEquals('B', screenBuffer[0][1].char, "B should remain")
+        assertEquals('E', screenBuffer[0][2].char, "E should shift left to position of C")
+        assertEquals('F', screenBuffer[0][3].char, "F should shift left")
+        assertEquals(' ', screenBuffer[0][8].char, "Position 9 should be blank after shift")
+        assertEquals(' ', screenBuffer[0][9].char, "Position 10 should be blank after shift")
+    }
+
+    @Test
+    fun testInsertCharacters_ICH() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("ABCDEFGHIJ")
+        parser.processText("\u001B[1;3H")  // Move to column 3 ('C')
+        parser.processText("\u001B[2@")    // CSI 2 @ - Insert 2 blank characters
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('A', screenBuffer[0][0].char, "A should remain")
+        assertEquals('B', screenBuffer[0][1].char, "B should remain")
+        assertEquals(' ', screenBuffer[0][2].char, "Position 3 should be blank (inserted)")
+        assertEquals(' ', screenBuffer[0][3].char, "Position 4 should be blank (inserted)")
+        assertEquals('C', screenBuffer[0][4].char, "C should shift right")
+        assertEquals('D', screenBuffer[0][5].char, "D should shift right")
+    }
+
+    @Test
+    fun testEraseCharacters_ECH() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("ABCDEFGHIJ")
+        parser.processText("\u001B[1;3H")  // Move to column 3 ('C')
+        parser.processText("\u001B[3X")    // CSI 3 X - Erase 3 characters (no shift)
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('A', screenBuffer[0][0].char, "A should remain")
+        assertEquals('B', screenBuffer[0][1].char, "B should remain")
+        assertEquals(' ', screenBuffer[0][2].char, "C should be erased")
+        assertEquals(' ', screenBuffer[0][3].char, "D should be erased")
+        assertEquals(' ', screenBuffer[0][4].char, "E should be erased")
+        assertEquals('F', screenBuffer[0][5].char, "F should remain (no shift)")
+    }
+
+    @Test
+    fun testScrollUp_SU() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("\u001B[1;1HLine 1")
+        parser.processText("\u001B[2;1HLine 2")
+        parser.processText("\u001B[3;1HLine 3")
+        parser.processText("\u001B[S")  // CSI S - Scroll up 1 line
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('L', screenBuffer[0][0].char, "Line 2 should scroll to top")
+        assertEquals('i', screenBuffer[0][1].char)
+        assertEquals('n', screenBuffer[0][2].char)
+        assertEquals('e', screenBuffer[0][3].char)
+        assertEquals(' ', screenBuffer[0][4].char)
+        assertEquals('2', screenBuffer[0][5].char, "Should be Line 2")
+    }
+
+    @Test
+    fun testScrollDown_SD() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("\u001B[1;1HLine 1")
+        parser.processText("\u001B[2;1HLine 2")
+        parser.processText("\u001B[3;1HLine 3")
+        parser.processText("\u001B[T")  // CSI T - Scroll down 1 line
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals(' ', screenBuffer[0][0].char, "First line should be blank after scroll down")
+        assertEquals('L', screenBuffer[1][0].char, "Line 1 should move to second row")
+    }
+
     // ========== SGR - Select Graphic Rendition ==========
 
     @Test
@@ -304,6 +389,44 @@ class AnsiEscapeParserTest {
         assertEquals(Color(0xFFFF5555), buffer.getBuffer()[0][0].backgroundColor, "Red bg")
         assertEquals(Color(0xFF50FA7B), buffer.getBuffer()[0][1].backgroundColor, "Green bg")
         assertEquals(Color(0xFFF1FA8C), buffer.getBuffer()[0][2].backgroundColor, "Yellow bg")
+    }
+
+    @Test
+    fun testSGR_BrightForegroundColors() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("\u001B[90mX")  // Bright Black (Gray)
+        parser.processText("\u001B[91mX")  // Bright Red
+        parser.processText("\u001B[92mX")  // Bright Green
+        parser.processText("\u001B[93mX")  // Bright Yellow
+        parser.processText("\u001B[94mX")  // Bright Blue
+        parser.processText("\u001B[95mX")  // Bright Magenta
+        parser.processText("\u001B[96mX")  // Bright Cyan
+        parser.processText("\u001B[97mX")  // Bright White
+
+        assertEquals(Color(0xFF6E6E6E), buffer.getBuffer()[0][0].foregroundColor, "Bright Black")
+        assertEquals(Color(0xFFFF6E6E), buffer.getBuffer()[0][1].foregroundColor, "Bright Red")
+        assertEquals(Color(0xFF69FF94), buffer.getBuffer()[0][2].foregroundColor, "Bright Green")
+        assertEquals(Color(0xFFFFFFA5), buffer.getBuffer()[0][3].foregroundColor, "Bright Yellow")
+        assertEquals(Color(0xFFD6ACFF), buffer.getBuffer()[0][4].foregroundColor, "Bright Blue")
+        assertEquals(Color(0xFFFF92DF), buffer.getBuffer()[0][5].foregroundColor, "Bright Magenta")
+        assertEquals(Color(0xFFA4FFFF), buffer.getBuffer()[0][6].foregroundColor, "Bright Cyan")
+        assertEquals(Color(0xFFFFFFFF), buffer.getBuffer()[0][7].foregroundColor, "Bright White")
+    }
+
+    @Test
+    fun testSGR_BrightBackgroundColors() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("\u001B[100mX")  // Bright Black bg
+        parser.processText("\u001B[101mX")  // Bright Red bg
+        parser.processText("\u001B[102mX")  // Bright Green bg
+        parser.processText("\u001B[103mX")  // Bright Yellow bg
+
+        assertEquals(Color(0xFF6E6E6E), buffer.getBuffer()[0][0].backgroundColor, "Bright Black bg")
+        assertEquals(Color(0xFFFF6E6E), buffer.getBuffer()[0][1].backgroundColor, "Bright Red bg")
+        assertEquals(Color(0xFF69FF94), buffer.getBuffer()[0][2].backgroundColor, "Bright Green bg")
+        assertEquals(Color(0xFFFFFFA5), buffer.getBuffer()[0][3].backgroundColor, "Bright Yellow bg")
     }
 
     @Test
@@ -434,6 +557,37 @@ class AnsiEscapeParserTest {
 
         // After reset, scrolling should affect entire screen
         // Verified through buffer operations
+    }
+
+    @Test
+    fun testScrollRegion_DECSTBM_NonStandardRows() {
+        // Test DECSTBM with a buffer that has different row count than 24
+        // This tests that the default bottom value uses actual buffer rows, not hardcoded 24
+        val buffer = TerminalScreenBuffer(cols = 80, rows = 40)
+        val parser = AnsiEscapeParser(buffer)
+
+        // Set only top margin, bottom should default to last row (40, not 24)
+        parser.processText("\u001B[5r")  // CSI 5 r - Set top=5, bottom=default
+
+        // Check that scroll region is (4, 39) not (4, 23)
+        val (top, bottom) = buffer.scrollRegion
+        assertEquals(4, top, "Top should be 4 (0-indexed from 5)")
+        assertEquals(39, bottom, "Bottom should be 39 (last row of 40-row buffer)")
+    }
+
+    @Test
+    fun testScrollRegion_DECSTBM_ResetWithNonStandardRows() {
+        // Test that reset uses actual buffer rows
+        val buffer = TerminalScreenBuffer(cols = 80, rows = 30)
+        val parser = AnsiEscapeParser(buffer)
+
+        parser.processText("\u001B[5;20r")  // Set custom scroll region
+        parser.processText("\u001B[r")      // Reset scroll region
+
+        // After reset, scroll region should be full screen (0, 29)
+        val (top, bottom) = buffer.scrollRegion
+        assertEquals(0, top, "Top should be 0 after reset")
+        assertEquals(29, bottom, "Bottom should be 29 (last row of 30-row buffer)")
     }
 
     // ========== Alternate Screen Buffer ==========

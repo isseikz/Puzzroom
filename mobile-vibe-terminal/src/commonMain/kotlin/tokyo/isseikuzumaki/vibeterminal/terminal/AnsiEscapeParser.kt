@@ -230,6 +230,26 @@ class AnsiEscapeParser(private val screenBuffer: TerminalScreenBuffer) {
                 val n = params.getOrElse(0) { 1 }
                 screenBuffer.deleteLines(n)
             }
+            'P' -> {  // DCH - Delete character(s)
+                val n = params.getOrElse(0) { 1 }
+                screenBuffer.deleteCharacters(n)
+            }
+            '@' -> {  // ICH - Insert blank character(s)
+                val n = params.getOrElse(0) { 1 }
+                screenBuffer.insertCharacters(n)
+            }
+            'S' -> {  // SU - Scroll up
+                val n = params.getOrElse(0) { 1 }
+                screenBuffer.scrollUpLines(n)
+            }
+            'T' -> {  // SD - Scroll down
+                val n = params.getOrElse(0) { 1 }
+                screenBuffer.scrollDownLines(n)
+            }
+            'X' -> {  // ECH - Erase character(s)
+                val n = params.getOrElse(0) { 1 }
+                screenBuffer.eraseCharacters(n)
+            }
             'G', '`' -> {  // Cursor horizontal absolute
                 val col = params.getOrElse(0) { 1 }
                 screenBuffer.moveCursorToColumn(col)
@@ -285,7 +305,7 @@ class AnsiEscapeParser(private val screenBuffer: TerminalScreenBuffer) {
                     screenBuffer.resetScrollRegion()
                 } else {
                     val top = params.getOrElse(0) { 1 }
-                    val bottom = params.getOrElse(1) { 24 }  // Default based on current buffer size
+                    val bottom = params.getOrElse(1) { screenBuffer.rows }  // Default to actual buffer rows
                     screenBuffer.setScrollRegion(top, bottom)
                 }
             }
