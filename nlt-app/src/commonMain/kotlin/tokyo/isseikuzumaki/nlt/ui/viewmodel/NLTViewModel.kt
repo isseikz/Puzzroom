@@ -63,6 +63,11 @@ interface NLTViewModel {
     fun updateTargetPackages(packages: Set<String>)
     
     /**
+     * Add a package name to the target filter
+     */
+    fun addPackageToFilter(packageName: String)
+    
+    /**
      * Update keywords for filtering
      */
     fun updateKeywords(keywords: Set<String>)
