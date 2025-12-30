@@ -70,8 +70,8 @@
     <string name="startup_preset_home">主目录</string>
 
     <!-- Macro Panel -->
-    <string name="macro_text_mode">文本模式</string>
-    <string name="macro_cmd_mode">命令模式</string>
+    <string name="macro_text_mode">TEXT MODE</string>
+    <string name="macro_cmd_mode">CMD MODE</string>
     <string name="macro_ctrl">CTRL</string>
     <string name="macro_alt">ALT</string>
 

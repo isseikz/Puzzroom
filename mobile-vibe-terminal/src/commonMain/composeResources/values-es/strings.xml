@@ -70,8 +70,8 @@
     <string name="startup_preset_home">Directorio home</string>
 
     <!-- Macro Panel -->
-    <string name="macro_text_mode">MODO TEXTO</string>
-    <string name="macro_cmd_mode">MODO CMD</string>
+    <string name="macro_text_mode">TEXT MODE</string>
+    <string name="macro_cmd_mode">CMD MODE</string>
     <string name="macro_ctrl">CTRL</string>
     <string name="macro_alt">ALT</string>
 
