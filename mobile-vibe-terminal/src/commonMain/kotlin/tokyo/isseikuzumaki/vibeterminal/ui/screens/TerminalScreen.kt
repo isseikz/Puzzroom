@@ -237,12 +237,27 @@ data class TerminalScreen(
                 }
 
                 // Terminal Input Container
-                // セカンダリディスプレイ接続時は非表示にし、マクロパネルを全画面に
-                if (!isSecondaryConnected) {
-                    TerminalInputContainer(
-                        state = terminalInputState,
-                        modifier = Modifier.weight(1f).fillMaxWidth()
-                    ) {
+                // Always active to capture input (hardware/software keyboard)
+                TerminalInputContainer(
+                    state = terminalInputState,
+                    modifier = Modifier.weight(1f).fillMaxWidth()
+                ) {
+                    if (isSecondaryConnected) {
+                        // Secondary Display Mode: Show Macro Panel Full Screen
+                        MacroInputPanel(
+                            state = state,
+                            inputText = TextFieldValue(""),
+                            onInputChange = { },
+                            onSendCommand = { },
+                            onDirectSend = { sequence -> screenModel.sendInput(sequence, appendNewline = false) },
+                            onTabSelected = { tab -> screenModel.selectMacroTab(tab) },
+                            onToggleInputMode = { screenModel.toggleInputMode() },
+                            onToggleCtrl = { screenModel.toggleCtrl() },
+                            onToggleAlt = { screenModel.toggleAlt() },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        // Main Display Mode: Show Terminal
                         // メインディスプレイでターミナル表示
                         BoxWithConstraints(
                             modifier = Modifier
@@ -377,14 +392,13 @@ data class TerminalScreen(
                                 bufferUpdateCounter = state.bufferUpdateCounter
                             )
                         }
-                        }
                     }
                 }
+                }
 
-                // Buffered Input Deck with Macro Row
-                // Show input panel when connected
-                // セカンダリディスプレイ接続時は全画面でマクロパネルを表示
-                if (state.isConnected) {
+                // Buffered Input Deck with Macro Row (Main Display Mode Only)
+                // Show input panel when connected and NOT in secondary mode
+                if (state.isConnected && !isSecondaryConnected) {
                     MacroInputPanel(
                         state = state,
                         inputText = TextFieldValue(""),
@@ -405,11 +419,7 @@ data class TerminalScreen(
                         onToggleAlt = {
                             screenModel.toggleAlt()
                         },
-                        modifier = if (isSecondaryConnected) {
-                            Modifier.weight(1f).fillMaxWidth()  // 全画面使用
-                        } else {
-                            Modifier.fillMaxWidth()  // 通常サイズ
-                        }
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }

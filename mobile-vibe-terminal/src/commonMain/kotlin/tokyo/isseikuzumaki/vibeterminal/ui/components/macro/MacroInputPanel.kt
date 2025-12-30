@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.focus.focusProperties
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.InputMode
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.TerminalState
 import org.jetbrains.compose.resources.stringResource
@@ -92,7 +93,8 @@ fun MacroInputPanel(
                     selected = state.inputMode == InputMode.TEXT,
                     borderColor = Color(0xFF00FF00).copy(alpha = 0.5f),
                     selectedBorderColor = Color(0xFF00FF00)
-                )
+                ),
+                modifier = Modifier.focusProperties { canFocus = false }
             )
 
             Spacer(modifier = Modifier.weight(1f))
@@ -113,7 +115,8 @@ fun MacroInputPanel(
                     selected = state.isCtrlActive,
                     borderColor = Color(0xFF00FF00).copy(alpha = 0.5f),
                     selectedBorderColor = Color(0xFF00FF00)
-                )
+                ),
+                modifier = Modifier.focusProperties { canFocus = false }
             )
 
             // Alt Toggle
@@ -132,7 +135,8 @@ fun MacroInputPanel(
                     selected = state.isAltActive,
                     borderColor = Color(0xFF00FF00).copy(alpha = 0.5f),
                     selectedBorderColor = Color(0xFF00FF00)
-                )
+                ),
+                modifier = Modifier.focusProperties { canFocus = false }
             )
         }
     }
