@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -170,13 +171,16 @@ class TerminalPresentation(
                 .background(Color.Black)
         ) {
             if (terminalState.isConnected && terminalState.buffer.isNotEmpty()) {
-                // Render terminal output
-                TerminalCanvas(
-                    buffer = terminalState.buffer,
-                    cursorRow = terminalState.cursorRow,
-                    cursorCol = terminalState.cursorCol,
-                    modifier = Modifier.fillMaxSize()
-                )
+                // Force recomposition when buffer updates using key()
+                key(terminalState.bufferUpdateCounter) {
+                    // Render terminal output
+                    TerminalCanvas(
+                        buffer = terminalState.buffer,
+                        cursorRow = terminalState.cursorRow,
+                        cursorCol = terminalState.cursorCol,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             } else {
                 // Show waiting message when not connected
                 Text(

@@ -22,7 +22,8 @@ object TerminalStateProvider {
         val cursorRow: Int = 0,
         val cursorCol: Int = 0,
         val isAlternateScreen: Boolean = false,
-        val isConnected: Boolean = false
+        val isConnected: Boolean = false,
+        val bufferUpdateCounter: Int = 0  // Force recomposition on every update
     ) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
@@ -30,7 +31,8 @@ object TerminalStateProvider {
 
             other as TerminalDisplayState
 
-            if (!buffer.contentDeepEquals(other.buffer)) return false
+            // Use bufferUpdateCounter for fast change detection instead of deep array comparison
+            if (bufferUpdateCounter != other.bufferUpdateCounter) return false
             if (cursorRow != other.cursorRow) return false
             if (cursorCol != other.cursorCol) return false
             if (isAlternateScreen != other.isAlternateScreen) return false
@@ -40,7 +42,7 @@ object TerminalStateProvider {
         }
 
         override fun hashCode(): Int {
-            var result = buffer.contentDeepHashCode()
+            var result = bufferUpdateCounter
             result = 31 * result + cursorRow
             result = 31 * result + cursorCol
             result = 31 * result + isAlternateScreen.hashCode()
@@ -69,12 +71,14 @@ object TerminalStateProvider {
         isAlternateScreen: Boolean,
         isConnected: Boolean
     ) {
+        val currentCounter = _state.value.bufferUpdateCounter
         _state.value = TerminalDisplayState(
             buffer = buffer,
             cursorRow = cursorRow,
             cursorCol = cursorCol,
             isAlternateScreen = isAlternateScreen,
-            isConnected = isConnected
+            isConnected = isConnected,
+            bufferUpdateCounter = currentCounter + 1
         )
     }
 
