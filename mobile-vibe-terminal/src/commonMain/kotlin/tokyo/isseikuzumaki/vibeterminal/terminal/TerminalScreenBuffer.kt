@@ -47,6 +47,11 @@ class TerminalScreenBuffer(
     private var scrollTop = 0
     private var scrollBottom = rows - 1
 
+    // Delayed wrap state (Xenon wrap)
+    // When true, the cursor is technically past the last column, but wrapping is deferred
+    // until the next character is written.
+    private var delayedWrap = false
+
     /**
      * Get current scroll region (for testing and debugging)
      * Returns (top, bottom) as 0-indexed, inclusive bounds
@@ -77,6 +82,7 @@ class TerminalScreenBuffer(
             // Reset cursor for alternate buffer
             cursorRow = 0
             cursorCol = 0
+            delayedWrap = false
             
             isAlternateScreen = true
         }
@@ -91,6 +97,7 @@ class TerminalScreenBuffer(
             buffer = primaryBuffer
             cursorRow = primaryCursorRow
             cursorCol = primaryCursorCol
+            delayedWrap = false
             alternateBuffer = null
             isAlternateScreen = false
         }
@@ -108,7 +115,20 @@ class TerminalScreenBuffer(
         if (cursorRow >= 0 && cursorRow < rows && cursorCol >= 0 && cursorCol < cols) {
             val isWide = UnicodeWidth.isWideChar(char)
 
-            // Handle wrapping for wide char at last column
+            // Resolve delayed wrap if pending
+            if (delayedWrap) {
+                delayedWrap = false
+                cursorCol = 0
+                cursorRow++
+                if (cursorRow > scrollBottom) {
+                    scrollUp()
+                    cursorRow = scrollBottom
+                }
+            }
+
+            // Handle wrapping for wide char at last column (Pre-wrap)
+            // If we are at the last column and try to write a wide char, we wrap immediately
+            // because a wide char cannot fit.
             if (isWide && cursorCol == cols - 1) {
                 // Clear the last column
                 buffer[cursorRow][cursorCol] = TerminalCell.EMPTY
@@ -152,13 +172,8 @@ class TerminalScreenBuffer(
                 cursorCol += if (isWide) 2 else 1
                 
                 if (cursorCol >= cols) {
-                    cursorCol = 0
-                    cursorRow++
-                    // Check if we need to scroll within the scroll region
-                    if (cursorRow > scrollBottom) {
-                        scrollUp()
-                        cursorRow = scrollBottom
-                    }
+                    delayedWrap = true
+                    cursorCol = cols - 1
                 }
             }
         }
@@ -197,6 +212,7 @@ class TerminalScreenBuffer(
      * Move cursor to absolute position (1-indexed as per VT100 spec)
      */
     fun moveCursor(row: Int, col: Int) {
+        delayedWrap = false
         cursorRow = (row - 1).coerceIn(0, rows - 1)
         cursorCol = (col - 1).coerceIn(0, cols - 1)
     }
@@ -205,6 +221,7 @@ class TerminalScreenBuffer(
      * Move cursor relatively
      */
     fun moveCursorRelative(rowDelta: Int, colDelta: Int) {
+        delayedWrap = false
         cursorRow = (cursorRow + rowDelta).coerceIn(0, rows - 1)
         cursorCol = (cursorCol + colDelta).coerceIn(0, cols - 1)
     }
@@ -213,6 +230,7 @@ class TerminalScreenBuffer(
      * Move cursor to column (1-indexed)
      */
     fun moveCursorToColumn(col: Int) {
+        delayedWrap = false
         cursorCol = (col - 1).coerceIn(0, cols - 1)
     }
 
@@ -220,6 +238,7 @@ class TerminalScreenBuffer(
      * Clear the entire screen
      */
     fun clearScreen() {
+        delayedWrap = false
         // Instead of creating a new buffer, we should clear the existing one to preserve reference if it's primary or alternate locally
         // But for simplicity in this MVP, re-creating is fine as long as we assign it back to `buffer`
         // However, `buffer` is a reference. 
@@ -237,6 +256,7 @@ class TerminalScreenBuffer(
      * Clear from cursor to end of screen
      */
     fun clearToEndOfScreen() {
+        delayedWrap = false
         // Clear rest of current line
         for (c in cursorCol until cols) {
             buffer[cursorRow][c] = TerminalCell.EMPTY
@@ -253,6 +273,7 @@ class TerminalScreenBuffer(
      * Clear from start of screen to cursor
      */
     fun clearToStartOfScreen() {
+        delayedWrap = false
         // Clear all lines above
         for (r in 0 until cursorRow) {
             for (c in 0 until cols) {
@@ -269,6 +290,7 @@ class TerminalScreenBuffer(
      * Clear the current line
      */
     fun clearLine() {
+        delayedWrap = false
         for (c in 0 until cols) {
             buffer[cursorRow][c] = TerminalCell.EMPTY
         }
@@ -278,6 +300,7 @@ class TerminalScreenBuffer(
      * Clear from cursor to end of line
      */
     fun clearToEndOfLine() {
+        delayedWrap = false
         for (c in cursorCol until cols) {
             buffer[cursorRow][c] = TerminalCell.EMPTY
         }
@@ -287,6 +310,7 @@ class TerminalScreenBuffer(
      * Clear from start of line to cursor
      */
     fun clearToStartOfLine() {
+        delayedWrap = false
         for (c in 0..cursorCol.coerceAtMost(cols - 1)) {
             buffer[cursorRow][c] = TerminalCell.EMPTY
         }
@@ -330,6 +354,7 @@ class TerminalScreenBuffer(
      * @param bottom Bottom line (1-indexed, inclusive)
      */
     fun setScrollRegion(top: Int, bottom: Int) {
+        delayedWrap = false
         // Convert from 1-indexed to 0-indexed
         scrollTop = (top - 1).coerceIn(0, rows - 1)
         scrollBottom = (bottom - 1).coerceIn(scrollTop, rows - 1)
@@ -339,6 +364,7 @@ class TerminalScreenBuffer(
      * Reset scrolling region to full screen
      */
     fun resetScrollRegion() {
+        delayedWrap = false
         scrollTop = 0
         scrollBottom = rows - 1
     }

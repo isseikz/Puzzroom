@@ -1035,13 +1035,10 @@ class AnsiEscapeParserTest {
      *
      * 入力: "あいうえお" (5文字 × 2セル = 10セル)
      *
-     * 期待される動作:
+     * 期待される動作 (Delayed Wrap):
      *   - 10セルがぴったり1行に収まる
-     *   - 書き込み完了後、カーソルは次の行（行1）の先頭（列0）に移動
-     *
-     * 期待されるバッファ状態:
-     *   Row 0: [あ][P][い][P][う][P][え][P][お][P]  ← 10列すべて使用
-     *   Row 1: (カーソル位置)
+     *   - 書き込み完了直後、カーソルは **まだ行末に留まる** (Delayed Wrap)
+     *   - 次の文字を書き込んだ瞬間に改行が発生する
      */
     @Test
     fun testWideChar_LineWrap() {
@@ -1049,16 +1046,19 @@ class AnsiEscapeParserTest {
         val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
         val parser = AnsiEscapeParser(buffer)
 
-        // Write wide chars that should wrap
+        // Write wide chars that should wrap exactly
         parser.processText("あいうえお")  // 10 cells, should fit exactly
 
-        assertEquals(1, buffer.cursorRow, "Should wrap to next line")
-        assertEquals(0, buffer.cursorCol, "Cursor at start of line")
+        // With delayed wrap, cursor sits at the last column waiting for next char
+        assertEquals(0, buffer.cursorRow, "Should NOT wrap immediately (Delayed Wrap)")
+        assertEquals(9, buffer.cursorCol, "Cursor at end of line")
 
-        // Write one more wide char
+        // Write one more wide char - THIS triggers the wrap
         parser.processText("か")
 
+        assertEquals(1, buffer.cursorRow, "Should wrap to next line after writing new char")
         assertEquals('か', buffer.getBuffer()[1][0].char, "Wide char on second line")
+        assertEquals(2, buffer.cursorCol, "Cursor advanced after 'か'")
     }
 
     /**

@@ -651,6 +651,32 @@ class TerminalScreenBufferTest {
 
     // ========== Wide Character (Full-width) Handling ==========
 
+    @Test
+    fun testWriteAtLastCell_DoesNotScrollImmediately() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        // 1. Write marker at top
+        buffer.moveCursor(1, 1)
+        buffer.writeChar('A')
+
+        // 2. Move to last cell of last line
+        buffer.moveCursor(5, 10) // row 5, col 10 (1-indexed)
+
+        // 3. Write char at last cell
+        buffer.writeChar('Z')
+
+        val screenBuffer = buffer.getBuffer()
+
+        // 4. Verify no scroll happened yet
+        // The marker 'A' should still be at (0,0)
+        assertEquals('A', screenBuffer[0][0].char, "Screen should not scroll immediately after writing to last cell")
+        assertEquals('Z', screenBuffer[4][9].char, "Char should be written at last cell")
+        
+        // 5. Verify cursor state (conceptually at the end of line, waiting for next char to wrap)
+        // Note: Implementation dependent, but typically cursor stays at last col or moves to a "phantom" col
+        // For now, checking content integrity is most important
+    }
+
     /**
      * Test: 全角文字の基本的な書き込み
      *
@@ -825,9 +851,9 @@ class TerminalScreenBufferTest {
         assertTrue(screenBuffer[0][8].isWideChar)
         assertTrue(screenBuffer[0][9].isWideCharPadding, "Padding at col 9")
 
-        // Cursor should wrap to next line after filling last column
-        assertEquals(1, buffer.cursorRow, "Cursor should wrap to next row")
-        assertEquals(0, buffer.cursorCol, "Cursor should be at column 0")
+        // With Delayed Wrap, cursor stays at the last column
+        assertEquals(0, buffer.cursorRow, "Cursor should NOT wrap immediately (Delayed Wrap)")
+        assertEquals(9, buffer.cursorCol, "Cursor should be at last column")
     }
 
     /**
