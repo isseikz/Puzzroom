@@ -106,22 +106,88 @@ class TerminalScreenBuffer(
      */
     fun writeChar(char: Char) {
         if (cursorRow >= 0 && cursorRow < rows && cursorCol >= 0 && cursorCol < cols) {
-            buffer[cursorRow][cursorCol] = TerminalCell(
-                char = char,
-                foregroundColor = if (isReverse) currentBackground else currentForeground,
-                backgroundColor = if (isReverse) currentForeground else currentBackground,
-                isBold = isBold,
-                isUnderline = isUnderline,
-                isReverse = isReverse
-            )
-            cursorCol++
-            if (cursorCol >= cols) {
+            val isWide = UnicodeWidth.isWideChar(char)
+
+            // Handle wrapping for wide char at last column
+            if (isWide && cursorCol == cols - 1) {
+                // Clear the last column
+                buffer[cursorRow][cursorCol] = TerminalCell.EMPTY
+                // Move to next line
                 cursorCol = 0
                 cursorRow++
-                // Check if we need to scroll within the scroll region
                 if (cursorRow > scrollBottom) {
                     scrollUp()
                     cursorRow = scrollBottom
+                }
+            }
+
+            // Check boundary again after wrap
+            if (cursorRow >= 0 && cursorRow < rows && cursorCol >= 0 && cursorCol < cols) {
+                // Destructive overwrite logic
+                // 1. Clear integrity at current position
+                clearWideCharIntegrityAt(cursorRow, cursorCol)
+
+                // 2. If writing a wide char, ensure the next cell is also cleared of any partial wide chars
+                if (isWide && cursorCol + 1 < cols) {
+                    clearWideCharIntegrityAt(cursorRow, cursorCol + 1)
+                }
+
+                val cell = TerminalCell(
+                    char = char,
+                    foregroundColor = if (isReverse) currentBackground else currentForeground,
+                    backgroundColor = if (isReverse) currentForeground else currentBackground,
+                    isBold = isBold,
+                    isUnderline = isUnderline,
+                    isReverse = isReverse,
+                    isWideCharPadding = false
+                )
+                buffer[cursorRow][cursorCol] = cell
+
+                if (isWide && cursorCol + 1 < cols) {
+                    // Write padding cell
+                    val paddingCell = cell.copy(char = ' ', isWideCharPadding = true)
+                    buffer[cursorRow][cursorCol + 1] = paddingCell
+                }
+
+                cursorCol += if (isWide) 2 else 1
+                
+                if (cursorCol >= cols) {
+                    cursorCol = 0
+                    cursorRow++
+                    // Check if we need to scroll within the scroll region
+                    if (cursorRow > scrollBottom) {
+                        scrollUp()
+                        cursorRow = scrollBottom
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Clears wide character integrity at the given position.
+     * If the cell at (row, col) is part of a wide character (either the main char or padding),
+     * both cells are cleared to maintain buffer integrity.
+     */
+    private fun clearWideCharIntegrityAt(row: Int, col: Int) {
+        if (row < 0 || row >= rows || col < 0 || col >= cols) return
+        val target = buffer[row][col]
+
+        if (target.isWideChar) {
+            // This is the left half (main char), clear it and the right padding
+            buffer[row][col] = TerminalCell.EMPTY
+            if (col + 1 < cols) {
+                // Ensure next one is actually padding before clearing (safe to clear anyway)
+                if (buffer[row][col + 1].isWideCharPadding) {
+                    buffer[row][col + 1] = TerminalCell.EMPTY
+                }
+            }
+        } else if (target.isWideCharPadding) {
+            // This is the right padding, clear it and the left half
+            buffer[row][col] = TerminalCell.EMPTY
+            if (col - 1 >= 0) {
+                if (buffer[row][col - 1].isWideChar) {
+                    buffer[row][col - 1] = TerminalCell.EMPTY
                 }
             }
         }
@@ -448,6 +514,9 @@ class TerminalScreenBuffer(
         val charsToDelete = count.coerceAtMost(cols - cursorCol)
         if (charsToDelete <= 0) return
 
+        // Check integrity at start of deletion (cursorCol)
+        clearWideCharIntegrityAt(cursorRow, cursorCol)
+
         // Shift characters to the left
         for (c in cursorCol until cols - charsToDelete) {
             buffer[cursorRow][c] = buffer[cursorRow][c + charsToDelete]
@@ -465,6 +534,13 @@ class TerminalScreenBuffer(
     fun insertCharacters(count: Int) {
         val charsToInsert = count.coerceAtMost(cols - cursorCol)
         if (charsToInsert <= 0) return
+
+        // Check integrity at insertion point (cursorCol)
+        // Only clear if we are inserting at a padding cell (breaking the wide char to the left)
+        // If we are at the start of a wide char, it will just be shifted right, so no need to clear.
+        if (buffer[cursorRow][cursorCol].isWideCharPadding) {
+            clearWideCharIntegrityAt(cursorRow, cursorCol)
+        }
 
         // Shift characters to the right
         for (c in cols - 1 downTo cursorCol + charsToInsert) {

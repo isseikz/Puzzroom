@@ -3,6 +3,7 @@ package tokyo.isseikuzumaki.vibeterminal.terminal
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.test.assertFalse
 import androidx.compose.ui.graphics.Color
 
 /**
