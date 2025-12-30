@@ -647,4 +647,299 @@ class TerminalScreenBufferTest {
         buffer.saveCursor()
         buffer.restoreCursor()
     }
+
+    // ========== Wide Character (Full-width) Handling ==========
+
+    @Test
+    fun testWideChar_BasicWrite() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        buffer.writeChar('あ')  // Hiragana 'a' - should occupy 2 cells
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('あ', screenBuffer[0][0].char, "Wide char should be written")
+        assertTrue(screenBuffer[0][0].isWideChar, "Cell should be marked as wide char")
+        assertTrue(screenBuffer[0][1].isWideCharPadding, "Next cell should be padding")
+        assertEquals(2, buffer.cursorCol, "Cursor should advance by 2")
+    }
+
+    @Test
+    fun testWideChar_MultipleWideChars() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        buffer.writeChar('日')  // Kanji
+        buffer.writeChar('本')  // Kanji
+        buffer.writeChar('語')  // Kanji
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('日', screenBuffer[0][0].char)
+        assertTrue(screenBuffer[0][0].isWideChar)
+        assertTrue(screenBuffer[0][1].isWideCharPadding)
+
+        assertEquals('本', screenBuffer[0][2].char)
+        assertTrue(screenBuffer[0][2].isWideChar)
+        assertTrue(screenBuffer[0][3].isWideCharPadding)
+
+        assertEquals('語', screenBuffer[0][4].char)
+        assertTrue(screenBuffer[0][4].isWideChar)
+        assertTrue(screenBuffer[0][5].isWideCharPadding)
+
+        assertEquals(6, buffer.cursorCol, "Cursor should be at position 6")
+    }
+
+    @Test
+    fun testWideChar_MixedWithNarrow() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        buffer.writeChar('A')   // Narrow (1 cell)
+        buffer.writeChar('あ')  // Wide (2 cells)
+        buffer.writeChar('B')   // Narrow (1 cell)
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('A', screenBuffer[0][0].char)
+        assertFalse(screenBuffer[0][0].isWideChar)
+
+        assertEquals('あ', screenBuffer[0][1].char)
+        assertTrue(screenBuffer[0][1].isWideChar)
+        assertTrue(screenBuffer[0][2].isWideCharPadding)
+
+        assertEquals('B', screenBuffer[0][3].char)
+        assertFalse(screenBuffer[0][3].isWideChar)
+
+        assertEquals(4, buffer.cursorCol)
+    }
+
+    @Test
+    fun testWideChar_AtLineEnd_Wraps() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        // Move cursor to column 9 (last column, 0-indexed)
+        buffer.moveCursor(1, 10)  // 1-indexed: row 1, col 10
+
+        // Write a wide char - should wrap to next line because it needs 2 cells
+        buffer.writeChar('あ')
+
+        val screenBuffer = buffer.getBuffer()
+        // The last cell of row 0 should be empty (can't fit wide char)
+        assertEquals(' ', screenBuffer[0][9].char, "Last cell should be empty")
+
+        // Wide char should be on row 1
+        assertEquals('あ', screenBuffer[1][0].char, "Wide char should wrap to next line")
+        assertTrue(screenBuffer[1][0].isWideChar)
+        assertTrue(screenBuffer[1][1].isWideCharPadding)
+
+        assertEquals(1, buffer.cursorRow, "Cursor should be on row 1")
+        assertEquals(2, buffer.cursorCol, "Cursor should be at column 2")
+    }
+
+    @Test
+    fun testWideChar_AtSecondToLastColumn() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        // Move cursor to column 9 (second to last, 0-indexed = 8)
+        buffer.moveCursor(1, 9)  // 1-indexed
+
+        // Write a wide char - should fit
+        buffer.writeChar('あ')
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('あ', screenBuffer[0][8].char, "Wide char should be at col 8")
+        assertTrue(screenBuffer[0][8].isWideChar)
+        assertTrue(screenBuffer[0][9].isWideCharPadding, "Padding at col 9")
+
+        // Cursor should wrap to next line after filling last column
+        assertEquals(1, buffer.cursorRow, "Cursor should wrap to next row")
+        assertEquals(0, buffer.cursorCol, "Cursor should be at column 0")
+    }
+
+    @Test
+    fun testWideChar_OverwriteWideChar() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        // Write a wide char
+        buffer.writeChar('あ')
+
+        // Move back and overwrite with narrow char
+        buffer.moveCursor(1, 1)
+        buffer.writeChar('X')
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('X', screenBuffer[0][0].char, "Wide char should be overwritten")
+        assertFalse(screenBuffer[0][0].isWideChar, "Cell should not be marked as wide")
+        // The padding cell should be cleared
+        assertEquals(' ', screenBuffer[0][1].char, "Padding cell should be cleared")
+        assertFalse(screenBuffer[0][1].isWideCharPadding, "Padding flag should be cleared")
+    }
+
+    @Test
+    fun testWideChar_OverwritePaddingCell() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        // Write a wide char
+        buffer.writeChar('あ')
+
+        // Move to padding cell (col 1) and overwrite
+        buffer.moveCursor(1, 2)  // 1-indexed
+        buffer.writeChar('X')
+
+        val screenBuffer = buffer.getBuffer()
+        // The original wide char should be cleared
+        assertEquals(' ', screenBuffer[0][0].char, "Original wide char should be cleared")
+        assertFalse(screenBuffer[0][0].isWideChar, "Wide char flag should be cleared")
+
+        assertEquals('X', screenBuffer[0][1].char, "X should overwrite padding")
+        assertFalse(screenBuffer[0][1].isWideCharPadding, "Padding flag should be cleared")
+    }
+
+    @Test
+    fun testWideChar_OverwriteWithWideChar() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        // Write ABC
+        buffer.writeChar('A')
+        buffer.writeChar('B')
+        buffer.writeChar('C')
+
+        // Move back and overwrite B with wide char
+        buffer.moveCursor(1, 2)  // Position of 'B'
+        buffer.writeChar('あ')
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('A', screenBuffer[0][0].char, "A should remain")
+        assertEquals('あ', screenBuffer[0][1].char, "Wide char should be at position 1")
+        assertTrue(screenBuffer[0][1].isWideChar)
+        // C at position 2 should be replaced by padding
+        assertTrue(screenBuffer[0][2].isWideCharPadding, "Position 2 should be padding")
+    }
+
+    @Test
+    fun testWideChar_ScrollWithWideChars() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 3)
+
+        // Fill first line with wide chars
+        buffer.moveCursor(1, 1)
+        buffer.writeChar('あ')
+        buffer.writeChar('い')
+
+        // Fill second line
+        buffer.moveCursor(2, 1)
+        buffer.writeChar('う')
+        buffer.writeChar('え')
+
+        // Fill third line
+        buffer.moveCursor(3, 1)
+        buffer.writeChar('お')
+        buffer.writeChar('か')
+
+        // Trigger scroll by writing more on last line
+        for (i in 0 until 10) {
+            buffer.writeChar('X')
+        }
+
+        val screenBuffer = buffer.getBuffer()
+        // First line (was second) should have う and え
+        assertEquals('う', screenBuffer[0][0].char, "First line should have scrolled content")
+        assertTrue(screenBuffer[0][0].isWideChar)
+    }
+
+    @Test
+    fun testWideChar_ClearLine() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        buffer.writeChar('あ')
+        buffer.writeChar('い')
+
+        buffer.moveCursor(1, 3)
+        buffer.clearLine()
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals(' ', screenBuffer[0][0].char, "Wide char should be cleared")
+        assertFalse(screenBuffer[0][0].isWideChar, "Wide char flag should be cleared")
+        assertEquals(' ', screenBuffer[0][1].char, "Padding should be cleared")
+        assertFalse(screenBuffer[0][1].isWideCharPadding, "Padding flag should be cleared")
+    }
+
+    @Test
+    fun testWideChar_InScrollRegion() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 10)
+
+        // Set scroll region to lines 3-7
+        buffer.setScrollRegion(3, 7)
+
+        // Write wide chars at bottom of scroll region
+        buffer.moveCursor(7, 1)
+        buffer.writeChar('あ')
+        buffer.writeChar('い')
+        buffer.writeChar('う')
+        buffer.writeChar('え')
+        buffer.writeChar('お')  // Should trigger scroll within region
+
+        // Lines outside region should not be affected
+        buffer.moveCursor(1, 1)
+        buffer.writeChar('外')  // Outside scroll region
+
+        buffer.moveCursor(10, 1)
+        buffer.writeChar('外')  // Outside scroll region (below)
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('外', screenBuffer[0][0].char, "Line above region should be unchanged")
+        assertEquals('外', screenBuffer[9][0].char, "Line below region should be unchanged")
+    }
+
+    @Test
+    fun testWideChar_AlternateBuffer() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        // Write to primary buffer
+        buffer.writeChar('主')
+
+        // Switch to alternate buffer
+        buffer.useAlternateScreenBuffer()
+
+        // Alternate should be empty
+        val altBuffer = buffer.getBuffer()
+        assertEquals(' ', altBuffer[0][0].char, "Alternate should be empty")
+
+        // Write wide char to alternate
+        buffer.writeChar('副')
+        assertEquals('副', buffer.getBuffer()[0][0].char)
+        assertTrue(buffer.getBuffer()[0][0].isWideChar)
+
+        // Switch back to primary
+        buffer.usePrimaryScreenBuffer()
+
+        // Primary should still have original wide char
+        assertEquals('主', buffer.getBuffer()[0][0].char)
+        assertTrue(buffer.getBuffer()[0][0].isWideChar)
+    }
+
+    @Test
+    fun testWideChar_Resize() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        buffer.writeChar('あ')
+        buffer.writeChar('い')
+
+        // Resize to smaller
+        buffer.resize(newCols = 5, newRows = 3)
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('あ', screenBuffer[0][0].char, "Wide char should be preserved")
+        assertTrue(screenBuffer[0][0].isWideChar)
+        assertTrue(screenBuffer[0][1].isWideCharPadding)
+        assertEquals('い', screenBuffer[0][2].char, "Second wide char should be preserved")
+    }
+
+    @Test
+    fun testWideChar_CursorPositionAfterWrite() {
+        val buffer = TerminalScreenBuffer(cols = 20, rows = 5)
+
+        // Write mix of wide and narrow chars
+        buffer.writeChar('A')   // col 0 -> cursor at 1
+        buffer.writeChar('あ')  // col 1-2 -> cursor at 3
+        buffer.writeChar('B')   // col 3 -> cursor at 4
+        buffer.writeChar('い')  // col 4-5 -> cursor at 6
+
+        assertEquals(6, buffer.cursorCol, "Cursor should account for wide char widths")
+    }
 }

@@ -799,4 +799,299 @@ class AnsiEscapeParserTest {
 
         assertEquals('X', buffer.getBuffer()[0][0].char, "Only 'X' should be written, not 'q'")
     }
+
+    // ========== Wide Character (Full-width) Handling ==========
+
+    @Test
+    fun testWideChar_Japanese_Hiragana() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("あいうえお")  // Hiragana
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('あ', screenBuffer[0][0].char, "First hiragana")
+        assertTrue(screenBuffer[0][0].isWideChar)
+        assertTrue(screenBuffer[0][1].isWideCharPadding)
+
+        assertEquals('い', screenBuffer[0][2].char, "Second hiragana")
+        assertTrue(screenBuffer[0][2].isWideChar)
+        assertTrue(screenBuffer[0][3].isWideCharPadding)
+
+        assertEquals(10, buffer.cursorCol, "Cursor at col 10 (5 wide chars * 2)")
+    }
+
+    @Test
+    fun testWideChar_Japanese_Katakana() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("アイウエオ")  // Katakana
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('ア', screenBuffer[0][0].char, "First katakana")
+        assertTrue(screenBuffer[0][0].isWideChar)
+        assertEquals('イ', screenBuffer[0][2].char, "Second katakana")
+        assertEquals('ウ', screenBuffer[0][4].char, "Third katakana")
+    }
+
+    @Test
+    fun testWideChar_Japanese_Kanji() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("日本語テスト")  // Kanji + Katakana
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('日', screenBuffer[0][0].char)
+        assertEquals('本', screenBuffer[0][2].char)
+        assertEquals('語', screenBuffer[0][4].char)
+        assertEquals('テ', screenBuffer[0][6].char)
+        assertEquals('ス', screenBuffer[0][8].char)
+        assertEquals('ト', screenBuffer[0][10].char)
+    }
+
+    @Test
+    fun testWideChar_MixedWithASCII() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("Hello日本語World")
+
+        val screenBuffer = buffer.getBuffer()
+        // "Hello" = 5 narrow chars
+        assertEquals('H', screenBuffer[0][0].char)
+        assertEquals('e', screenBuffer[0][1].char)
+        assertEquals('l', screenBuffer[0][2].char)
+        assertEquals('l', screenBuffer[0][3].char)
+        assertEquals('o', screenBuffer[0][4].char)
+        // "日本語" = 3 wide chars (6 cells)
+        assertEquals('日', screenBuffer[0][5].char)
+        assertTrue(screenBuffer[0][5].isWideChar)
+        assertEquals('本', screenBuffer[0][7].char)
+        assertEquals('語', screenBuffer[0][9].char)
+        // "World" = 5 narrow chars
+        assertEquals('W', screenBuffer[0][11].char)
+    }
+
+    @Test
+    fun testWideChar_WithCursorMovement() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("あいう")
+        parser.processText("\u001B[1;3H")  // Move to column 3 (padding of first char)
+        parser.processText("X")
+
+        val screenBuffer = buffer.getBuffer()
+        // Overwriting padding cell should clear the wide char
+        assertEquals(' ', screenBuffer[0][0].char, "Wide char should be cleared")
+        assertEquals('X', screenBuffer[0][2].char, "X should be at column 3 (0-indexed 2)")
+    }
+
+    @Test
+    fun testWideChar_WithEraseToEndOfLine() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("あいうえお")
+        parser.processText("\u001B[1;5H")  // Move to column 5 (start of 'う')
+        parser.processText("\u001B[K")     // Erase to end of line
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('あ', screenBuffer[0][0].char, "First char should remain")
+        assertEquals('い', screenBuffer[0][2].char, "Second char should remain")
+        assertEquals(' ', screenBuffer[0][4].char, "Third char should be erased")
+        assertEquals(' ', screenBuffer[0][6].char, "Fourth char should be erased")
+    }
+
+    @Test
+    fun testWideChar_WithColors() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("\u001B[31m日\u001B[32m本\u001B[0m語")
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals(Color(0xFFFF5555), screenBuffer[0][0].foregroundColor, "Red")
+        assertEquals(Color(0xFF50FA7B), screenBuffer[0][2].foregroundColor, "Green")
+        assertEquals(Color.White, screenBuffer[0][4].foregroundColor, "Reset to white")
+
+        // All should be wide chars
+        assertTrue(screenBuffer[0][0].isWideChar)
+        assertTrue(screenBuffer[0][2].isWideChar)
+        assertTrue(screenBuffer[0][4].isWideChar)
+    }
+
+    @Test
+    fun testWideChar_LineWrap() {
+        // Create a narrow terminal
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+        val parser = AnsiEscapeParser(buffer)
+
+        // Write wide chars that should wrap
+        parser.processText("あいうえお")  // 10 cells, should fit exactly
+
+        assertEquals(1, buffer.cursorRow, "Should wrap to next line")
+        assertEquals(0, buffer.cursorCol, "Cursor at start of line")
+
+        // Write one more wide char
+        parser.processText("か")
+
+        assertEquals('か', buffer.getBuffer()[1][0].char, "Wide char on second line")
+    }
+
+    @Test
+    fun testWideChar_AtLastColumn_Wraps() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+        val parser = AnsiEscapeParser(buffer)
+
+        // Fill 9 cells with narrow chars
+        parser.processText("123456789")
+
+        // Try to write wide char at last column - should wrap
+        parser.processText("あ")
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals(' ', screenBuffer[0][9].char, "Last cell should be empty")
+        assertEquals('あ', screenBuffer[1][0].char, "Wide char on next line")
+        assertTrue(screenBuffer[1][0].isWideChar)
+    }
+
+    @Test
+    fun testWideChar_ScrollRegion_StatusBar() {
+        // Simulate byobu-like status bar behavior
+        val buffer = TerminalScreenBuffer(cols = 20, rows = 10)
+        val parser = AnsiEscapeParser(buffer)
+
+        // Set scroll region to exclude last 2 lines (status bar area)
+        parser.processText("\u001B[1;8r")  // Scroll region lines 1-8
+
+        // Write content in scroll region
+        parser.processText("\u001B[1;1H")
+        parser.processText("Content area with 日本語")
+
+        // Write to status bar area (outside scroll region)
+        parser.processText("\u001B[9;1H")
+        parser.processText("Status: 状態")
+        parser.processText("\u001B[10;1H")
+        parser.processText("Time: 時間")
+
+        // Fill scroll region to trigger scroll
+        for (i in 1..8) {
+            parser.processText("\u001B[$i;1H")
+            parser.processText("Line $i 行$i")
+        }
+        // Write more to trigger scroll
+        parser.processText("\u001B[8;1H")
+        for (j in 0 until 20) {
+            parser.processText("X")
+        }
+
+        val screenBuffer = buffer.getBuffer()
+        // Status bar should be unchanged
+        assertEquals('S', screenBuffer[8][0].char, "Status line should be unchanged")
+        assertEquals('T', screenBuffer[9][0].char, "Time line should be unchanged")
+    }
+
+    @Test
+    fun testWideChar_AlternateScreen() {
+        val (parser, buffer) = createParser()
+
+        // Write to primary with wide chars
+        parser.processText("主画面")
+
+        // Switch to alternate
+        parser.processText("\u001B[?1049h")
+        assertTrue(buffer.isAlternateScreen)
+
+        // Write to alternate
+        parser.processText("副画面")
+        assertEquals('副', buffer.getBuffer()[0][0].char)
+
+        // Switch back
+        parser.processText("\u001B[?1049l")
+
+        // Primary content should be restored
+        assertEquals('主', buffer.getBuffer()[0][0].char)
+        assertTrue(buffer.getBuffer()[0][0].isWideChar)
+    }
+
+    @Test
+    fun testWideChar_CursorSaveRestore() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("あいう")
+        parser.processText("\u001B7")  // Save cursor (at col 6)
+
+        parser.processText("えお")
+        assertEquals(10, buffer.cursorCol, "Cursor at col 10")
+
+        parser.processText("\u001B8")  // Restore cursor
+        assertEquals(6, buffer.cursorCol, "Cursor restored to col 6")
+    }
+
+    @Test
+    fun testWideChar_DeleteCharacters() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("あいうえお")
+        parser.processText("\u001B[1;3H")  // Move to column 3 (position of 'い')
+        parser.processText("\u001B[2P")    // Delete 2 characters
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('あ', screenBuffer[0][0].char, "First char should remain")
+        // After deletion, 'う' should shift left
+        assertEquals('う', screenBuffer[0][2].char, "'う' should shift left")
+    }
+
+    @Test
+    fun testWideChar_InsertCharacters() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("あいう")
+        parser.processText("\u001B[1;3H")  // Move to column 3
+        parser.processText("\u001B[2@")    // Insert 2 blank characters
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('あ', screenBuffer[0][0].char, "First char should remain")
+        assertEquals(' ', screenBuffer[0][2].char, "Inserted blank")
+        assertEquals(' ', screenBuffer[0][3].char, "Inserted blank")
+        assertEquals('い', screenBuffer[0][4].char, "'い' should shift right")
+    }
+
+    @Test
+    fun testWideChar_Korean_Hangul() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("한글테스트")  // Korean Hangul
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('한', screenBuffer[0][0].char)
+        assertTrue(screenBuffer[0][0].isWideChar)
+        assertEquals('글', screenBuffer[0][2].char)
+        assertEquals('테', screenBuffer[0][4].char)
+        assertEquals('스', screenBuffer[0][6].char)
+        assertEquals('트', screenBuffer[0][8].char)
+    }
+
+    @Test
+    fun testWideChar_Chinese() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("中文测试")  // Chinese
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('中', screenBuffer[0][0].char)
+        assertTrue(screenBuffer[0][0].isWideChar)
+        assertEquals('文', screenBuffer[0][2].char)
+        assertEquals('测', screenBuffer[0][4].char)
+        assertEquals('试', screenBuffer[0][6].char)
+    }
+
+    @Test
+    fun testWideChar_FullWidthNumbers() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("１２３")  // Full-width numbers
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('１', screenBuffer[0][0].char)
+        assertTrue(screenBuffer[0][0].isWideChar)
+        assertEquals('２', screenBuffer[0][2].char)
+        assertEquals('３', screenBuffer[0][4].char)
+    }
 }
