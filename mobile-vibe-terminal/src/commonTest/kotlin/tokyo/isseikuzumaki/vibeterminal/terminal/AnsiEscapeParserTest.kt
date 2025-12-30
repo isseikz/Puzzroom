@@ -430,6 +430,62 @@ class AnsiEscapeParserTest {
     }
 
     @Test
+    fun testSGR_256Colors_Foreground() {
+        val (parser, buffer) = createParser()
+
+        // Standard colors (0-15) - Index 1 = Red
+        parser.processText("\u001B[38;5;1mX")
+        assertEquals(Color(0xFFFF5555), buffer.getBuffer()[0][0].foregroundColor, "Index 1 should be Red")
+
+        // Color cube (16-231) - Index 196 = Red (part of 6x6x6 cube)
+        // 196 = 16 + 36*5 + 6*0 + 0 = Red
+        parser.processText("\u001B[38;5;196mX")
+        // Note: Exact RGB value depends on palette implementation, but for 196 it's typically FF0000
+        // We'll verify it's parsed and not the default color
+        assertTrue(buffer.getBuffer()[0][1].foregroundColor != Color.White, "Index 196 should not be default white")
+
+        // Grayscale (232-255) - Index 255 = Nearly White
+        parser.processText("\u001B[38;5;255mX")
+        // Grayscale 255 is usually #EEEEEE
+        assertTrue(buffer.getBuffer()[0][2].foregroundColor != Color.Black, "Index 255 should not be black")
+    }
+
+    @Test
+    fun testSGR_256Colors_Background() {
+        val (parser, buffer) = createParser()
+
+        // Index 2 = Green
+        parser.processText("\u001B[48;5;2mX")
+        assertEquals(Color(0xFF50FA7B), buffer.getBuffer()[0][0].backgroundColor, "Index 2 should be Green")
+
+        // Index 21 = Blue (0,0,5 in cube)
+        parser.processText("\u001B[48;5;21mX")
+        assertTrue(buffer.getBuffer()[0][1].backgroundColor != Color.Black, "Index 21 should not be default black")
+    }
+
+    @Test
+    fun testSGR_TrueColor_Foreground() {
+        val (parser, buffer) = createParser()
+
+        // RGB: 123, 45, 67
+        parser.processText("\u001B[38;2;123;45;67mX")
+        
+        val color = buffer.getBuffer()[0][0].foregroundColor
+        assertEquals(Color(123, 45, 67), color, "Should match exact RGB value")
+    }
+
+    @Test
+    fun testSGR_TrueColor_Background() {
+        val (parser, buffer) = createParser()
+
+        // RGB: 10, 200, 255
+        parser.processText("\u001B[48;2;10;200;255mX")
+
+        val color = buffer.getBuffer()[0][0].backgroundColor
+        assertEquals(Color(10, 200, 255), color, "Should match exact RGB value")
+    }
+
+    @Test
     fun testSGR_TextAttributes() {
         val (parser, buffer) = createParser()
 

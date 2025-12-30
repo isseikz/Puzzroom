@@ -373,7 +373,9 @@ class TerminalScreenBuffer(
      * Set text styling based on SGR (Select Graphic Rendition) parameters
      */
     fun setGraphicsMode(params: List<Int>) {
-        for (param in params) {
+        var i = 0
+        while (i < params.size) {
+            val param = params[i]
             when (param) {
                 0 -> resetStyle()
                 1 -> isBold = true
@@ -391,6 +393,26 @@ class TerminalScreenBuffer(
                 35 -> currentForeground = Color(0xFFFF79C6)  // Magenta
                 36 -> currentForeground = Color(0xFF8BE9FD)  // Cyan
                 37 -> currentForeground = Color.White
+                // Extended foreground color (38)
+                38 -> {
+                    // Next param determines mode: 5 for 256-color, 2 for TrueColor
+                    if (i + 1 < params.size) {
+                        val mode = params[i + 1]
+                        if (mode == 5 && i + 2 < params.size) {
+                            // 38;5;n : 256-color
+                            val colorIndex = params[i + 2]
+                            currentForeground = Xterm256Color.getColor(colorIndex)
+                            i += 2 // Consumed mode and index
+                        } else if (mode == 2 && i + 4 < params.size) {
+                            // 38;2;r;g;b : TrueColor
+                            val r = params[i + 2]
+                            val g = params[i + 3]
+                            val b = params[i + 4]
+                            currentForeground = Color(r, g, b)
+                            i += 4 // Consumed mode, r, g, b
+                        }
+                    }
+                }
                 39 -> currentForeground = Color.White  // Default
                 // Standard background colors (40-47)
                 40 -> currentBackground = Color.Black
@@ -401,6 +423,25 @@ class TerminalScreenBuffer(
                 45 -> currentBackground = Color(0xFFFF79C6)  // Magenta
                 46 -> currentBackground = Color(0xFF8BE9FD)  // Cyan
                 47 -> currentBackground = Color.White
+                // Extended background color (48)
+                48 -> {
+                    if (i + 1 < params.size) {
+                        val mode = params[i + 1]
+                        if (mode == 5 && i + 2 < params.size) {
+                            // 48;5;n : 256-color
+                            val colorIndex = params[i + 2]
+                            currentBackground = Xterm256Color.getColor(colorIndex)
+                            i += 2
+                        } else if (mode == 2 && i + 4 < params.size) {
+                            // 48;2;r;g;b : TrueColor
+                            val r = params[i + 2]
+                            val g = params[i + 3]
+                            val b = params[i + 4]
+                            currentBackground = Color(r, g, b)
+                            i += 4
+                        }
+                    }
+                }
                 49 -> currentBackground = Color.Black  // Default
                 // Bright foreground colors (90-97)
                 90 -> currentForeground = Color(0xFF6E6E6E)   // Bright Black (Gray)
@@ -421,6 +462,7 @@ class TerminalScreenBuffer(
                 106 -> currentBackground = Color(0xFFA4FFFF)  // Bright Cyan
                 107 -> currentBackground = Color(0xFFFFFFFF)  // Bright White
             }
+            i++
         }
     }
 
