@@ -30,6 +30,8 @@ import tokyo.isseikuzumaki.vibeterminal.ui.components.StartUpCommandInput
 import tokyo.isseikuzumaki.vibeterminal.platform.launchSecondaryDisplay
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.sp
+import org.jetbrains.compose.resources.stringResource
+import puzzroom.mobile_vibe_terminal.generated.resources.*
 
 class ConnectionListScreen : Screen {
     @OptIn(ExperimentalMaterial3Api::class)
@@ -57,7 +59,7 @@ class ConnectionListScreen : Screen {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Vibe Terminal") },
+                    title = { Text(stringResource(Res.string.connection_list_title)) },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color(0xFF1A1A1A),
                         titleContentColor = Color(0xFF00FF00)
@@ -78,7 +80,7 @@ class ConnectionListScreen : Screen {
                             ),
                             modifier = Modifier.padding(end = 8.dp)
                         ) {
-                            Text("Test Display", fontSize = 12.sp)
+                            Text(stringResource(Res.string.connection_list_test_display), fontSize = 12.sp)
                         }
                     }
                 )
@@ -89,7 +91,7 @@ class ConnectionListScreen : Screen {
                     containerColor = Color(0xFF00FF00),
                     contentColor = Color.Black
                 ) {
-                    Icon(Icons.Default.Add, "Add Connection")
+                    Icon(Icons.Default.Add, stringResource(Res.string.connection_list_add))
                 }
             }
         ) { padding ->
@@ -106,13 +108,13 @@ class ConnectionListScreen : Screen {
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                "No saved connections",
+                                stringResource(Res.string.connection_list_empty_title),
                                 style = MaterialTheme.typography.headlineSmall,
                                 color = Color.Gray
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                "Tap + to add a new server",
+                                stringResource(Res.string.connection_list_empty_message),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Color.Gray
                             )
@@ -200,7 +202,7 @@ class ConnectionListScreen : Screen {
                 modifier = Modifier.padding(16.dp),
                 action = {
                     TextButton(onClick = { screenModel.clearError() }) {
-                        Text("Dismiss")
+                        Text(stringResource(Res.string.action_dismiss))
                     }
                 }
             ) {
@@ -250,13 +252,13 @@ class ConnectionListScreen : Screen {
                             contentColor = Color.Black
                         )
                     ) {
-                        Text("Connect")
+                        Text(stringResource(Res.string.action_connect))
                     }
                     IconButton(onClick = onEdit) {
-                        Icon(Icons.Default.Edit, "Edit", tint = Color(0xFF00FF00))
+                        Icon(Icons.Default.Edit, stringResource(Res.string.action_edit), tint = Color(0xFF00FF00))
                     }
                     IconButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, "Delete", tint = Color.Red)
+                        Icon(Icons.Default.Delete, stringResource(Res.string.action_delete), tint = Color.Red)
                     }
                 }
             }
@@ -280,7 +282,7 @@ class ConnectionListScreen : Screen {
 
         AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text(if (connection == null) "Add Connection" else "Edit Connection") },
+            title = { Text(stringResource(if (connection == null) Res.string.connection_dialog_add_title else Res.string.connection_dialog_edit_title)) },
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -289,21 +291,21 @@ class ConnectionListScreen : Screen {
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
-                        label = { Text("Name") },
+                        label = { Text(stringResource(Res.string.connection_dialog_name)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = host,
                         onValueChange = { host = it },
-                        label = { Text("Host") },
+                        label = { Text(stringResource(Res.string.connection_dialog_host)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = port,
                         onValueChange = { port = it },
-                        label = { Text("Port") },
+                        label = { Text(stringResource(Res.string.connection_dialog_port)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
@@ -311,7 +313,7 @@ class ConnectionListScreen : Screen {
                     OutlinedTextField(
                         value = username,
                         onValueChange = { username = it },
-                        label = { Text("Username") },
+                        label = { Text(stringResource(Res.string.connection_dialog_username)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -327,13 +329,13 @@ class ConnectionListScreen : Screen {
                     OutlinedTextField(
                         value = monitorFilePath,
                         onValueChange = { monitorFilePath = it },
-                        label = { Text("Monitor File Path (Auto Deploy)") },
-                        placeholder = { Text("/path/to/app.apk") },
+                        label = { Text(stringResource(Res.string.connection_dialog_monitor_path)) },
+                        placeholder = { Text(stringResource(Res.string.connection_dialog_monitor_path_placeholder)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         supportingText = {
                             Text(
-                                "Automatically triggers deploy when this file is updated on the server.",
+                                stringResource(Res.string.connection_dialog_monitor_path_description),
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
@@ -343,13 +345,13 @@ class ConnectionListScreen : Screen {
                     OutlinedTextField(
                         value = deployPattern,
                         onValueChange = { deployPattern = it },
-                        label = { Text("Magic Deploy Pattern (Regex)") },
-                        placeholder = { Text(">> VIBE_DEPLOY: (.*)") },
+                        label = { Text(stringResource(Res.string.connection_dialog_deploy_pattern)) },
+                        placeholder = { Text(stringResource(Res.string.connection_dialog_deploy_pattern_placeholder)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         supportingText = {
                             Text(
-                                "Regex to detect deployable files from terminal output. Use group 1 for file path.",
+                                stringResource(Res.string.connection_dialog_deploy_pattern_description),
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
@@ -365,7 +367,7 @@ class ConnectionListScreen : Screen {
                             onCheckedChange = { isAutoReconnect = it }
                         )
                         Text(
-                            text = "Auto-reconnect on app restart",
+                            text = stringResource(Res.string.connection_dialog_auto_reconnect),
                             modifier = Modifier.padding(start = 8.dp)
                         )
                     }
@@ -392,12 +394,12 @@ class ConnectionListScreen : Screen {
                     },
                     enabled = name.isNotBlank() && host.isNotBlank() && username.isNotBlank()
                 ) {
-                    Text("Save")
+                    Text(stringResource(Res.string.action_save))
                 }
             },
             dismissButton = {
                 TextButton(onClick = onDismiss) {
-                    Text("Cancel")
+                    Text(stringResource(Res.string.action_cancel))
                 }
             }
         )
@@ -415,18 +417,18 @@ class ConnectionListScreen : Screen {
     ) {
         AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text("Enter SSH Password") },
+            title = { Text(stringResource(Res.string.password_dialog_title)) },
             text = {
                 Column {
                     Text(
-                        text = "Connecting to ${connection.name}",
+                        text = stringResource(Res.string.password_dialog_connecting_to, connection.name),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = password,
                         onValueChange = onPasswordChange,
-                        label = { Text("Password") },
+                        label = { Text(stringResource(Res.string.password_dialog_password)) },
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         singleLine = true,
@@ -442,7 +444,7 @@ class ConnectionListScreen : Screen {
                             onCheckedChange = onSavePasswordChange
                         )
                         Text(
-                            text = "Remember password (stored securely)",
+                            text = stringResource(Res.string.password_dialog_remember),
                             modifier = Modifier.padding(start = 8.dp),
                             style = MaterialTheme.typography.bodySmall
                         )
@@ -454,12 +456,12 @@ class ConnectionListScreen : Screen {
                     onClick = onConnect,
                     enabled = password.isNotBlank()
                 ) {
-                    Text("Connect")
+                    Text(stringResource(Res.string.action_connect))
                 }
             },
             dismissButton = {
                 TextButton(onClick = onDismiss) {
-                    Text("Cancel")
+                    Text(stringResource(Res.string.action_cancel))
                 }
             }
         )

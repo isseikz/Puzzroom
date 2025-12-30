@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App -->
+    <string name="app_name">Vibe Terminal</string>
+
+    <!-- Common Actions -->
+    <string name="action_back">返回</string>
+    <string name="action_save">保存</string>
+    <string name="action_cancel">取消</string>
+    <string name="action_connect">连接</string>
+    <string name="action_edit">编辑</string>
+    <string name="action_delete">删除</string>
+    <string name="action_dismiss">关闭</string>
+    <string name="action_close">关闭</string>
+
+    <!-- Connection List Screen -->
+    <string name="connection_list_title">Vibe Terminal</string>
+    <string name="connection_list_test_display">测试显示</string>
+    <string name="connection_list_add">添加连接</string>
+    <string name="connection_list_empty_title">没有保存的连接</string>
+    <string name="connection_list_empty_message">点击 + 添加新服务器</string>
+
+    <!-- Connection Dialog -->
+    <string name="connection_dialog_add_title">添加连接</string>
+    <string name="connection_dialog_edit_title">编辑连接</string>
+    <string name="connection_dialog_name">名称</string>
+    <string name="connection_dialog_host">主机</string>
+    <string name="connection_dialog_port">端口</string>
+    <string name="connection_dialog_username">用户名</string>
+    <string name="connection_dialog_monitor_path">监控文件路径 (自动部署)</string>
+    <string name="connection_dialog_monitor_path_placeholder">/path/to/app.apk</string>
+    <string name="connection_dialog_monitor_path_description">当服务器上的此文件更新时自动触发部署。</string>
+    <string name="connection_dialog_deploy_pattern">Magic Deploy 模式 (正则表达式)</string>
+    <string name="connection_dialog_deploy_pattern_placeholder">>> VIBE_DEPLOY: (.*)</string>
+    <string name="connection_dialog_deploy_pattern_description">从终端输出检测可部署文件的正则表达式。使用组1指定文件路径。</string>
+    <string name="connection_dialog_auto_reconnect">应用重启时自动重连</string>
+
+    <!-- Password Dialog -->
+    <string name="password_dialog_title">输入SSH密码</string>
+    <string name="password_dialog_connecting_to">正在连接到 %s</string>
+    <string name="password_dialog_password">密码</string>
+    <string name="password_dialog_remember">记住密码（安全存储）</string>
+
+    <!-- Terminal Screen -->
+    <string name="terminal_file_explorer">文件浏览器</string>
+    <string name="terminal_reconnecting">正在重连...</string>
+    <string name="terminal_secondary_display">终端显示在副屏上</string>
+    <string name="terminal_initializing">正在初始化终端...</string>
+
+    <!-- File Explorer -->
+    <string name="file_explorer_title">文件浏览器</string>
+    <string name="file_explorer_root">/</string>
+    <string name="file_explorer_error">加载目录时出错</string>
+    <string name="file_explorer_empty">空目录</string>
+    <string name="file_explorer_install_apk">安装APK</string>
+
+    <!-- Code Viewer -->
+    <string name="code_viewer_title">代码查看器</string>
+    <string name="code_viewer_loading">正在加载文件...</string>
+    <string name="code_viewer_error">加载文件时出错</string>
+
+    <!-- Startup Command -->
+    <string name="startup_command_label">启动命令（可选）</string>
+    <string name="startup_command_placeholder">例如：tmux attach || tmux new</string>
+    <string name="startup_command_presets">预设命令</string>
+    <string name="startup_preset_tmux">tmux（自动）</string>
+    <string name="startup_preset_screen">screen（自动）</string>
+    <string name="startup_preset_byobu">byobu</string>
+    <string name="startup_preset_log_watch">日志监控</string>
+    <string name="startup_preset_home">主目录</string>
+
+    <!-- Macro Panel -->
+    <string name="macro_text_mode">TEXT MODE</string>
+    <string name="macro_cmd_mode">CMD MODE</string>
+    <string name="macro_ctrl">CTRL</string>
+    <string name="macro_alt">ALT</string>
+
+    <!-- Macro Tabs -->
+    <string name="macro_tab_basic">基本</string>
+    <string name="macro_tab_nav">导航</string>
+    <string name="macro_tab_vim">Vim</string>
+    <string name="macro_tab_function">Fn</string>
+
+    <!-- Basic Macro Keys -->
+    <string name="macro_esc">ESC</string>
+    <string name="macro_esc_desc">退出</string>
+    <string name="macro_tab">TAB</string>
+    <string name="macro_tab_desc">制表符</string>
+    <string name="macro_ctrl_c">CTRL+C</string>
+    <string name="macro_ctrl_c_desc">中断</string>
+    <string name="macro_ctrl_d">CTRL+D</string>
+    <string name="macro_ctrl_d_desc">EOF</string>
+    <string name="macro_ctrl_z">CTRL+Z</string>
+    <string name="macro_ctrl_z_desc">暂停</string>
+    <string name="macro_pipe">|</string>
+    <string name="macro_pipe_desc">管道</string>
+    <string name="macro_arrow">-></string>
+    <string name="macro_arrow_desc">箭头</string>
+    <string name="macro_and">&amp;&amp;</string>
+    <string name="macro_and_desc">与</string>
+    <string name="macro_or">||</string>
+    <string name="macro_or_desc">或</string>
+    <string name="macro_home_dir">~/</string>
+    <string name="macro_home_dir_desc">主目录</string>
+    <string name="macro_parent_dir">../</string>
+    <string name="macro_parent_dir_desc">上级目录</string>
+
+    <!-- Navigation Macro Keys -->
+    <string name="macro_nav_up">上</string>
+    <string name="macro_nav_down">下</string>
+    <string name="macro_nav_right">右</string>
+    <string name="macro_nav_left">左</string>
+    <string name="macro_nav_home">开头</string>
+    <string name="macro_nav_end">结尾</string>
+    <string name="macro_nav_page_up">上翻页</string>
+    <string name="macro_nav_page_down">下翻页</string>
+
+    <!-- Vim Macro Keys -->
+    <string name="macro_vim_insert">插入模式</string>
+    <string name="macro_vim_append">追加</string>
+    <string name="macro_vim_new_line_below">下方新行</string>
+    <string name="macro_vim_new_line_above">上方新行</string>
+    <string name="macro_vim_delete_char">删除字符</string>
+    <string name="macro_vim_delete_line">删除行</string>
+    <string name="macro_vim_copy_line">复制行</string>
+    <string name="macro_vim_paste">粘贴</string>
+    <string name="macro_vim_undo">撤销</string>
+    <string name="macro_vim_redo">重做</string>
+    <string name="macro_vim_save">保存</string>
+    <string name="macro_vim_quit">退出</string>
+    <string name="macro_vim_save_quit">保存并退出</string>
+    <string name="macro_vim_force_quit">强制退出</string>
+    <string name="macro_vim_search">搜索</string>
+    <string name="macro_vim_next_match">下一个</string>
+    <string name="macro_vim_prev_match">上一个</string>
+</resources>

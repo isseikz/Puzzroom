@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
 import tokyo.isseikuzumaki.vibeterminal.ui.utils.SyntaxHighlighter
+import org.jetbrains.compose.resources.stringResource
+import puzzroom.mobile_vibe_terminal.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,7 +73,7 @@ fun CodeViewerSheet(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "Code Viewer",
+                        stringResource(Res.string.code_viewer_title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF39D353)
@@ -86,7 +88,7 @@ fun CodeViewerSheet(
                 IconButton(onClick = onDismiss) {
                     Icon(
                         Icons.Default.Close,
-                        "Close",
+                        stringResource(Res.string.action_close),
                         tint = Color(0xFF39D353)
                     )
                 }
@@ -112,7 +114,7 @@ fun CodeViewerSheet(
                             CircularProgressIndicator(color = Color(0xFF39D353))
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                "Loading file...",
+                                stringResource(Res.string.code_viewer_loading),
                                 color = Color.Gray,
                                 style = MaterialTheme.typography.bodyMedium
                             )
@@ -126,7 +128,7 @@ fun CodeViewerSheet(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                "Error loading file",
+                                stringResource(Res.string.code_viewer_error),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = Color(0xFFFF7B72)
                             )

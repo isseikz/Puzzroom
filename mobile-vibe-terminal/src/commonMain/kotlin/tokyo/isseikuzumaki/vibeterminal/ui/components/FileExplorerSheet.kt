@@ -25,6 +25,8 @@ import tokyo.isseikuzumaki.vibeterminal.domain.model.FileEntry
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
 import kotlin.math.log10
 import kotlin.math.pow
+import org.jetbrains.compose.resources.stringResource
+import puzzroom.mobile_vibe_terminal.generated.resources.*
 
 data class FileExplorerState(
     val currentPath: String = "/",
@@ -128,12 +130,12 @@ fun FileExplorerSheet(
                 ) {
                     Icon(
                         Icons.Default.ArrowBack,
-                        "Back",
+                        stringResource(Res.string.action_back),
                         tint = if (state.currentPath != "/") Color(0xFF39D353) else Color.Gray
                     )
                 }
                 Text(
-                    "File Explorer",
+                    stringResource(Res.string.file_explorer_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF39D353)
@@ -150,8 +152,9 @@ fun FileExplorerSheet(
             ) {
                 items(state.breadcrumbs) { breadcrumb ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        val rootLabel = stringResource(Res.string.file_explorer_root)
                         Text(
-                            text = if (breadcrumb == "/") "Root" else breadcrumb.substringAfterLast("/"),
+                            text = if (breadcrumb == "/") rootLabel else breadcrumb.substringAfterLast("/"),
                             style = MaterialTheme.typography.bodyMedium,
                             color = if (breadcrumb == state.currentPath) {
                                 Color(0xFF39D353)
@@ -197,7 +200,7 @@ fun FileExplorerSheet(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                "Error loading directory",
+                                stringResource(Res.string.file_explorer_error),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = Color(0xFFFF7B72)
                             )
@@ -216,7 +219,7 @@ fun FileExplorerSheet(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "Empty directory",
+                            stringResource(Res.string.file_explorer_empty),
                             style = MaterialTheme.typography.bodyLarge,
                             color = Color.Gray
                         )
@@ -301,7 +304,7 @@ private fun FileItem(
                 IconButton(onClick = onInstall) {
                     Icon(
                         Icons.Default.Download, // Using Download icon for install/deploy
-                        contentDescription = "Install APK",
+                        contentDescription = stringResource(Res.string.file_explorer_install_apk),
                         tint = Color(0xFF00FF00)
                     )
                 }

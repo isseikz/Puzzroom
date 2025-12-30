@@ -16,6 +16,8 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.InputMode
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.TerminalState
+import org.jetbrains.compose.resources.stringResource
+import puzzroom.mobile_vibe_terminal.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,7 +80,7 @@ fun MacroInputPanel(
             FilterChip(
                 selected = state.inputMode == InputMode.TEXT,
                 onClick = onToggleInputMode,
-                label = { Text(if (state.inputMode == InputMode.TEXT) "TEXT MODE" else "CMD MODE") },
+                label = { Text(if (state.inputMode == InputMode.TEXT) stringResource(Res.string.macro_text_mode) else stringResource(Res.string.macro_cmd_mode)) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = Color(0xFF00FF00),
                     selectedLabelColor = Color.Black,
@@ -99,7 +101,7 @@ fun MacroInputPanel(
             FilterChip(
                 selected = state.isCtrlActive,
                 onClick = onToggleCtrl,
-                label = { Text("CTRL") },
+                label = { Text(stringResource(Res.string.macro_ctrl)) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = Color(0xFF00FF00),
                     selectedLabelColor = Color.Black,
@@ -118,7 +120,7 @@ fun MacroInputPanel(
             FilterChip(
                 selected = state.isAltActive,
                 onClick = onToggleAlt,
-                label = { Text("ALT") },
+                label = { Text(stringResource(Res.string.macro_alt)) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = Color(0xFF00FF00),
                     selectedLabelColor = Color.Black,

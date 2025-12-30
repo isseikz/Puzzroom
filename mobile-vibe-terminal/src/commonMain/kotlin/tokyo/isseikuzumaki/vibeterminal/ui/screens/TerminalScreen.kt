@@ -52,6 +52,8 @@ import kotlinx.coroutines.flow.first
 import androidx.compose.ui.text.style.TextAlign
 import tokyo.isseikuzumaki.vibeterminal.util.Logger
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import org.jetbrains.compose.resources.stringResource
+import puzzroom.mobile_vibe_terminal.generated.resources.*
 
 data class TerminalScreen(
     val config: ConnectionConfig
@@ -122,7 +124,7 @@ data class TerminalScreen(
                                 navigator.pop()
                             }
                         }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.action_back))
                         }
                     },
                     actions = {
@@ -155,7 +157,7 @@ data class TerminalScreen(
                             } else {
                                 Icon(
                                     Icons.Default.FolderOpen,
-                                    "File Explorer",
+                                    stringResource(Res.string.terminal_file_explorer),
                                     tint = if (state.isConnected) Color(0xFF00FF00) else Color.Gray
                                 )
                             }
@@ -213,7 +215,7 @@ data class TerminalScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Reconnecting...",
+                            text = stringResource(Res.string.terminal_reconnecting),
                             color = Color(0xFFFFAA00),
                             fontSize = 12.sp
                         )
@@ -246,7 +248,7 @@ data class TerminalScreen(
                             contentAlignment = Alignment.TopCenter
                         ) {
                             Text(
-                                text = "Terminal displayed on secondary screen",
+                                text = stringResource(Res.string.terminal_secondary_display),
                                 color = Color(0xFF00FF00),
                                 fontSize = 14.sp,
                                 fontFamily = FontFamily.Monospace,
@@ -452,7 +454,7 @@ data class TerminalScreen(
                 if (screenBuffer.isEmpty()) {
                     // Show empty state
                     Text(
-                        text = "Initializing terminal...",
+                        text = stringResource(Res.string.terminal_initializing),
                         color = Color.Gray,
                         fontFamily = FontFamily.Monospace,
                         fontSize = 12.sp
