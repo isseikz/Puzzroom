@@ -1,8 +1,5 @@
 package tokyo.isseikuzumaki.vibeterminal.terminal
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,33 +15,19 @@ enum class DisplayTarget {
 }
 
 /**
- * Manages the terminal display target based on input states.
+ * Singleton that manages the terminal display target based on display connection state.
  *
- * This class implements the state management architecture described in
- * DesignDocument.md Section 4.4 (Secondary Display Control).
- *
- * Architecture:
- * - Input State 1: isDisplayConnected (system event from DisplayManager)
- * - Input State 2: useExternalDisplay (user preference)
- * - Derived State: terminalDisplayTarget (computed from input states)
- *
- * State Transition Matrix:
- * | isDisplayConnected | useExternalDisplay | terminalDisplayTarget |
- * |:------------------:|:------------------:|:---------------------:|
- * | false              | false              | MAIN                  |
- * | false              | true               | MAIN                  |
- * | true               | false              | MAIN                  |
- * | true               | true               | SECONDARY             |
+ * Simplified Architecture:
+ * - When secondary display is connected → display on SECONDARY only
+ * - When secondary display is disconnected → display on MAIN only
  *
  * The derived state triggers side effects:
- * - SECONDARY: Start TerminalService, hide terminal on main display
- * - MAIN: Stop TerminalService, show terminal on main display
+ * - SECONDARY: Show terminal on secondary display, hide on main display
+ * - MAIN: Show terminal on main display
  */
-class TerminalDisplayManager(
-    @Suppress("UNUSED_PARAMETER") scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-) {
+object TerminalDisplayManager {
 
-    // ========== Input State 1: Display Connection Status ==========
+    // ========== Input State: Display Connection Status ==========
 
     private val _isDisplayConnected = MutableStateFlow(false)
 
@@ -65,24 +48,23 @@ class TerminalDisplayManager(
         updateDerivedState()
     }
 
-    // ========== Input State 2: User Preference ==========
+    // ========== Input State: User Preference ==========
 
-    private val _useExternalDisplay = MutableStateFlow(false)
+    private val _useExternalDisplay = MutableStateFlow(true)
 
     /**
-     * Whether the user wants to use the external display for terminal output.
-     * Updated by user action (button press, settings toggle, etc.)
+     * Whether the user wants to use the external display if connected.
+     * Defaults to true.
      */
     val useExternalDisplay: StateFlow<Boolean> = _useExternalDisplay.asStateFlow()
 
     /**
-     * Update the user's preference for using external display.
-     * Should be called when user toggles the external display option.
+     * Update the user preference for external display usage.
      *
-     * @param use true if user wants to use external display, false otherwise
+     * @param enabled true to use external display when available, false to ignore it
      */
-    fun setUseExternalDisplay(use: Boolean) {
-        _useExternalDisplay.value = use
+    fun setUseExternalDisplay(enabled: Boolean) {
+        _useExternalDisplay.value = enabled
         updateDerivedState()
     }
 
@@ -93,22 +75,13 @@ class TerminalDisplayManager(
     /**
      * The computed target display for terminal output.
      *
-     * This is a derived state that combines [isDisplayConnected] and [useExternalDisplay].
-     * Returns [DisplayTarget.SECONDARY] only when both conditions are true:
-     * - External display is physically connected
-     * - User has enabled external display usage
-     *
-     * Otherwise, returns [DisplayTarget.MAIN].
-     *
-     * Observers of this state should trigger appropriate side effects:
-     * - On MAIN: Stop TerminalService, show terminal on main display
-     * - On SECONDARY: Start TerminalService, hide terminal on main display
+     * Returns [DisplayTarget.SECONDARY] when external display is connected AND enabled by user,
+     * [DisplayTarget.MAIN] otherwise.
      */
     val terminalDisplayTarget: StateFlow<DisplayTarget> = _terminalDisplayTarget.asStateFlow()
 
     /**
-     * Update the derived state based on current input states.
-     * Called whenever an input state changes.
+     * Update the derived state based on display connection and user preference.
      */
     private fun updateDerivedState() {
         val newTarget = if (_isDisplayConnected.value && _useExternalDisplay.value) {
@@ -117,5 +90,15 @@ class TerminalDisplayManager(
             DisplayTarget.MAIN
         }
         _terminalDisplayTarget.value = newTarget
+    }
+
+    /**
+     * Reset all states to initial values.
+     * Useful for testing.
+     */
+    fun reset() {
+        _isDisplayConnected.value = false
+        _useExternalDisplay.value = true
+        _terminalDisplayTarget.value = DisplayTarget.MAIN
     }
 }

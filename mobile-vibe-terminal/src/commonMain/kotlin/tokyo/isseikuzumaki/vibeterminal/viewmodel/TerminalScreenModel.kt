@@ -117,7 +117,7 @@ class TerminalScreenModel(
         // Register resize callback from secondary display
         TerminalStateProvider.onResizeRequest = { cols, rows, widthPx, heightPx ->
             Logger.d("Resize request from secondary display: ${cols}x${rows}")
-            resizeTerminal(cols, rows, widthPx, heightPx)
+            resizeTerminal(cols, rows, widthPx, heightPx, tokyo.isseikuzumaki.vibeterminal.terminal.DisplayTarget.SECONDARY)
         }
     }
 
@@ -685,9 +685,24 @@ class TerminalScreenModel(
      * @param rows Number of rows
      * @param widthPx Terminal width in pixels
      * @param heightPx Terminal height in pixels
+     * @param source The source of the resize request (MAIN or SECONDARY)
      */
-    fun resizeTerminal(cols: Int, rows: Int, widthPx: Int, heightPx: Int) {
-        Logger.d("Resizing terminal to ${cols}x${rows} (${widthPx}x${heightPx}px)")
+    fun resizeTerminal(
+        cols: Int,
+        rows: Int,
+        widthPx: Int,
+        heightPx: Int,
+        source: tokyo.isseikuzumaki.vibeterminal.terminal.DisplayTarget = tokyo.isseikuzumaki.vibeterminal.terminal.DisplayTarget.MAIN
+    ) {
+        val currentTarget = tokyo.isseikuzumaki.vibeterminal.terminal.TerminalDisplayManager.terminalDisplayTarget.value
+        
+        // Strict check: Only allow resize from the active display target
+        if (source != currentTarget) {
+            Logger.w("Ignoring resize request from $source because current target is $currentTarget (Request: ${cols}x${rows})")
+            return
+        }
+        
+        Logger.d("Resizing terminal to ${cols}x${rows} (${widthPx}x${heightPx}px) from $source")
         screenModelScope.launch {
             try {
                 if (_state.value.isConnected) {

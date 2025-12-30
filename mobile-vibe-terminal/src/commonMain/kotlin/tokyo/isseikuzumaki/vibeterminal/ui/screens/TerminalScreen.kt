@@ -44,6 +44,8 @@ import androidx.compose.ui.platform.LocalDensity
 
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.InputMode
 import androidx.compose.foundation.clickable
+import tokyo.isseikuzumaki.vibeterminal.terminal.DisplayTarget
+import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalDisplayManager
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalStateProvider
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -90,8 +92,9 @@ data class TerminalScreen(
             }
         }
 
-        // **New**: セカンダリディスプレイの接続状態を監視
-        val isSecondaryConnected by TerminalStateProvider.isSecondaryDisplayConnected.collectAsState()
+        // ターミナル表示先を監視 (TerminalDisplayManager の derived state)
+        val displayTarget by TerminalDisplayManager.terminalDisplayTarget.collectAsState()
+        val isSecondaryConnected = displayTarget == DisplayTarget.SECONDARY
         val secondaryMetrics by TerminalStateProvider.secondaryDisplayMetrics.collectAsState()
 
         var showFileExplorer by remember { mutableStateOf(false) }
@@ -128,6 +131,7 @@ data class TerminalScreen(
                         }
                     },
                     actions = {
+                        // File Explorer Button
                         IconButton(
                             onClick = {
                                 isLoadingInitialPath = true
@@ -292,7 +296,13 @@ data class TerminalScreen(
                                 previousTerminalCols > 0 && previousTerminalRows > 0) {
                                 // Size changed after initial connection - trigger resize
                                 Logger.d("Terminal size changed: ${previousTerminalCols}x${previousTerminalRows} -> ${terminalSize.cols}x${terminalSize.rows}")
-                                screenModel.resizeTerminal(terminalSize.cols, terminalSize.rows, terminalSize.widthPx, terminalSize.heightPx)
+                                screenModel.resizeTerminal(
+                                    terminalSize.cols, 
+                                    terminalSize.rows, 
+                                    terminalSize.widthPx, 
+                                    terminalSize.heightPx,
+                                    DisplayTarget.MAIN
+                                )
                             }
                             previousTerminalCols = terminalSize.cols
                             previousTerminalRows = terminalSize.rows
@@ -306,7 +316,13 @@ data class TerminalScreen(
                                 // 接続 → 切断 へ遷移
                                 if (state.isConnected && terminalSize.cols > 0 && terminalSize.rows > 0) {
                                     Logger.d("Secondary display disconnected, resizing to main display: ${terminalSize.cols}x${terminalSize.rows}")
-                                    screenModel.resizeTerminal(terminalSize.cols, terminalSize.rows, terminalSize.widthPx, terminalSize.heightPx)
+                                    screenModel.resizeTerminal(
+                                        terminalSize.cols, 
+                                        terminalSize.rows, 
+                                        terminalSize.widthPx, 
+                                        terminalSize.heightPx,
+                                        DisplayTarget.MAIN
+                                    )
                                 }
                             }
                             previousSecondaryState = isSecondaryConnected
