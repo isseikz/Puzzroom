@@ -36,6 +36,7 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalSizeCalculator
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalStateProvider
 import tokyo.isseikuzumaki.vibeterminal.ui.components.TerminalCanvas
 import tokyo.isseikuzumaki.vibeterminal.util.Logger
@@ -108,7 +109,8 @@ class TerminalPresentation(
 
     /**
      * Calculate terminal size based on secondary display dimensions.
-     * Uses the same font size as TerminalCanvas (14sp).
+     * Uses conservative estimates to ensure terminal fits within display.
+     * Actual precise calculation is done in Composable using TextMeasurer.
      */
     private fun calculateAndNotifyDisplaySize() {
         try {
@@ -119,50 +121,100 @@ class TerminalPresentation(
 
             Logger.d("Secondary display size: ${widthPx}x${heightPx}px")
 
-            // Calculate character size using same logic as TerminalCanvas
-            // Font size: 14sp
-            val fontSizeSp = 14f
+            // Use conservative estimates for initial calculation
+            // This ensures terminal fits even before TextMeasurer provides exact values
+            val fontSizeSp = TERMINAL_FONT_SIZE_SP
             val density = displayMetrics.density
-            val fontSizePx = fontSizeSp * density
 
-            // Approximate char dimensions (monospace font)
-            // charWidth ≈ fontSizePx * 0.6 (typical monospace ratio)
-            // charHeight ≈ fontSizePx * 1.2 (line height)
-            val charWidth = (fontSizePx * 0.6f).toInt()
-            val charHeight = (fontSizePx * 1.2f).toInt()
+            val dimensions = TerminalSizeCalculator.calculateWithEstimatedCharSize(
+                displayWidthPx = widthPx,
+                displayHeightPx = heightPx,
+                fontSizeSp = fontSizeSp,
+                density = density
+            )
 
-            Logger.d("Character size: ${charWidth}x${charHeight}px (font: ${fontSizePx}px)")
+            Logger.d("Estimated character size: ${dimensions.actualCharWidth}x${dimensions.actualCharHeight}px")
+            Logger.d("Calculated terminal size: ${dimensions.cols} cols x ${dimensions.rows} rows")
 
-            // Calculate terminal dimensions
-            val cols = (widthPx / charWidth).coerceAtLeast(1)
-            val rows = (heightPx / charHeight).coerceAtLeast(1)
-
-            Logger.d("Calculated terminal size: ${cols} cols x ${rows} rows")
-
-            // **New**: TerminalStateProvider にセカンダリディスプレイのサイズを保存
-            TerminalStateProvider.setSecondaryDisplayMetrics(cols, rows, widthPx, heightPx)
+            // Store secondary display metrics
+            TerminalStateProvider.setSecondaryDisplayMetrics(
+                dimensions.cols,
+                dimensions.rows,
+                widthPx,
+                heightPx
+            )
 
             // Notify callback
-            onDisplaySizeCalculated(cols, rows, widthPx, heightPx)
+            onDisplaySizeCalculated(dimensions.cols, dimensions.rows, widthPx, heightPx)
         } catch (e: Exception) {
             Logger.e(e, "Failed to calculate display size")
         }
     }
 
+    companion object {
+        const val TERMINAL_FONT_SIZE_SP = 14f
+    }
+
     @Composable
     private fun SecondaryTerminalDisplay() {
         val terminalState by TerminalStateProvider.state.collectAsState()
+        val textMeasurer = rememberTextMeasurer()
+        val density = LocalDensity.current
 
-        // Log state changes
-        LaunchedEffect(terminalState.isConnected, terminalState.buffer.size) {
-            try {
-                Logger.d("Terminal state: isConnected=${terminalState.isConnected}, bufferSize=${terminalState.buffer.size}")
-                if (terminalState.buffer.isNotEmpty()) {
-                    Logger.d("Buffer dimensions: ${terminalState.buffer.size}x${terminalState.buffer.firstOrNull()?.size ?: 0}")
+        // Measure actual character dimensions using TextMeasurer
+        val textStyle = remember {
+            TextStyle(
+                fontFamily = FontFamily.Monospace,
+                fontSize = TERMINAL_FONT_SIZE_SP.sp
+            )
+        }
+
+        val charDimensions = remember(textMeasurer, textStyle) {
+            val sampleLayout = textMeasurer.measure(text = "W", style = textStyle)
+            Pair(sampleLayout.size.width.toFloat(), sampleLayout.size.height.toFloat())
+        }
+
+        // Get display metrics for accurate size calculation
+        val displayMetrics = context.resources.displayMetrics
+        val displayWidthPx = displayMetrics.widthPixels
+        val displayHeightPx = displayMetrics.heightPixels
+
+        // Calculate accurate terminal dimensions based on measured character size
+        val accurateDimensions = remember(charDimensions, displayWidthPx, displayHeightPx) {
+            TerminalSizeCalculator.calculate(
+                displayWidthPx = displayWidthPx,
+                displayHeightPx = displayHeightPx,
+                charWidth = charDimensions.first,
+                charHeight = charDimensions.second
+            )
+        }
+
+        // Request resize if dimensions differ from current buffer
+        LaunchedEffect(accurateDimensions, terminalState.buffer.size) {
+            val currentRows = terminalState.buffer.size
+            val currentCols = terminalState.buffer.firstOrNull()?.size ?: 0
+
+            if (currentRows > 0 && currentCols > 0) {
+                // Only resize if current buffer exceeds accurate dimensions (would clip)
+                if (currentCols > accurateDimensions.cols || currentRows > accurateDimensions.rows) {
+                    Logger.d("Buffer size ($currentCols x $currentRows) exceeds accurate dimensions (${accurateDimensions.cols} x ${accurateDimensions.rows}), requesting resize")
+                    TerminalStateProvider.setSecondaryDisplayMetrics(
+                        accurateDimensions.cols,
+                        accurateDimensions.rows,
+                        displayWidthPx,
+                        displayHeightPx
+                    )
+                    TerminalStateProvider.requestResize(
+                        accurateDimensions.cols,
+                        accurateDimensions.rows,
+                        displayWidthPx,
+                        displayHeightPx
+                    )
                 }
-            } catch (e: Exception) {
-                Logger.e(e, "Error logging terminal state")
             }
+
+            Logger.d("Terminal state: isConnected=${terminalState.isConnected}, bufferSize=${terminalState.buffer.size}")
+            Logger.d("Accurate dimensions: ${accurateDimensions.cols} x ${accurateDimensions.rows} (charSize: ${charDimensions.first} x ${charDimensions.second})")
         }
 
         Box(
