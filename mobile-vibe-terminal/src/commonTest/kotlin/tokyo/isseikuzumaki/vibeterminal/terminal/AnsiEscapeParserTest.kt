@@ -802,6 +802,21 @@ class AnsiEscapeParserTest {
 
     // ========== Wide Character (Full-width) Handling ==========
 
+    /**
+     * Test: ひらがな（全角文字）の基本的な書き込み
+     *
+     * 入力: "あいうえお" (5文字のひらがな)
+     *
+     * 期待されるバッファ状態:
+     *   Col:  0   1   2   3   4   5   6   7   8   9
+     *        [あ][P] [い][P] [う][P] [え][P] [お][P]
+     *        ↑       ↑       ↑       ↑       ↑
+     *        wide    wide    wide    wide    wide
+     *   (P = padding cell, 全角文字の右半分を占めるダミーセル)
+     *
+     * 全角文字は2セル幅を占めるため、5文字で10セル消費。
+     * カーソルは列10に移動する。
+     */
     @Test
     fun testWideChar_Japanese_Hiragana() {
         val (parser, buffer) = createParser()
@@ -820,6 +835,17 @@ class AnsiEscapeParserTest {
         assertEquals(10, buffer.cursorCol, "Cursor at col 10 (5 wide chars * 2)")
     }
 
+    /**
+     * Test: カタカナ（全角文字）の書き込み
+     *
+     * 入力: "アイウエオ" (5文字のカタカナ)
+     *
+     * 期待されるバッファ状態:
+     *   Col:  0   1   2   3   4   5   6   7   8   9
+     *        [ア][P] [イ][P] [ウ][P] [エ][P] [オ][P]
+     *
+     * カタカナもひらがな同様、全角文字として2セル幅で表示。
+     */
     @Test
     fun testWideChar_Japanese_Katakana() {
         val (parser, buffer) = createParser()
@@ -833,6 +859,17 @@ class AnsiEscapeParserTest {
         assertEquals('ウ', screenBuffer[0][4].char, "Third katakana")
     }
 
+    /**
+     * Test: 漢字とカタカナの混在
+     *
+     * 入力: "日本語テスト" (漢字3文字 + カタカナ3文字)
+     *
+     * 期待されるバッファ状態:
+     *   Col:  0   1   2   3   4   5   6   7   8   9  10  11
+     *        [日][P] [本][P] [語][P] [テ][P] [ス][P] [ト][P]
+     *
+     * 全6文字 × 2セル = 12セル消費
+     */
     @Test
     fun testWideChar_Japanese_Kanji() {
         val (parser, buffer) = createParser()
@@ -848,6 +885,19 @@ class AnsiEscapeParserTest {
         assertEquals('ト', screenBuffer[0][10].char)
     }
 
+    /**
+     * Test: 半角ASCII文字と全角文字の混在
+     *
+     * 入力: "Hello日本語World"
+     *
+     * 期待されるバッファ状態:
+     *   Col:  0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15
+     *        [H] [e] [l] [l] [o] [日][P] [本][P] [語][P] [W] [o] [r] [l] [d]
+     *        ←── 半角5文字 ──→ ←── 全角3文字(6セル) ──→ ←── 半角5文字 ──→
+     *
+     * 半角文字は1セル、全角文字は2セルを消費。
+     * 合計: 5 + 6 + 5 = 16セル
+     */
     @Test
     fun testWideChar_MixedWithASCII() {
         val (parser, buffer) = createParser()
@@ -870,6 +920,27 @@ class AnsiEscapeParserTest {
         assertEquals('W', screenBuffer[0][11].char)
     }
 
+    /**
+     * Test: カーソル移動後に全角文字のパディングセルを上書き
+     *
+     * シーケンス:
+     *   1. "あいう" を書き込み → バッファ: [あ][P][い][P][う][P]
+     *   2. ESC[1;3H (CUP) → カーソルを行1、列3に移動（0-indexedで列2、'あ'のパディング位置）
+     *   3. "X" を書き込み
+     *
+     * CSI 1;3 H の意味:
+     *   - CSI = ESC [ (Control Sequence Introducer)
+     *   - 1;3 = 行1、列3（1-indexed）
+     *   - H = CUP (Cursor Position) コマンド
+     *
+     * 期待される動作:
+     *   パディングセルに文字を書き込むと、元の全角文字（'あ'）は
+     *   不完全になるため、クリアされる必要がある。
+     *
+     * 期待されるバッファ状態:
+     *   Before: [あ][P][い][P][う][P]
+     *   After:  [ ] [ ][X] [い][P][う][P]  ← 'あ'とそのパディングがクリアされ、Xが列2に入る
+     */
     @Test
     fun testWideChar_WithCursorMovement() {
         val (parser, buffer) = createParser()
@@ -884,6 +955,24 @@ class AnsiEscapeParserTest {
         assertEquals('X', screenBuffer[0][2].char, "X should be at column 3 (0-indexed 2)")
     }
 
+    /**
+     * Test: 全角文字列の途中から行末まで消去
+     *
+     * シーケンス:
+     *   1. "あいうえお" を書き込み → [あ][P][い][P][う][P][え][P][お][P]
+     *   2. ESC[1;5H → カーソルを列5に移動（0-indexedで列4、'う'の開始位置）
+     *   3. ESC[K → カーソル位置から行末まで消去
+     *
+     * CSI K の意味 (EL - Erase in Line):
+     *   - パラメータなし or 0: カーソル位置から行末まで消去
+     *   - 1: 行頭からカーソル位置まで消去
+     *   - 2: 行全体を消去
+     *
+     * 期待されるバッファ状態:
+     *   Before: [あ][P][い][P][う][P][え][P][お][P]
+     *   After:  [あ][P][い][P][ ] [ ] [ ] [ ] [ ] [ ]
+     *                         ↑ 列4以降が消去される
+     */
     @Test
     fun testWideChar_WithEraseToEndOfLine() {
         val (parser, buffer) = createParser()
@@ -899,6 +988,27 @@ class AnsiEscapeParserTest {
         assertEquals(' ', screenBuffer[0][6].char, "Fourth char should be erased")
     }
 
+    /**
+     * Test: 全角文字に色属性を適用
+     *
+     * シーケンス:
+     *   1. ESC[31m → 前景色を赤に設定
+     *   2. "日" を書き込み
+     *   3. ESC[32m → 前景色を緑に設定
+     *   4. "本" を書き込み
+     *   5. ESC[0m → 属性をリセット（デフォルトの白に戻る）
+     *   6. "語" を書き込み
+     *
+     * CSI m の意味 (SGR - Select Graphic Rendition):
+     *   - 31 = 前景色: 赤
+     *   - 32 = 前景色: 緑
+     *   - 0 = すべての属性をリセット
+     *
+     * 期待されるバッファ状態:
+     *   Col:  0   1   2   3   4   5
+     *        [日][P] [本][P] [語][P]
+     *         赤      緑      白
+     */
     @Test
     fun testWideChar_WithColors() {
         val (parser, buffer) = createParser()
@@ -916,6 +1026,21 @@ class AnsiEscapeParserTest {
         assertTrue(screenBuffer[0][4].isWideChar)
     }
 
+    /**
+     * Test: 10列のターミナルで全角文字5つがぴったり収まり、次の行に折り返し
+     *
+     * ターミナルサイズ: 10列 × 5行
+     *
+     * 入力: "あいうえお" (5文字 × 2セル = 10セル)
+     *
+     * 期待される動作:
+     *   - 10セルがぴったり1行に収まる
+     *   - 書き込み完了後、カーソルは次の行（行1）の先頭（列0）に移動
+     *
+     * 期待されるバッファ状態:
+     *   Row 0: [あ][P][い][P][う][P][え][P][お][P]  ← 10列すべて使用
+     *   Row 1: (カーソル位置)
+     */
     @Test
     fun testWideChar_LineWrap() {
         // Create a narrow terminal
@@ -934,6 +1059,25 @@ class AnsiEscapeParserTest {
         assertEquals('か', buffer.getBuffer()[1][0].char, "Wide char on second line")
     }
 
+    /**
+     * Test: 最終列に全角文字を書き込もうとした時の折り返し
+     *
+     * ターミナルサイズ: 10列 × 5行
+     *
+     * シーケンス:
+     *   1. "123456789" を書き込み → 列0-8を使用、カーソルは列9
+     *   2. "あ" を書き込み → 全角文字は2セル必要だが、残り1セルしかない
+     *
+     * 期待される動作:
+     *   全角文字が最終列（列9）から始まると、パディングセルを置く
+     *   スペースがないため、以下の処理を行う:
+     *   1. 最終列を空白のままにする
+     *   2. 次の行の先頭から全角文字を書き込む
+     *
+     * 期待されるバッファ状態:
+     *   Row 0: [1][2][3][4][5][6][7][8][9][ ]  ← 列9は空白
+     *   Row 1: [あ][P]...                      ← 全角文字は次行に
+     */
     @Test
     fun testWideChar_AtLastColumn_Wraps() {
         val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
@@ -951,6 +1095,29 @@ class AnsiEscapeParserTest {
         assertTrue(screenBuffer[1][0].isWideChar)
     }
 
+    /**
+     * Test: byobuスタイルのステータスバー（スクロール領域外）の動作
+     *
+     * ターミナルサイズ: 20列 × 10行
+     *
+     * シーケンス:
+     *   1. ESC[1;8r → スクロール領域を行1-8に設定（行9-10はステータスバー用）
+     *   2. ESC[1;1H → カーソルを行1、列1に移動
+     *   3. コンテンツを書き込み
+     *   4. ESC[9;1H → カーソルをステータスバー行（行9）に移動
+     *   5. ステータスバーの内容を書き込み
+     *   6. スクロール領域内でスクロールをトリガー
+     *
+     * CSI r の意味 (DECSTBM - Set Top and Bottom Margins):
+     *   - 1;8 = 上マージン行1、下マージン行8
+     *   - スクロールはこの領域内でのみ発生
+     *   - 領域外（行9-10）はスクロールの影響を受けない
+     *
+     * 期待される動作:
+     *   スクロール領域（行1-8）内でスクロールが発生しても、
+     *   ステータスバー領域（行9-10）の内容は変更されない。
+     *   これはbyobuやtmuxのステータスバーの動作を再現する。
+     */
     @Test
     fun testWideChar_ScrollRegion_StatusBar() {
         // Simulate byobu-like status bar behavior
@@ -987,6 +1154,24 @@ class AnsiEscapeParserTest {
         assertEquals('T', screenBuffer[9][0].char, "Time line should be unchanged")
     }
 
+    /**
+     * Test: 代替スクリーンバッファでの全角文字処理
+     *
+     * シーケンス:
+     *   1. "主画面" を書き込み（プライマリバッファに）
+     *   2. ESC[?1049h → 代替スクリーンバッファに切り替え
+     *   3. "副画面" を書き込み（代替バッファに）
+     *   4. ESC[?1049l → プライマリバッファに戻る
+     *
+     * CSI ? 1049 h/l の意味 (DECSET/DECRST):
+     *   - ?1049h = 代替スクリーンバッファを使用（カーソルを保存し、画面をクリア）
+     *   - ?1049l = プライマリスクリーンバッファに戻る（カーソルを復元）
+     *
+     * 期待される動作:
+     *   - 代替バッファへの切り替え時、プライマリの内容は保持される
+     *   - 代替バッファは空の状態から開始
+     *   - プライマリに戻ると、元の内容（"主画面"）が復元される
+     */
     @Test
     fun testWideChar_AlternateScreen() {
         val (parser, buffer) = createParser()
@@ -1010,6 +1195,23 @@ class AnsiEscapeParserTest {
         assertTrue(buffer.getBuffer()[0][0].isWideChar)
     }
 
+    /**
+     * Test: 全角文字書き込み中のカーソル保存・復元
+     *
+     * シーケンス:
+     *   1. "あいう" を書き込み → カーソルは列6に移動
+     *   2. ESC 7 → カーソル位置を保存（列6）
+     *   3. "えお" を書き込み → カーソルは列10に移動
+     *   4. ESC 8 → カーソル位置を復元（列6に戻る）
+     *
+     * ESC 7 / ESC 8 の意味 (DECSC/DECRC):
+     *   - ESC 7 = DECSC (DEC Save Cursor) - カーソル位置を保存
+     *   - ESC 8 = DECRC (DEC Restore Cursor) - カーソル位置を復元
+     *
+     * 期待される動作:
+     *   全角文字を書き込んでもカーソル位置の保存・復元は
+     *   正しく動作する。カーソル位置は列単位（セル単位）で保存される。
+     */
     @Test
     fun testWideChar_CursorSaveRestore() {
         val (parser, buffer) = createParser()
@@ -1024,6 +1226,24 @@ class AnsiEscapeParserTest {
         assertEquals(6, buffer.cursorCol, "Cursor restored to col 6")
     }
 
+    /**
+     * Test: 全角文字列内での文字削除
+     *
+     * シーケンス:
+     *   1. "あいうえお" を書き込み → [あ][P][い][P][う][P][え][P][お][P]
+     *   2. ESC[1;3H → カーソルを列3に移動（0-indexedで列2、'い'の開始位置）
+     *   3. ESC[2P → カーソル位置から2文字削除
+     *
+     * CSI Ps P の意味 (DCH - Delete Character):
+     *   - Ps = 削除する文字数（デフォルト1）
+     *   - カーソル位置から指定数の文字を削除
+     *   - 右側の文字が左にシフトする
+     *
+     * 期待されるバッファ状態:
+     *   Before: [あ][P][い][P][う][P][え][P][お][P]
+     *   After:  [あ][P][う][P][え][P][お][P][ ] [ ]
+     *                 ↑ 'い'とそのパディングが削除され、後続がシフト
+     */
     @Test
     fun testWideChar_DeleteCharacters() {
         val (parser, buffer) = createParser()
@@ -1038,6 +1258,24 @@ class AnsiEscapeParserTest {
         assertEquals('う', screenBuffer[0][2].char, "'う' should shift left")
     }
 
+    /**
+     * Test: 全角文字列内での空白文字挿入
+     *
+     * シーケンス:
+     *   1. "あいう" を書き込み → [あ][P][い][P][う][P]
+     *   2. ESC[1;3H → カーソルを列3に移動（0-indexedで列2）
+     *   3. ESC[2@ → カーソル位置に2つの空白文字を挿入
+     *
+     * CSI Ps @ の意味 (ICH - Insert Character):
+     *   - Ps = 挿入する空白文字数（デフォルト1）
+     *   - カーソル位置に空白を挿入
+     *   - 既存の文字は右にシフトする
+     *
+     * 期待されるバッファ状態:
+     *   Before: [あ][P][い][P][う][P]
+     *   After:  [あ][P][ ] [ ][い][P][う][P]
+     *                 ↑ ↑  2つの空白が挿入され、'い'以降が右シフト
+     */
     @Test
     fun testWideChar_InsertCharacters() {
         val (parser, buffer) = createParser()
@@ -1053,6 +1291,18 @@ class AnsiEscapeParserTest {
         assertEquals('い', screenBuffer[0][4].char, "'い' should shift right")
     }
 
+    /**
+     * Test: 韓国語ハングル（全角文字）の書き込み
+     *
+     * 入力: "한글테스트" (5文字のハングル)
+     *
+     * ハングル文字はUnicodeのU+AC00-U+D7AF範囲にあり、
+     * 全角文字として2セル幅で表示される。
+     *
+     * 期待されるバッファ状態:
+     *   Col:  0   1   2   3   4   5   6   7   8   9
+     *        [한][P] [글][P] [테][P] [스][P] [트][P]
+     */
     @Test
     fun testWideChar_Korean_Hangul() {
         val (parser, buffer) = createParser()
@@ -1068,6 +1318,18 @@ class AnsiEscapeParserTest {
         assertEquals('트', screenBuffer[0][8].char)
     }
 
+    /**
+     * Test: 中国語（簡体字）の書き込み
+     *
+     * 入力: "中文测试" (4文字の中国語)
+     *
+     * CJK統合漢字はUnicodeのU+4E00-U+9FFF範囲にあり、
+     * 全角文字として2セル幅で表示される。
+     *
+     * 期待されるバッファ状態:
+     *   Col:  0   1   2   3   4   5   6   7
+     *        [中][P] [文][P] [测][P] [试][P]
+     */
     @Test
     fun testWideChar_Chinese() {
         val (parser, buffer) = createParser()
@@ -1082,6 +1344,18 @@ class AnsiEscapeParserTest {
         assertEquals('试', screenBuffer[0][6].char)
     }
 
+    /**
+     * Test: 全角数字の書き込み
+     *
+     * 入力: "１２３" (全角数字3文字)
+     *
+     * 全角数字（U+FF10-U+FF19）は半角数字とは異なり、
+     * 2セル幅で表示される。
+     *
+     * 期待されるバッファ状態:
+     *   Col:  0   1   2   3   4   5
+     *        [１][P] [２][P] [３][P]
+     */
     @Test
     fun testWideChar_FullWidthNumbers() {
         val (parser, buffer) = createParser()
