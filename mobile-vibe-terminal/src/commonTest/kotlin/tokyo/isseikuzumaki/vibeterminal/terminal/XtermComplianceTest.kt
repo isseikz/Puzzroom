@@ -291,14 +291,13 @@ class XtermComplianceTest {
         // DEC Special Graphics Character Set (line drawing)
         parser.processText("\u001B(0")           // Select DEC graphics into G0
         // In full implementation, 'q' would become horizontal line
-        // Currently just acknowledges the sequence
         parser.processText("q")                  // Would be horizontal line
         parser.processText("\u001B(B")           // Back to ASCII
         parser.processText("A")
 
-        // Implementation currently doesn't map special chars, but sequence doesn't crash
-        assertEquals('q', buffer.getBuffer()[0][0].char, "Character written (not mapped yet)")
-        assertEquals('A', buffer.getBuffer()[0][1].char, "ASCII character after reset")
+        // With implementation, q maps to horizontal line (─)
+        assertEquals('─', buffer.getBuffer()[0][0].char, "Should map q to horizontal line")
+        assertEquals('A', buffer.getBuffer()[0][1].char, "Should be A")
     }
 
     @Test

@@ -149,13 +149,19 @@ class AnsiEscapeParser(private val screenBuffer: TerminalScreenBuffer) {
     }
 
     private fun handleScsChar(char: Char) {
-        // Handle character set selection
-        // ESC ( B = Select ASCII into G0
-        // ESC ( 0 = Select DEC Special Graphics into G0
-        // ESC ) B = Select ASCII into G1
-        // ESC ) 0 = Select DEC Special Graphics into G1
-        // For now, we just acknowledge and ignore these sequences
-        // In a full implementation, we would map special graphics characters
+        val charset = when (char) {
+            '0' -> TerminalScreenBuffer.Charset.DEC_SPECIAL_GRAPHICS
+            'B' -> TerminalScreenBuffer.Charset.ASCII
+            else -> TerminalScreenBuffer.Charset.ASCII // Default/Fallback
+        }
+
+        val index = when (scsChar) {
+            '(' -> 0 // G0
+            ')' -> 1 // G1
+            else -> 0
+        }
+
+        screenBuffer.setCharset(index, charset)
         state = State.NORMAL
     }
 
@@ -282,6 +288,10 @@ class AnsiEscapeParser(private val screenBuffer: TerminalScreenBuffer) {
                          params.contains(2004) -> {
                              // Enable bracketed paste mode (ignore, we don't need to track this)
                          }
+                         params.contains(25) -> {
+                             // Show Cursor (DECTCEM)
+                             screenBuffer.setCursorVisible(true)
+                         }
                      }
                  }
             }
@@ -295,6 +305,10 @@ class AnsiEscapeParser(private val screenBuffer: TerminalScreenBuffer) {
                          }
                          params.contains(2004) -> {
                              // Disable bracketed paste mode (ignore)
+                         }
+                         params.contains(25) -> {
+                             // Hide Cursor (DECTCEM)
+                             screenBuffer.setCursorVisible(false)
                          }
                      }
                  }

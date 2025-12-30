@@ -25,6 +25,21 @@ class TerminalScreenBuffer(
     var cursorCol: Int = 0
         private set
     
+    // Cursor visibility
+    var isCursorVisible: Boolean = true
+        private set
+
+    // Character Sets
+    enum class Charset {
+        ASCII,
+        DEC_SPECIAL_GRAPHICS
+    }
+
+    private var g0Charset: Charset = Charset.ASCII
+    private var g1Charset: Charset = Charset.ASCII
+    // Currently implementation assumes G0 is always active (default state)
+    // Full ISO 2022 implementation would track locking shifts (SI/SO)
+
     // Saved cursor states for primary buffer
     private var primaryCursorRow = 0
     private var primaryCursorCol = 0
@@ -112,8 +127,10 @@ class TerminalScreenBuffer(
      * Write a character at the current cursor position
      */
     fun writeChar(char: Char) {
+        val effectiveChar = mapCharacter(char)
+        
         if (cursorRow >= 0 && cursorRow < rows && cursorCol >= 0 && cursorCol < cols) {
-            val isWide = UnicodeWidth.isWideChar(char)
+            val isWide = UnicodeWidth.isWideChar(effectiveChar)
 
             // Resolve delayed wrap if pending
             if (delayedWrap) {
@@ -153,7 +170,7 @@ class TerminalScreenBuffer(
                 }
 
                 val cell = TerminalCell(
-                    char = char,
+                    char = effectiveChar,
                     foregroundColor = if (isReverse) currentBackground else currentForeground,
                     backgroundColor = if (isReverse) currentForeground else currentBackground,
                     isBold = isBold,
@@ -176,6 +193,52 @@ class TerminalScreenBuffer(
                     cursorCol = cols - 1
                 }
             }
+        }
+    }
+
+    private fun mapCharacter(char: Char): Char {
+        // Only map if G0 is DEC Special Graphics
+        // (Assuming G0 is always active for now)
+        if (g0Charset != Charset.DEC_SPECIAL_GRAPHICS) return char
+
+        // Mapping based on vt100.net/docs/vt100-ug/table3-9.html
+        return when (char) {
+            'j' -> '┘' // Lower right corner
+            'k' -> '┐' // Upper right corner
+            'l' -> '┌' // Upper left corner
+            'm' -> '└' // Lower left corner
+            'n' -> '┼' // Crossing lines
+            'q' -> '─' // Horizontal line
+            't' -> '├' // Left 'T'
+            'u' -> '┤' // Right 'T'
+            'v' -> '┴' // Bottom 'T'
+            'w' -> '┬' // Top 'T'
+            'x' -> '│' // Vertical line
+            'a' -> '▒' // Checker board
+            '`' -> '◆' // Diamond
+            'f' -> '°' // Degree symbol
+            'g' -> '±' // Plus/minus
+            'h' -> '␤' // New line symbol (approx)
+            'i' -> '␋' // Vertical tab symbol (approx)
+            'y' -> '≤' // Less than or equal
+            'z' -> '≥' // Greater than or equal
+            '{' -> 'π' // Pi
+            '|' -> '≠' // Not equal
+            '}' -> '£' // Pound sterling
+            '~' -> '·' // Cent dot
+            else -> char
+        }
+    }
+
+    fun setCursorVisible(visible: Boolean) {
+        isCursorVisible = visible
+    }
+
+    fun setCharset(index: Int, charset: Charset) {
+        if (index == 0) {
+            g0Charset = charset
+        } else if (index == 1) {
+            g1Charset = charset
         }
     }
 

@@ -691,6 +691,54 @@ class AnsiEscapeParserTest {
         // Implementation should acknowledge without error
     }
 
+    @Test
+    fun testCharacterSet_DECSpecialGraphics_LineDrawing() {
+        val (parser, buffer) = createParser()
+
+        // Switch to DEC Special Graphics
+        parser.processText("\u001B(0")
+
+        // Test box drawing characters
+        parser.processText("l")  // Upper-left corner
+        assertEquals('┌', buffer.getBuffer()[0][0].char, "l should map to ┌")
+
+        parser.processText("k")  // Upper-right corner
+        assertEquals('┐', buffer.getBuffer()[0][1].char, "k should map to ┐")
+
+        parser.processText("m")  // Lower-left corner
+        assertEquals('└', buffer.getBuffer()[0][2].char, "m should map to └")
+
+        parser.processText("j")  // Lower-right corner
+        assertEquals('┘', buffer.getBuffer()[0][3].char, "j should map to ┘")
+
+        parser.processText("q")  // Horizontal line
+        assertEquals('─', buffer.getBuffer()[0][4].char, "q should map to ─")
+
+        parser.processText("x")  // Vertical line
+        assertEquals('│', buffer.getBuffer()[0][5].char, "x should map to │")
+
+        // Switch back to ASCII
+        parser.processText("\u001B(B")
+        parser.processText("l")
+        assertEquals('l', buffer.getBuffer()[0][6].char, "Should be normal 'l' in ASCII mode")
+    }
+
+    @Test
+    fun testCursorVisibility_DECTCEM() {
+        val (parser, buffer) = createParser()
+
+        // Initial state should be visible
+        assertTrue(buffer.isCursorVisible, "Cursor should be visible by default")
+
+        // Hide cursor
+        parser.processText("\u001B[?25l")
+        assertTrue(!buffer.isCursorVisible, "Cursor should be hidden")
+
+        // Show cursor
+        parser.processText("\u001B[?25h")
+        assertTrue(buffer.isCursorVisible, "Cursor should be visible")
+    }
+
     // ========== Edge Cases and Boundary Conditions ==========
 
     @Test
