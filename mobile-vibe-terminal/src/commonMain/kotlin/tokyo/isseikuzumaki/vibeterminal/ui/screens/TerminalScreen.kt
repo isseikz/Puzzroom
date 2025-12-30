@@ -233,30 +233,12 @@ data class TerminalScreen(
                 }
 
                 // Terminal Input Container
-                TerminalInputContainer(
-                    state = terminalInputState,
-                    modifier = Modifier.weight(1f).fillMaxWidth()
-                ) {
-                    // Terminal Output - Screen Buffer Rendering
-                    // **New**: セカンダリディスプレイ接続中はステータスメッセージを表示
-                    if (isSecondaryConnected) {
-                        // セカンダリディスプレイで表示中のステータス
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color.Black),
-                            contentAlignment = Alignment.TopCenter
-                        ) {
-                            Text(
-                                text = stringResource(Res.string.terminal_secondary_display),
-                                color = Color(0xFF00FF00),
-                                fontSize = 14.sp,
-                                fontFamily = FontFamily.Monospace,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(16.dp)
-                            )
-                        }
-                    } else {
+                // セカンダリディスプレイ接続時は非表示にし、マクロパネルを全画面に
+                if (!isSecondaryConnected) {
+                    TerminalInputContainer(
+                        state = terminalInputState,
+                        modifier = Modifier.weight(1f).fillMaxWidth()
+                    ) {
                         // メインディスプレイでターミナル表示
                         BoxWithConstraints(
                             modifier = Modifier
@@ -384,7 +366,8 @@ data class TerminalScreen(
                 }
 
                 // Buffered Input Deck with Macro Row
-                // Show input panel when connected (visible on main display even with secondary display)
+                // Show input panel when connected
+                // セカンダリディスプレイ接続時は全画面でマクロパネルを表示
                 if (state.isConnected) {
                     MacroInputPanel(
                         state = state,
@@ -405,6 +388,11 @@ data class TerminalScreen(
                         },
                         onToggleAlt = {
                             screenModel.toggleAlt()
+                        },
+                        modifier = if (isSecondaryConnected) {
+                            Modifier.weight(1f).fillMaxWidth()  // 全画面使用
+                        } else {
+                            Modifier.fillMaxWidth()  // 通常サイズ
                         }
                     )
                 }
