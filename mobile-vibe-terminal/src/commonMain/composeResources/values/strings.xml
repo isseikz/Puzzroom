@@ -49,7 +49,7 @@
 
     <!-- File Explorer -->
     <string name="file_explorer_title">File Explorer</string>
-    <string name="file_explorer_root">Root</string>
+    <string name="file_explorer_root">/</string>
     <string name="file_explorer_error">Error loading directory</string>
     <string name="file_explorer_empty">Empty directory</string>
     <string name="file_explorer_install_apk">Install APK</string>
@@ -79,7 +79,7 @@
     <string name="macro_tab_basic">Basic</string>
     <string name="macro_tab_nav">Nav</string>
     <string name="macro_tab_vim">Vim</string>
-    <string name="macro_tab_function">Function</string>
+    <string name="macro_tab_function">Fn</string>
 
     <!-- Basic Macro Keys -->
     <string name="macro_esc">ESC</string>

@@ -49,7 +49,7 @@
 
     <!-- File Explorer -->
     <string name="file_explorer_title">文件浏览器</string>
-    <string name="file_explorer_root">根目录</string>
+    <string name="file_explorer_root">/</string>
     <string name="file_explorer_error">加载目录时出错</string>
     <string name="file_explorer_empty">空目录</string>
     <string name="file_explorer_install_apk">安装APK</string>
@@ -79,7 +79,7 @@
     <string name="macro_tab_basic">基本</string>
     <string name="macro_tab_nav">导航</string>
     <string name="macro_tab_vim">Vim</string>
-    <string name="macro_tab_function">功能键</string>
+    <string name="macro_tab_function">Fn</string>
 
     <!-- Basic Macro Keys -->
     <string name="macro_esc">ESC</string>

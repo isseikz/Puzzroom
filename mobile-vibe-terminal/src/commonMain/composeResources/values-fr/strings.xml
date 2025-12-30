@@ -49,7 +49,7 @@
 
     <!-- File Explorer -->
     <string name="file_explorer_title">Explorateur de fichiers</string>
-    <string name="file_explorer_root">Racine</string>
+    <string name="file_explorer_root">/</string>
     <string name="file_explorer_error">Erreur lors du chargement du répertoire</string>
     <string name="file_explorer_empty">Répertoire vide</string>
     <string name="file_explorer_install_apk">Installer APK</string>
@@ -79,7 +79,7 @@
     <string name="macro_tab_basic">Base</string>
     <string name="macro_tab_nav">Nav</string>
     <string name="macro_tab_vim">Vim</string>
-    <string name="macro_tab_function">Fonction</string>
+    <string name="macro_tab_function">Fn</string>
 
     <!-- Basic Macro Keys -->
     <string name="macro_esc">ESC</string>
