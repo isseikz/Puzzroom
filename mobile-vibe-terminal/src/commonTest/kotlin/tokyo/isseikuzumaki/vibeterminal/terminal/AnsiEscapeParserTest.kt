@@ -921,38 +921,40 @@ class AnsiEscapeParserTest {
     }
 
     /**
-     * Test: カーソル移動後に全角文字のパディングセルを上書き
+     * Test: カーソル移動後に文字を上書き
      *
      * シーケンス:
      *   1. "あいう" を書き込み → バッファ: [あ][P][い][P][う][P]
-     *   2. ESC[1;3H (CUP) → カーソルを行1、列3に移動（0-indexedで列2、'あ'のパディング位置）
+     *   2. ESC[1;3H (CUP) → カーソルを行1、列3に移動（0-indexedで列2、'い'の開始位置）
      *   3. "X" を書き込み
      *
-     * CSI 1;3 H の意味:
-     *   - CSI = ESC [ (Control Sequence Introducer)
-     *   - 1;3 = 行1、列3（1-indexed）
-     *   - H = CUP (Cursor Position) コマンド
-     *
      * 期待される動作:
-     *   パディングセルに文字を書き込むと、元の全角文字（'あ'）は
-     *   不完全になるため、クリアされる必要がある。
+     *   'い' の位置に文字が書き込まれる。
+     *   前の文字 'あ' は影響を受けない。
      *
      * 期待されるバッファ状態:
      *   Before: [あ][P][い][P][う][P]
-     *   After:  [ ] [ ][X] [い][P][う][P]  ← 'あ'とそのパディングがクリアされ、Xが列2に入る
+     *   After:  [あ][P][X] [ ][う][P]
+     *                 ↑ 'い'が上書きされ、そのパディングもクリアされるのが望ましい
      */
     @Test
     fun testWideChar_WithCursorMovement() {
         val (parser, buffer) = createParser()
 
         parser.processText("あいう")
-        parser.processText("\u001B[1;3H")  // Move to column 3 (padding of first char)
+        parser.processText("\u001B[1;3H")  // Move to column 3 (start of 'い')
         parser.processText("X")
 
         val screenBuffer = buffer.getBuffer()
-        // Overwriting padding cell should clear the wide char
-        assertEquals(' ', screenBuffer[0][0].char, "Wide char should be cleared")
-        assertEquals('X', screenBuffer[0][2].char, "X should be at column 3 (0-indexed 2)")
+        
+        // 'あ' should remain intact
+        assertEquals('あ', screenBuffer[0][0].char, "First wide char 'あ' should remain")
+        assertTrue(screenBuffer[0][0].isWideChar)
+        
+        // 'い' should be overwritten by 'X'
+        assertEquals('X', screenBuffer[0][2].char, "X should overwrite 'い'")
+        // The padding of 'い' should be cleared (or at least handled safely)
+        assertEquals(' ', screenBuffer[0][3].char, "Padding of 'い' should be cleared")
     }
 
     /**
@@ -1289,6 +1291,78 @@ class AnsiEscapeParserTest {
         assertEquals(' ', screenBuffer[0][2].char, "Inserted blank")
         assertEquals(' ', screenBuffer[0][3].char, "Inserted blank")
         assertEquals('い', screenBuffer[0][4].char, "'い' should shift right")
+    }
+
+    /**
+     * Test: 全角文字のパディング位置での文字削除
+     *
+     * シーケンス:
+     *   1. "あいう" を書き込み → [あ][P][い][P][う][P]
+     *   2. ESC[1;2H → カーソルを列2（'あ'のパディング）に移動
+     *   3. ESC[1P → 1文字削除
+     *
+     * 期待される動作:
+     *   パディング位置での操作は親文字を破壊する。
+     *   'あ'はクリアされ、削除処理が実行される。
+     *
+     * 期待されるバッファ状態:
+     *   Before: [あ][P][い][P][う][P]
+     *   After:  [ ][い][P][う][P][ ]
+     *            ↑ 'あ'が壊れて空白になり、'い'以降が左にシフト
+     */
+    @Test
+    fun testWideChar_DeleteAtPadding() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("あいう")
+        parser.processText("\u001B[1;2H")  // Move to column 2 (padding of 'あ')
+        parser.processText("\u001B[1P")    // Delete 1 character
+
+        val screenBuffer = buffer.getBuffer()
+        
+        // 'あ' should be broken (cleared)
+        assertEquals(' ', screenBuffer[0][0].char, "'あ' should be cleared because padding was targeted")
+        
+        // Remaining chars should shift left into position 1
+        assertEquals('い', screenBuffer[0][1].char, "'い' should shift left to column 1")
+    }
+
+    /**
+     * Test: 全角文字のパディング位置での空白挿入
+     *
+     * シーケンス:
+     *   1. "あいう" を書き込み → [あ][P][い][P][う][P]
+     *   2. ESC[1;2H → カーソルを列2（'あ'のパディング）に移動
+     *   3. ESC[1@ → 1文字挿入
+     *
+     * 期待される動作:
+     *   パディング位置での操作は親文字を破壊する。
+     *   'あ'はクリアされ、空白が挿入される。
+     *
+     * 期待されるバッファ状態:
+     *   Before: [あ][P][い][P][う][P]
+     *   After:  [ ][ ][い][P][う][P]
+     *            ↑  ↑ 挿入された空白
+     *            'あ'が壊れて空白になる
+     */
+    @Test
+    fun testWideChar_InsertAtPadding() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("あいう")
+        parser.processText("\u001B[1;2H")  // Move to column 2 (padding of 'あ')
+        parser.processText("\u001B[1@")    // Insert 1 blank character
+
+        val screenBuffer = buffer.getBuffer()
+
+        // 'あ' should be broken (cleared)
+        assertEquals(' ', screenBuffer[0][0].char, "'あ' should be cleared")
+        
+        // Inserted blank at col 2
+        assertEquals(' ', screenBuffer[0][2].char, "Inserted blank at col 2")
+        
+        // 'い' should shift right
+        assertEquals('い', screenBuffer[0][3].char, "'い' should shift right")
     }
 
     /**
