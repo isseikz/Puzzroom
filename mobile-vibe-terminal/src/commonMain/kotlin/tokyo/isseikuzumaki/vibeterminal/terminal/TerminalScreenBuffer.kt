@@ -7,9 +7,14 @@ import androidx.compose.ui.graphics.Color
  * This implements a simplified VT100-style terminal emulator.
  */
 class TerminalScreenBuffer(
-    private var cols: Int = 80,
-    private var rows: Int = 24
+    cols: Int = 80,
+    rows: Int = 24
 ) {
+    // Public read-only access to dimensions
+    var cols: Int = cols
+        private set
+    var rows: Int = rows
+        private set
     private var buffer: Array<Array<TerminalCell>> = createBuffer(cols, rows)
     private var primaryBuffer: Array<Array<TerminalCell>> = buffer
     private var alternateBuffer: Array<Array<TerminalCell>>? = null
@@ -285,6 +290,7 @@ class TerminalScreenBuffer(
                 22 -> isBold = false
                 24 -> isUnderline = false
                 27 -> isReverse = false
+                // Standard foreground colors (30-37)
                 30 -> currentForeground = Color.Black
                 31 -> currentForeground = Color(0xFFFF5555)  // Red
                 32 -> currentForeground = Color(0xFF50FA7B)  // Green
@@ -294,6 +300,7 @@ class TerminalScreenBuffer(
                 36 -> currentForeground = Color(0xFF8BE9FD)  // Cyan
                 37 -> currentForeground = Color.White
                 39 -> currentForeground = Color.White  // Default
+                // Standard background colors (40-47)
                 40 -> currentBackground = Color.Black
                 41 -> currentBackground = Color(0xFFFF5555)  // Red
                 42 -> currentBackground = Color(0xFF50FA7B)  // Green
@@ -303,6 +310,24 @@ class TerminalScreenBuffer(
                 46 -> currentBackground = Color(0xFF8BE9FD)  // Cyan
                 47 -> currentBackground = Color.White
                 49 -> currentBackground = Color.Black  // Default
+                // Bright foreground colors (90-97)
+                90 -> currentForeground = Color(0xFF6E6E6E)   // Bright Black (Gray)
+                91 -> currentForeground = Color(0xFFFF6E6E)   // Bright Red
+                92 -> currentForeground = Color(0xFF69FF94)   // Bright Green
+                93 -> currentForeground = Color(0xFFFFFFA5)   // Bright Yellow
+                94 -> currentForeground = Color(0xFFD6ACFF)   // Bright Blue
+                95 -> currentForeground = Color(0xFFFF92DF)   // Bright Magenta
+                96 -> currentForeground = Color(0xFFA4FFFF)   // Bright Cyan
+                97 -> currentForeground = Color(0xFFFFFFFF)   // Bright White
+                // Bright background colors (100-107)
+                100 -> currentBackground = Color(0xFF6E6E6E)  // Bright Black (Gray)
+                101 -> currentBackground = Color(0xFFFF6E6E)  // Bright Red
+                102 -> currentBackground = Color(0xFF69FF94)  // Bright Green
+                103 -> currentBackground = Color(0xFFFFFFA5)  // Bright Yellow
+                104 -> currentBackground = Color(0xFFD6ACFF)  // Bright Blue
+                105 -> currentBackground = Color(0xFFFF92DF)  // Bright Magenta
+                106 -> currentBackground = Color(0xFFA4FFFF)  // Bright Cyan
+                107 -> currentBackground = Color(0xFFFFFFFF)  // Bright White
             }
         }
     }
@@ -412,6 +437,73 @@ class TerminalScreenBuffer(
             }
             // Clear last line
             buffer[rows - 1] = Array(cols) { TerminalCell.EMPTY }
+        }
+    }
+
+    /**
+     * Delete characters at cursor position (DCH - CSI P)
+     * Shifts remaining characters on the line to the left
+     */
+    fun deleteCharacters(count: Int) {
+        val charsToDelete = count.coerceAtMost(cols - cursorCol)
+        if (charsToDelete <= 0) return
+
+        // Shift characters to the left
+        for (c in cursorCol until cols - charsToDelete) {
+            buffer[cursorRow][c] = buffer[cursorRow][c + charsToDelete]
+        }
+        // Clear the vacated positions at the end
+        for (c in cols - charsToDelete until cols) {
+            buffer[cursorRow][c] = TerminalCell.EMPTY
+        }
+    }
+
+    /**
+     * Insert blank characters at cursor position (ICH - CSI @)
+     * Shifts existing characters on the line to the right
+     */
+    fun insertCharacters(count: Int) {
+        val charsToInsert = count.coerceAtMost(cols - cursorCol)
+        if (charsToInsert <= 0) return
+
+        // Shift characters to the right
+        for (c in cols - 1 downTo cursorCol + charsToInsert) {
+            buffer[cursorRow][c] = buffer[cursorRow][c - charsToInsert]
+        }
+        // Clear the inserted positions
+        for (c in cursorCol until cursorCol + charsToInsert) {
+            buffer[cursorRow][c] = TerminalCell.EMPTY
+        }
+    }
+
+    /**
+     * Scroll up N lines within the scroll region (SU - CSI S)
+     */
+    fun scrollUpLines(count: Int) {
+        val linesToScroll = count.coerceAtMost(scrollBottom - scrollTop + 1)
+        for (i in 0 until linesToScroll) {
+            scrollUp()
+        }
+    }
+
+    /**
+     * Scroll down N lines within the scroll region (SD - CSI T)
+     */
+    fun scrollDownLines(count: Int) {
+        val linesToScroll = count.coerceAtMost(scrollBottom - scrollTop + 1)
+        for (i in 0 until linesToScroll) {
+            scrollDown()
+        }
+    }
+
+    /**
+     * Erase characters at cursor position (ECH - CSI X)
+     * Unlike DCH, this doesn't shift characters, just erases them
+     */
+    fun eraseCharacters(count: Int) {
+        val charsToErase = count.coerceAtMost(cols - cursorCol)
+        for (c in cursorCol until cursorCol + charsToErase) {
+            buffer[cursorRow][c] = TerminalCell.EMPTY
         }
     }
 }

@@ -296,6 +296,68 @@ class TerminalScreenBufferTest {
         assertEquals(' ', screenBuffer[2][0].char, "Deleted line should be blank")
     }
 
+    @Test
+    fun testInsertLines_DeepCopy() {
+        // This test verifies that insertLines creates independent line copies,
+        // not just reference copies (which would cause corruption)
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        // Write distinct content on each line
+        buffer.moveCursor(1, 1)
+        buffer.writeChar('A')
+        buffer.moveCursor(2, 1)
+        buffer.writeChar('B')
+        buffer.moveCursor(3, 1)
+        buffer.writeChar('C')
+        buffer.moveCursor(4, 1)
+        buffer.writeChar('D')
+
+        // Insert a line at row 2
+        buffer.moveCursor(2, 1)
+        buffer.insertLines(1)
+
+        // Now modify the shifted line (originally 'B', now at row 3)
+        buffer.moveCursor(3, 2)
+        buffer.writeChar('X')
+
+        val screenBuffer = buffer.getBuffer()
+        // Line 4 (originally 'C', shifted down) should NOT have 'X'
+        // If insertLines used reference copy, line 3 and line 4 would share the same array
+        assertEquals('C', screenBuffer[3][0].char, "Line 4 should still have 'C'")
+        assertEquals(' ', screenBuffer[3][1].char, "Line 4 col 2 should be empty, not 'X'")
+    }
+
+    @Test
+    fun testDeleteLines_DeepCopy() {
+        // This test verifies that deleteLines creates independent line copies
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        // Write distinct content on each line
+        buffer.moveCursor(1, 1)
+        buffer.writeChar('A')
+        buffer.moveCursor(2, 1)
+        buffer.writeChar('B')
+        buffer.moveCursor(3, 1)
+        buffer.writeChar('C')
+        buffer.moveCursor(4, 1)
+        buffer.writeChar('D')
+        buffer.moveCursor(5, 1)
+        buffer.writeChar('E')
+
+        // Delete a line at row 2 ('B' gets deleted)
+        buffer.moveCursor(2, 1)
+        buffer.deleteLines(1)
+
+        // Now modify line 2 (which now contains 'C')
+        buffer.moveCursor(2, 2)
+        buffer.writeChar('X')
+
+        val screenBuffer = buffer.getBuffer()
+        // Line 3 (now contains 'D') should NOT have 'X'
+        assertEquals('D', screenBuffer[2][0].char, "Line 3 should have 'D'")
+        assertEquals(' ', screenBuffer[2][1].char, "Line 3 col 2 should be empty, not 'X'")
+    }
+
     // ========== Cursor Save and Restore ==========
 
     @Test
