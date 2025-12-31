@@ -146,6 +146,115 @@ graph LR
 * **Shortcut Commands:** `/cost`, `/clear`, `/compact` 等の定型文メニュー実装。
 * **Panic Button:** `Ctrl+C` を即座に送信する専用ボタン（AIの暴走停止用）。
 
+### 4.4 Secondary Display Control (セカンダリディスプレイ制御)
+
+外部ディスプレイ接続時に、ターミナル出力をセカンダリディスプレイに表示し、メインディスプレイを操作専用UIとして使用する機能。
+
+#### A. アーキテクチャ概要
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        入力状態 (独立)                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────────────┐    ┌─────────────────────────┐    │
+│  │ ディスプレイ接続状態     │    │ ユーザー設定            │    │
+│  │ (システムイベント)       │    │ (外部ディスプレイ使用)   │    │
+│  │                         │    │                         │    │
+│  │ isDisplayConnected      │    │ useExternalDisplay      │    │
+│  │ ↑ DisplayListener       │    │ ↑ UI操作/設定画面       │    │
+│  └───────────┬─────────────┘    └───────────┬─────────────┘    │
+│              │                              │                   │
+│              └──────────────┬───────────────┘                   │
+│                             │                                   │
+│                             ▼                                   │
+├─────────────────────────────────────────────────────────────────┤
+│                        派生状態 (計算)                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ ターミナル表示先                                         │   │
+│  │                                                         │   │
+│  │ terminalDisplayTarget = if (isDisplayConnected &&       │   │
+│  │                             useExternalDisplay)         │   │
+│  │                           SECONDARY else MAIN           │   │
+│  └───────────────────────────┬─────────────────────────────┘   │
+│                              │                                  │
+└──────────────────────────────┼──────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     副作用 (状態に反応)                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  terminalDisplayTarget を監視して:                              │
+│                                                                 │
+│  ┌─────────────────────────┐    ┌─────────────────────────┐    │
+│  │ SECONDARY の場合        │    │ MAIN の場合             │    │
+│  │                         │    │                         │    │
+│  │ • サービス起動          │    │ • サービス停止          │    │
+│  │ • メインでターミナル非表示│    │ • メインでターミナル表示 │    │
+│  └─────────────────────────┘    └─────────────────────────┘    │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### B. 入力状態 (Input States)
+
+| 状態名 | 型 | 更新トリガー | 説明 |
+|--------|-----|-------------|------|
+| `isDisplayConnected` | `StateFlow<Boolean>` | `DisplayManager.DisplayListener` | 外部ディスプレイの物理的な接続状態 |
+| `useExternalDisplay` | `StateFlow<Boolean>` | ユーザー操作（ボタン/設定） | ユーザーが外部ディスプレイを使用する意図 |
+
+#### C. 派生状態 (Derived State)
+
+```kotlin
+enum class DisplayTarget { MAIN, SECONDARY }
+
+val terminalDisplayTarget: StateFlow<DisplayTarget> = combine(
+    isDisplayConnected,
+    useExternalDisplay
+) { connected, useExternal ->
+    if (connected && useExternal) DisplayTarget.SECONDARY else DisplayTarget.MAIN
+}.stateIn(scope, SharingStarted.Eagerly, DisplayTarget.MAIN)
+```
+
+#### D. 状態遷移マトリクス
+
+| isDisplayConnected | useExternalDisplay | terminalDisplayTarget | サービス | メインUI |
+|:------------------:|:------------------:|:---------------------:|:--------:|:--------:|
+| `false` | `false` | `MAIN` | 停止 | ターミナル表示 |
+| `false` | `true` | `MAIN` | 停止 | ターミナル表示 |
+| `true` | `false` | `MAIN` | 停止 | ターミナル表示 |
+| `true` | `true` | `SECONDARY` | 起動 | マクロパネルのみ |
+
+**テスト要件:** この状態遷移マトリクスへの準拠は単体テストで保証すること。
+
+#### E. 副作用 (Side Effects)
+
+`terminalDisplayTarget` の変化に応じて以下の副作用を実行:
+
+1. **MAIN → SECONDARY 遷移時:**
+   * `TerminalService` をフォアグラウンドサービスとして起動
+   * `TerminalPresentation` を外部ディスプレイに表示
+   * メインディスプレイのターミナル描画を非表示化
+   * ターミナルサイズをセカンダリディスプレイに合わせてリサイズ
+
+2. **SECONDARY → MAIN 遷移時:**
+   * `TerminalPresentation` を破棄
+   * `TerminalService` を停止
+   * メインディスプレイでターミナル描画を再開
+   * ターミナルサイズをメインディスプレイに合わせてリサイズ
+
+#### F. 関連クラス
+
+| クラス | 責務 |
+|--------|------|
+| `TerminalDisplayManager` | 入力状態の管理と派生状態の計算 |
+| `TerminalService` | セカンダリディスプレイへの `Presentation` 表示を管理するフォアグラウンドサービス |
+| `TerminalPresentation` | 外部ディスプレイ上でターミナルUIを描画する `Presentation` |
+| `TerminalStateProvider` | メイン/セカンダリ間でターミナルバッファを共有するシングルトン |
+
 ---
 
 ## 5. データベース設計 (Room)

@@ -27,8 +27,7 @@ import tokyo.isseikuzumaki.vibeterminal.domain.model.ConnectionConfig
 import tokyo.isseikuzumaki.vibeterminal.domain.model.SavedConnection
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.ConnectionListScreenModel
 import tokyo.isseikuzumaki.vibeterminal.ui.components.StartUpCommandInput
-import tokyo.isseikuzumaki.vibeterminal.platform.launchSecondaryDisplay
-import androidx.compose.ui.platform.LocalContext
+import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalDisplayManager
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.stringResource
 import puzzroom.mobile_vibe_terminal.generated.resources.*
@@ -40,12 +39,14 @@ class ConnectionListScreen : Screen {
         val navigator = LocalNavigator.currentOrThrow
         val screenModel = koinScreenModel<ConnectionListScreenModel>()
         val state by screenModel.state.collectAsState()
-        val context = LocalContext.current
 
         var showPasswordDialog by remember { mutableStateOf(false) }
         var selectedConnection by remember { mutableStateOf<SavedConnection?>(null) }
         var password by remember { mutableStateOf("") }
         var savePassword by remember { mutableStateOf(false) }
+
+        // External display connection state (informational)
+        val isDisplayConnected by TerminalDisplayManager.isDisplayConnected.collectAsState()
 
         // Check for auto-restore on startup
         LaunchedEffect(Unit) {
@@ -65,22 +66,14 @@ class ConnectionListScreen : Screen {
                         titleContentColor = Color(0xFF00FF00)
                     ),
                     actions = {
-                        // Secondary Display Test Button (Android only)
-                        Button(
-                            onClick = {
-                                try {
-                                    launchSecondaryDisplay(context)
-                                } catch (e: Exception) {
-                                    tokyo.isseikuzumaki.vibeterminal.util.Logger.e(e, "Failed to launch secondary display")
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.Red,
-                                contentColor = Color.White
-                            ),
-                            modifier = Modifier.padding(end = 8.dp)
-                        ) {
-                            Text(stringResource(Res.string.connection_list_test_display), fontSize = 12.sp)
+                        // Display connection indicator (informational only)
+                        if (isDisplayConnected) {
+                            Text(
+                                text = stringResource(Res.string.connection_list_test_display),
+                                fontSize = 12.sp,
+                                color = Color(0xFF00FF00),
+                                modifier = Modifier.padding(end = 16.dp)
+                            )
                         }
                     }
                 )

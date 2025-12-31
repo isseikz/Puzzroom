@@ -430,6 +430,62 @@ class AnsiEscapeParserTest {
     }
 
     @Test
+    fun testSGR_256Colors_Foreground() {
+        val (parser, buffer) = createParser()
+
+        // Standard colors (0-15) - Index 1 = Red
+        parser.processText("\u001B[38;5;1mX")
+        assertEquals(Color(0xFFFF5555), buffer.getBuffer()[0][0].foregroundColor, "Index 1 should be Red")
+
+        // Color cube (16-231) - Index 196 = Red (part of 6x6x6 cube)
+        // 196 = 16 + 36*5 + 6*0 + 0 = Red
+        parser.processText("\u001B[38;5;196mX")
+        // Note: Exact RGB value depends on palette implementation, but for 196 it's typically FF0000
+        // We'll verify it's parsed and not the default color
+        assertTrue(buffer.getBuffer()[0][1].foregroundColor != Color.White, "Index 196 should not be default white")
+
+        // Grayscale (232-255) - Index 255 = Nearly White
+        parser.processText("\u001B[38;5;255mX")
+        // Grayscale 255 is usually #EEEEEE
+        assertTrue(buffer.getBuffer()[0][2].foregroundColor != Color.Black, "Index 255 should not be black")
+    }
+
+    @Test
+    fun testSGR_256Colors_Background() {
+        val (parser, buffer) = createParser()
+
+        // Index 2 = Green
+        parser.processText("\u001B[48;5;2mX")
+        assertEquals(Color(0xFF50FA7B), buffer.getBuffer()[0][0].backgroundColor, "Index 2 should be Green")
+
+        // Index 21 = Blue (0,0,5 in cube)
+        parser.processText("\u001B[48;5;21mX")
+        assertTrue(buffer.getBuffer()[0][1].backgroundColor != Color.Black, "Index 21 should not be default black")
+    }
+
+    @Test
+    fun testSGR_TrueColor_Foreground() {
+        val (parser, buffer) = createParser()
+
+        // RGB: 123, 45, 67
+        parser.processText("\u001B[38;2;123;45;67mX")
+        
+        val color = buffer.getBuffer()[0][0].foregroundColor
+        assertEquals(Color(123, 45, 67), color, "Should match exact RGB value")
+    }
+
+    @Test
+    fun testSGR_TrueColor_Background() {
+        val (parser, buffer) = createParser()
+
+        // RGB: 10, 200, 255
+        parser.processText("\u001B[48;2;10;200;255mX")
+
+        val color = buffer.getBuffer()[0][0].backgroundColor
+        assertEquals(Color(10, 200, 255), color, "Should match exact RGB value")
+    }
+
+    @Test
     fun testSGR_TextAttributes() {
         val (parser, buffer) = createParser()
 
@@ -635,6 +691,54 @@ class AnsiEscapeParserTest {
         // Implementation should acknowledge without error
     }
 
+    @Test
+    fun testCharacterSet_DECSpecialGraphics_LineDrawing() {
+        val (parser, buffer) = createParser()
+
+        // Switch to DEC Special Graphics
+        parser.processText("\u001B(0")
+
+        // Test box drawing characters
+        parser.processText("l")  // Upper-left corner
+        assertEquals('┌', buffer.getBuffer()[0][0].char, "l should map to ┌")
+
+        parser.processText("k")  // Upper-right corner
+        assertEquals('┐', buffer.getBuffer()[0][1].char, "k should map to ┐")
+
+        parser.processText("m")  // Lower-left corner
+        assertEquals('└', buffer.getBuffer()[0][2].char, "m should map to └")
+
+        parser.processText("j")  // Lower-right corner
+        assertEquals('┘', buffer.getBuffer()[0][3].char, "j should map to ┘")
+
+        parser.processText("q")  // Horizontal line
+        assertEquals('─', buffer.getBuffer()[0][4].char, "q should map to ─")
+
+        parser.processText("x")  // Vertical line
+        assertEquals('│', buffer.getBuffer()[0][5].char, "x should map to │")
+
+        // Switch back to ASCII
+        parser.processText("\u001B(B")
+        parser.processText("l")
+        assertEquals('l', buffer.getBuffer()[0][6].char, "Should be normal 'l' in ASCII mode")
+    }
+
+    @Test
+    fun testCursorVisibility_DECTCEM() {
+        val (parser, buffer) = createParser()
+
+        // Initial state should be visible
+        assertTrue(buffer.isCursorVisible, "Cursor should be visible by default")
+
+        // Hide cursor
+        parser.processText("\u001B[?25l")
+        assertTrue(!buffer.isCursorVisible, "Cursor should be hidden")
+
+        // Show cursor
+        parser.processText("\u001B[?25h")
+        assertTrue(buffer.isCursorVisible, "Cursor should be visible")
+    }
+
     // ========== Edge Cases and Boundary Conditions ==========
 
     @Test
@@ -798,5 +902,648 @@ class AnsiEscapeParserTest {
         parser.processText("X")
 
         assertEquals('X', buffer.getBuffer()[0][0].char, "Only 'X' should be written, not 'q'")
+    }
+
+    // ========== Wide Character (Full-width) Handling ==========
+
+    /**
+     * Test: ひらがな（全角文字）の基本的な書き込み
+     *
+     * 入力: "あいうえお" (5文字のひらがな)
+     *
+     * 期待されるバッファ状態:
+     *   Col:  0   1   2   3   4   5   6   7   8   9
+     *        [あ][P] [い][P] [う][P] [え][P] [お][P]
+     *        ↑       ↑       ↑       ↑       ↑
+     *        wide    wide    wide    wide    wide
+     *   (P = padding cell, 全角文字の右半分を占めるダミーセル)
+     *
+     * 全角文字は2セル幅を占めるため、5文字で10セル消費。
+     * カーソルは列10に移動する。
+     */
+    @Test
+    fun testWideChar_Japanese_Hiragana() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("あいうえお")  // Hiragana
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('あ', screenBuffer[0][0].char, "First hiragana")
+        assertTrue(screenBuffer[0][0].isWideChar)
+        assertTrue(screenBuffer[0][1].isWideCharPadding)
+
+        assertEquals('い', screenBuffer[0][2].char, "Second hiragana")
+        assertTrue(screenBuffer[0][2].isWideChar)
+        assertTrue(screenBuffer[0][3].isWideCharPadding)
+
+        assertEquals(10, buffer.cursorCol, "Cursor at col 10 (5 wide chars * 2)")
+    }
+
+    /**
+     * Test: カタカナ（全角文字）の書き込み
+     *
+     * 入力: "アイウエオ" (5文字のカタカナ)
+     *
+     * 期待されるバッファ状態:
+     *   Col:  0   1   2   3   4   5   6   7   8   9
+     *        [ア][P] [イ][P] [ウ][P] [エ][P] [オ][P]
+     *
+     * カタカナもひらがな同様、全角文字として2セル幅で表示。
+     */
+    @Test
+    fun testWideChar_Japanese_Katakana() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("アイウエオ")  // Katakana
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('ア', screenBuffer[0][0].char, "First katakana")
+        assertTrue(screenBuffer[0][0].isWideChar)
+        assertEquals('イ', screenBuffer[0][2].char, "Second katakana")
+        assertEquals('ウ', screenBuffer[0][4].char, "Third katakana")
+    }
+
+    /**
+     * Test: 漢字とカタカナの混在
+     *
+     * 入力: "日本語テスト" (漢字3文字 + カタカナ3文字)
+     *
+     * 期待されるバッファ状態:
+     *   Col:  0   1   2   3   4   5   6   7   8   9  10  11
+     *        [日][P] [本][P] [語][P] [テ][P] [ス][P] [ト][P]
+     *
+     * 全6文字 × 2セル = 12セル消費
+     */
+    @Test
+    fun testWideChar_Japanese_Kanji() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("日本語テスト")  // Kanji + Katakana
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('日', screenBuffer[0][0].char)
+        assertEquals('本', screenBuffer[0][2].char)
+        assertEquals('語', screenBuffer[0][4].char)
+        assertEquals('テ', screenBuffer[0][6].char)
+        assertEquals('ス', screenBuffer[0][8].char)
+        assertEquals('ト', screenBuffer[0][10].char)
+    }
+
+    /**
+     * Test: 半角ASCII文字と全角文字の混在
+     *
+     * 入力: "Hello日本語World"
+     *
+     * 期待されるバッファ状態:
+     *   Col:  0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15
+     *        [H] [e] [l] [l] [o] [日][P] [本][P] [語][P] [W] [o] [r] [l] [d]
+     *        ←── 半角5文字 ──→ ←── 全角3文字(6セル) ──→ ←── 半角5文字 ──→
+     *
+     * 半角文字は1セル、全角文字は2セルを消費。
+     * 合計: 5 + 6 + 5 = 16セル
+     */
+    @Test
+    fun testWideChar_MixedWithASCII() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("Hello日本語World")
+
+        val screenBuffer = buffer.getBuffer()
+        // "Hello" = 5 narrow chars
+        assertEquals('H', screenBuffer[0][0].char)
+        assertEquals('e', screenBuffer[0][1].char)
+        assertEquals('l', screenBuffer[0][2].char)
+        assertEquals('l', screenBuffer[0][3].char)
+        assertEquals('o', screenBuffer[0][4].char)
+        // "日本語" = 3 wide chars (6 cells)
+        assertEquals('日', screenBuffer[0][5].char)
+        assertTrue(screenBuffer[0][5].isWideChar)
+        assertEquals('本', screenBuffer[0][7].char)
+        assertEquals('語', screenBuffer[0][9].char)
+        // "World" = 5 narrow chars
+        assertEquals('W', screenBuffer[0][11].char)
+    }
+
+    /**
+     * Test: カーソル移動後に文字を上書き
+     *
+     * シーケンス:
+     *   1. "あいう" を書き込み → バッファ: [あ][P][い][P][う][P]
+     *   2. ESC[1;3H (CUP) → カーソルを行1、列3に移動（0-indexedで列2、'い'の開始位置）
+     *   3. "X" を書き込み
+     *
+     * 期待される動作:
+     *   'い' の位置に文字が書き込まれる。
+     *   前の文字 'あ' は影響を受けない。
+     *
+     * 期待されるバッファ状態:
+     *   Before: [あ][P][い][P][う][P]
+     *   After:  [あ][P][X] [ ][う][P]
+     *                 ↑ 'い'が上書きされ、そのパディングもクリアされるのが望ましい
+     */
+    @Test
+    fun testWideChar_WithCursorMovement() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("あいう")
+        parser.processText("\u001B[1;3H")  // Move to column 3 (start of 'い')
+        parser.processText("X")
+
+        val screenBuffer = buffer.getBuffer()
+        
+        // 'あ' should remain intact
+        assertEquals('あ', screenBuffer[0][0].char, "First wide char 'あ' should remain")
+        assertTrue(screenBuffer[0][0].isWideChar)
+        
+        // 'い' should be overwritten by 'X'
+        assertEquals('X', screenBuffer[0][2].char, "X should overwrite 'い'")
+        // The padding of 'い' should be cleared (or at least handled safely)
+        assertEquals(' ', screenBuffer[0][3].char, "Padding of 'い' should be cleared")
+    }
+
+    /**
+     * Test: 全角文字列の途中から行末まで消去
+     *
+     * シーケンス:
+     *   1. "あいうえお" を書き込み → [あ][P][い][P][う][P][え][P][お][P]
+     *   2. ESC[1;5H → カーソルを列5に移動（0-indexedで列4、'う'の開始位置）
+     *   3. ESC[K → カーソル位置から行末まで消去
+     *
+     * CSI K の意味 (EL - Erase in Line):
+     *   - パラメータなし or 0: カーソル位置から行末まで消去
+     *   - 1: 行頭からカーソル位置まで消去
+     *   - 2: 行全体を消去
+     *
+     * 期待されるバッファ状態:
+     *   Before: [あ][P][い][P][う][P][え][P][お][P]
+     *   After:  [あ][P][い][P][ ] [ ] [ ] [ ] [ ] [ ]
+     *                         ↑ 列4以降が消去される
+     */
+    @Test
+    fun testWideChar_WithEraseToEndOfLine() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("あいうえお")
+        parser.processText("\u001B[1;5H")  // Move to column 5 (start of 'う')
+        parser.processText("\u001B[K")     // Erase to end of line
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('あ', screenBuffer[0][0].char, "First char should remain")
+        assertEquals('い', screenBuffer[0][2].char, "Second char should remain")
+        assertEquals(' ', screenBuffer[0][4].char, "Third char should be erased")
+        assertEquals(' ', screenBuffer[0][6].char, "Fourth char should be erased")
+    }
+
+    /**
+     * Test: 全角文字に色属性を適用
+     *
+     * シーケンス:
+     *   1. ESC[31m → 前景色を赤に設定
+     *   2. "日" を書き込み
+     *   3. ESC[32m → 前景色を緑に設定
+     *   4. "本" を書き込み
+     *   5. ESC[0m → 属性をリセット（デフォルトの白に戻る）
+     *   6. "語" を書き込み
+     *
+     * CSI m の意味 (SGR - Select Graphic Rendition):
+     *   - 31 = 前景色: 赤
+     *   - 32 = 前景色: 緑
+     *   - 0 = すべての属性をリセット
+     *
+     * 期待されるバッファ状態:
+     *   Col:  0   1   2   3   4   5
+     *        [日][P] [本][P] [語][P]
+     *         赤      緑      白
+     */
+    @Test
+    fun testWideChar_WithColors() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("\u001B[31m日\u001B[32m本\u001B[0m語")
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals(Color(0xFFFF5555), screenBuffer[0][0].foregroundColor, "Red")
+        assertEquals(Color(0xFF50FA7B), screenBuffer[0][2].foregroundColor, "Green")
+        assertEquals(Color.White, screenBuffer[0][4].foregroundColor, "Reset to white")
+
+        // All should be wide chars
+        assertTrue(screenBuffer[0][0].isWideChar)
+        assertTrue(screenBuffer[0][2].isWideChar)
+        assertTrue(screenBuffer[0][4].isWideChar)
+    }
+
+    /**
+     * Test: 10列のターミナルで全角文字5つがぴったり収まり、次の行に折り返し
+     *
+     * ターミナルサイズ: 10列 × 5行
+     *
+     * 入力: "あいうえお" (5文字 × 2セル = 10セル)
+     *
+     * 期待される動作 (Delayed Wrap):
+     *   - 10セルがぴったり1行に収まる
+     *   - 書き込み完了直後、カーソルは **まだ行末に留まる** (Delayed Wrap)
+     *   - 次の文字を書き込んだ瞬間に改行が発生する
+     */
+    @Test
+    fun testWideChar_LineWrap() {
+        // Create a narrow terminal
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+        val parser = AnsiEscapeParser(buffer)
+
+        // Write wide chars that should wrap exactly
+        parser.processText("あいうえお")  // 10 cells, should fit exactly
+
+        // With delayed wrap, cursor sits at the last column waiting for next char
+        assertEquals(0, buffer.cursorRow, "Should NOT wrap immediately (Delayed Wrap)")
+        assertEquals(9, buffer.cursorCol, "Cursor at end of line")
+
+        // Write one more wide char - THIS triggers the wrap
+        parser.processText("か")
+
+        assertEquals(1, buffer.cursorRow, "Should wrap to next line after writing new char")
+        assertEquals('か', buffer.getBuffer()[1][0].char, "Wide char on second line")
+        assertEquals(2, buffer.cursorCol, "Cursor advanced after 'か'")
+    }
+
+    /**
+     * Test: 最終列に全角文字を書き込もうとした時の折り返し
+     *
+     * ターミナルサイズ: 10列 × 5行
+     *
+     * シーケンス:
+     *   1. "123456789" を書き込み → 列0-8を使用、カーソルは列9
+     *   2. "あ" を書き込み → 全角文字は2セル必要だが、残り1セルしかない
+     *
+     * 期待される動作:
+     *   全角文字が最終列（列9）から始まると、パディングセルを置く
+     *   スペースがないため、以下の処理を行う:
+     *   1. 最終列を空白のままにする
+     *   2. 次の行の先頭から全角文字を書き込む
+     *
+     * 期待されるバッファ状態:
+     *   Row 0: [1][2][3][4][5][6][7][8][9][ ]  ← 列9は空白
+     *   Row 1: [あ][P]...                      ← 全角文字は次行に
+     */
+    @Test
+    fun testWideChar_AtLastColumn_Wraps() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+        val parser = AnsiEscapeParser(buffer)
+
+        // Fill 9 cells with narrow chars
+        parser.processText("123456789")
+
+        // Try to write wide char at last column - should wrap
+        parser.processText("あ")
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals(' ', screenBuffer[0][9].char, "Last cell should be empty")
+        assertEquals('あ', screenBuffer[1][0].char, "Wide char on next line")
+        assertTrue(screenBuffer[1][0].isWideChar)
+    }
+
+    /**
+     * Test: byobuスタイルのステータスバー（スクロール領域外）の動作
+     *
+     * ターミナルサイズ: 20列 × 10行
+     *
+     * シーケンス:
+     *   1. ESC[1;8r → スクロール領域を行1-8に設定（行9-10はステータスバー用）
+     *   2. ESC[1;1H → カーソルを行1、列1に移動
+     *   3. コンテンツを書き込み
+     *   4. ESC[9;1H → カーソルをステータスバー行（行9）に移動
+     *   5. ステータスバーの内容を書き込み
+     *   6. スクロール領域内でスクロールをトリガー
+     *
+     * CSI r の意味 (DECSTBM - Set Top and Bottom Margins):
+     *   - 1;8 = 上マージン行1、下マージン行8
+     *   - スクロールはこの領域内でのみ発生
+     *   - 領域外（行9-10）はスクロールの影響を受けない
+     *
+     * 期待される動作:
+     *   スクロール領域（行1-8）内でスクロールが発生しても、
+     *   ステータスバー領域（行9-10）の内容は変更されない。
+     *   これはbyobuやtmuxのステータスバーの動作を再現する。
+     */
+    @Test
+    fun testWideChar_ScrollRegion_StatusBar() {
+        // Simulate byobu-like status bar behavior
+        val buffer = TerminalScreenBuffer(cols = 20, rows = 10)
+        val parser = AnsiEscapeParser(buffer)
+
+        // Set scroll region to exclude last 2 lines (status bar area)
+        parser.processText("\u001B[1;8r")  // Scroll region lines 1-8
+
+        // Write content in scroll region
+        parser.processText("\u001B[1;1H")
+        parser.processText("Content area with 日本語")
+
+        // Write to status bar area (outside scroll region)
+        parser.processText("\u001B[9;1H")
+        parser.processText("Status: 状態")
+        parser.processText("\u001B[10;1H")
+        parser.processText("Time: 時間")
+
+        // Fill scroll region to trigger scroll
+        for (i in 1..8) {
+            parser.processText("\u001B[$i;1H")
+            parser.processText("Line $i 行$i")
+        }
+        // Write more to trigger scroll
+        parser.processText("\u001B[8;1H")
+        for (j in 0 until 20) {
+            parser.processText("X")
+        }
+
+        val screenBuffer = buffer.getBuffer()
+        // Status bar should be unchanged
+        assertEquals('S', screenBuffer[8][0].char, "Status line should be unchanged")
+        assertEquals('T', screenBuffer[9][0].char, "Time line should be unchanged")
+    }
+
+    /**
+     * Test: 代替スクリーンバッファでの全角文字処理
+     *
+     * シーケンス:
+     *   1. "主画面" を書き込み（プライマリバッファに）
+     *   2. ESC[?1049h → 代替スクリーンバッファに切り替え
+     *   3. "副画面" を書き込み（代替バッファに）
+     *   4. ESC[?1049l → プライマリバッファに戻る
+     *
+     * CSI ? 1049 h/l の意味 (DECSET/DECRST):
+     *   - ?1049h = 代替スクリーンバッファを使用（カーソルを保存し、画面をクリア）
+     *   - ?1049l = プライマリスクリーンバッファに戻る（カーソルを復元）
+     *
+     * 期待される動作:
+     *   - 代替バッファへの切り替え時、プライマリの内容は保持される
+     *   - 代替バッファは空の状態から開始
+     *   - プライマリに戻ると、元の内容（"主画面"）が復元される
+     */
+    @Test
+    fun testWideChar_AlternateScreen() {
+        val (parser, buffer) = createParser()
+
+        // Write to primary with wide chars
+        parser.processText("主画面")
+
+        // Switch to alternate
+        parser.processText("\u001B[?1049h")
+        assertTrue(buffer.isAlternateScreen)
+
+        // Write to alternate
+        parser.processText("副画面")
+        assertEquals('副', buffer.getBuffer()[0][0].char)
+
+        // Switch back
+        parser.processText("\u001B[?1049l")
+
+        // Primary content should be restored
+        assertEquals('主', buffer.getBuffer()[0][0].char)
+        assertTrue(buffer.getBuffer()[0][0].isWideChar)
+    }
+
+    /**
+     * Test: 全角文字書き込み中のカーソル保存・復元
+     *
+     * シーケンス:
+     *   1. "あいう" を書き込み → カーソルは列6に移動
+     *   2. ESC 7 → カーソル位置を保存（列6）
+     *   3. "えお" を書き込み → カーソルは列10に移動
+     *   4. ESC 8 → カーソル位置を復元（列6に戻る）
+     *
+     * ESC 7 / ESC 8 の意味 (DECSC/DECRC):
+     *   - ESC 7 = DECSC (DEC Save Cursor) - カーソル位置を保存
+     *   - ESC 8 = DECRC (DEC Restore Cursor) - カーソル位置を復元
+     *
+     * 期待される動作:
+     *   全角文字を書き込んでもカーソル位置の保存・復元は
+     *   正しく動作する。カーソル位置は列単位（セル単位）で保存される。
+     */
+    @Test
+    fun testWideChar_CursorSaveRestore() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("あいう")
+        parser.processText("\u001B7")  // Save cursor (at col 6)
+
+        parser.processText("えお")
+        assertEquals(10, buffer.cursorCol, "Cursor at col 10")
+
+        parser.processText("\u001B8")  // Restore cursor
+        assertEquals(6, buffer.cursorCol, "Cursor restored to col 6")
+    }
+
+    /**
+     * Test: 全角文字列内での文字削除
+     *
+     * シーケンス:
+     *   1. "あいうえお" を書き込み → [あ][P][い][P][う][P][え][P][お][P]
+     *   2. ESC[1;3H → カーソルを列3に移動（0-indexedで列2、'い'の開始位置）
+     *   3. ESC[2P → カーソル位置から2文字削除
+     *
+     * CSI Ps P の意味 (DCH - Delete Character):
+     *   - Ps = 削除する文字数（デフォルト1）
+     *   - カーソル位置から指定数の文字を削除
+     *   - 右側の文字が左にシフトする
+     *
+     * 期待されるバッファ状態:
+     *   Before: [あ][P][い][P][う][P][え][P][お][P]
+     *   After:  [あ][P][う][P][え][P][お][P][ ] [ ]
+     *                 ↑ 'い'とそのパディングが削除され、後続がシフト
+     */
+    @Test
+    fun testWideChar_DeleteCharacters() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("あいうえお")
+        parser.processText("\u001B[1;3H")  // Move to column 3 (position of 'い')
+        parser.processText("\u001B[2P")    // Delete 2 characters
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('あ', screenBuffer[0][0].char, "First char should remain")
+        // After deletion, 'う' should shift left
+        assertEquals('う', screenBuffer[0][2].char, "'う' should shift left")
+    }
+
+    /**
+     * Test: 全角文字列内での空白文字挿入
+     *
+     * シーケンス:
+     *   1. "あいう" を書き込み → [あ][P][い][P][う][P]
+     *   2. ESC[1;3H → カーソルを列3に移動（0-indexedで列2）
+     *   3. ESC[2@ → カーソル位置に2つの空白文字を挿入
+     *
+     * CSI Ps @ の意味 (ICH - Insert Character):
+     *   - Ps = 挿入する空白文字数（デフォルト1）
+     *   - カーソル位置に空白を挿入
+     *   - 既存の文字は右にシフトする
+     *
+     * 期待されるバッファ状態:
+     *   Before: [あ][P][い][P][う][P]
+     *   After:  [あ][P][ ] [ ][い][P][う][P]
+     *                 ↑ ↑  2つの空白が挿入され、'い'以降が右シフト
+     */
+    @Test
+    fun testWideChar_InsertCharacters() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("あいう")
+        parser.processText("\u001B[1;3H")  // Move to column 3
+        parser.processText("\u001B[2@")    // Insert 2 blank characters
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('あ', screenBuffer[0][0].char, "First char should remain")
+        assertEquals(' ', screenBuffer[0][2].char, "Inserted blank")
+        assertEquals(' ', screenBuffer[0][3].char, "Inserted blank")
+        assertEquals('い', screenBuffer[0][4].char, "'い' should shift right")
+    }
+
+    /**
+     * Test: 全角文字のパディング位置での文字削除
+     *
+     * シーケンス:
+     *   1. "あいう" を書き込み → [あ][P][い][P][う][P]
+     *   2. ESC[1;2H → カーソルを列2（'あ'のパディング）に移動
+     *   3. ESC[1P → 1文字削除
+     *
+     * 期待される動作:
+     *   パディング位置での操作は親文字を破壊する。
+     *   'あ'はクリアされ、削除処理が実行される。
+     *
+     * 期待されるバッファ状態:
+     *   Before: [あ][P][い][P][う][P]
+     *   After:  [ ][い][P][う][P][ ]
+     *            ↑ 'あ'が壊れて空白になり、'い'以降が左にシフト
+     */
+    @Test
+    fun testWideChar_DeleteAtPadding() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("あいう")
+        parser.processText("\u001B[1;2H")  // Move to column 2 (padding of 'あ')
+        parser.processText("\u001B[1P")    // Delete 1 character
+
+        val screenBuffer = buffer.getBuffer()
+        
+        // 'あ' should be broken (cleared)
+        assertEquals(' ', screenBuffer[0][0].char, "'あ' should be cleared because padding was targeted")
+        
+        // Remaining chars should shift left into position 1
+        assertEquals('い', screenBuffer[0][1].char, "'い' should shift left to column 1")
+    }
+
+    /**
+     * Test: 全角文字のパディング位置での空白挿入
+     *
+     * シーケンス:
+     *   1. "あいう" を書き込み → [あ][P][い][P][う][P]
+     *   2. ESC[1;2H → カーソルを列2（'あ'のパディング）に移動
+     *   3. ESC[1@ → 1文字挿入
+     *
+     * 期待される動作:
+     *   パディング位置での操作は親文字を破壊する。
+     *   'あ'はクリアされ、空白が挿入される。
+     *
+     * 期待されるバッファ状態:
+     *   Before: [あ][P][い][P][う][P]
+     *   After:  [ ][ ][い][P][う][P]
+     *            ↑  ↑ 挿入された空白
+     *            'あ'が壊れて空白になる
+     */
+    @Test
+    fun testWideChar_InsertAtPadding() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("あいう")
+        parser.processText("\u001B[1;2H")  // Move to column 2 (padding of 'あ')
+        parser.processText("\u001B[1@")    // Insert 1 blank character
+
+        val screenBuffer = buffer.getBuffer()
+
+        // 'あ' should be broken (cleared)
+        assertEquals(' ', screenBuffer[0][0].char, "'あ' should be cleared")
+        
+        // Inserted blank at col 2
+        assertEquals(' ', screenBuffer[0][2].char, "Inserted blank at col 2")
+        
+        // 'い' should shift right
+        assertEquals('い', screenBuffer[0][3].char, "'い' should shift right")
+    }
+
+    /**
+     * Test: 韓国語ハングル（全角文字）の書き込み
+     *
+     * 入力: "한글테스트" (5文字のハングル)
+     *
+     * ハングル文字はUnicodeのU+AC00-U+D7AF範囲にあり、
+     * 全角文字として2セル幅で表示される。
+     *
+     * 期待されるバッファ状態:
+     *   Col:  0   1   2   3   4   5   6   7   8   9
+     *        [한][P] [글][P] [테][P] [스][P] [트][P]
+     */
+    @Test
+    fun testWideChar_Korean_Hangul() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("한글테스트")  // Korean Hangul
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('한', screenBuffer[0][0].char)
+        assertTrue(screenBuffer[0][0].isWideChar)
+        assertEquals('글', screenBuffer[0][2].char)
+        assertEquals('테', screenBuffer[0][4].char)
+        assertEquals('스', screenBuffer[0][6].char)
+        assertEquals('트', screenBuffer[0][8].char)
+    }
+
+    /**
+     * Test: 中国語（簡体字）の書き込み
+     *
+     * 入力: "中文测试" (4文字の中国語)
+     *
+     * CJK統合漢字はUnicodeのU+4E00-U+9FFF範囲にあり、
+     * 全角文字として2セル幅で表示される。
+     *
+     * 期待されるバッファ状態:
+     *   Col:  0   1   2   3   4   5   6   7
+     *        [中][P] [文][P] [测][P] [试][P]
+     */
+    @Test
+    fun testWideChar_Chinese() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("中文测试")  // Chinese
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('中', screenBuffer[0][0].char)
+        assertTrue(screenBuffer[0][0].isWideChar)
+        assertEquals('文', screenBuffer[0][2].char)
+        assertEquals('测', screenBuffer[0][4].char)
+        assertEquals('试', screenBuffer[0][6].char)
+    }
+
+    /**
+     * Test: 全角数字の書き込み
+     *
+     * 入力: "１２３" (全角数字3文字)
+     *
+     * 全角数字（U+FF10-U+FF19）は半角数字とは異なり、
+     * 2セル幅で表示される。
+     *
+     * 期待されるバッファ状態:
+     *   Col:  0   1   2   3   4   5
+     *        [１][P] [２][P] [３][P]
+     */
+    @Test
+    fun testWideChar_FullWidthNumbers() {
+        val (parser, buffer) = createParser()
+
+        parser.processText("１２３")  // Full-width numbers
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('１', screenBuffer[0][0].char)
+        assertTrue(screenBuffer[0][0].isWideChar)
+        assertEquals('２', screenBuffer[0][2].char)
+        assertEquals('３', screenBuffer[0][4].char)
     }
 }

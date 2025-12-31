@@ -25,6 +25,21 @@ class TerminalScreenBuffer(
     var cursorCol: Int = 0
         private set
     
+    // Cursor visibility
+    var isCursorVisible: Boolean = true
+        private set
+
+    // Character Sets
+    enum class Charset {
+        ASCII,
+        DEC_SPECIAL_GRAPHICS
+    }
+
+    private var g0Charset: Charset = Charset.ASCII
+    private var g1Charset: Charset = Charset.ASCII
+    // Currently implementation assumes G0 is always active (default state)
+    // Full ISO 2022 implementation would track locking shifts (SI/SO)
+
     // Saved cursor states for primary buffer
     private var primaryCursorRow = 0
     private var primaryCursorCol = 0
@@ -46,6 +61,11 @@ class TerminalScreenBuffer(
     // Scroll region (DECSTBM) - 0-indexed, inclusive
     private var scrollTop = 0
     private var scrollBottom = rows - 1
+
+    // Delayed wrap state (Xenon wrap)
+    // When true, the cursor is technically past the last column, but wrapping is deferred
+    // until the next character is written.
+    private var delayedWrap = false
 
     /**
      * Get current scroll region (for testing and debugging)
@@ -77,6 +97,7 @@ class TerminalScreenBuffer(
             // Reset cursor for alternate buffer
             cursorRow = 0
             cursorCol = 0
+            delayedWrap = false
             
             isAlternateScreen = true
         }
@@ -91,6 +112,7 @@ class TerminalScreenBuffer(
             buffer = primaryBuffer
             cursorRow = primaryCursorRow
             cursorCol = primaryCursorCol
+            delayedWrap = false
             alternateBuffer = null
             isAlternateScreen = false
         }
@@ -105,23 +127,145 @@ class TerminalScreenBuffer(
      * Write a character at the current cursor position
      */
     fun writeChar(char: Char) {
+        val effectiveChar = mapCharacter(char)
+        
         if (cursorRow >= 0 && cursorRow < rows && cursorCol >= 0 && cursorCol < cols) {
-            buffer[cursorRow][cursorCol] = TerminalCell(
-                char = char,
-                foregroundColor = if (isReverse) currentBackground else currentForeground,
-                backgroundColor = if (isReverse) currentForeground else currentBackground,
-                isBold = isBold,
-                isUnderline = isUnderline,
-                isReverse = isReverse
-            )
-            cursorCol++
-            if (cursorCol >= cols) {
+            val isWide = UnicodeWidth.isWideChar(effectiveChar)
+
+            // Resolve delayed wrap if pending
+            if (delayedWrap) {
+                delayedWrap = false
                 cursorCol = 0
                 cursorRow++
-                // Check if we need to scroll within the scroll region
                 if (cursorRow > scrollBottom) {
                     scrollUp()
                     cursorRow = scrollBottom
+                }
+            }
+
+            // Handle wrapping for wide char at last column (Pre-wrap)
+            // If we are at the last column and try to write a wide char, we wrap immediately
+            // because a wide char cannot fit.
+            if (isWide && cursorCol == cols - 1) {
+                // Clear the last column
+                buffer[cursorRow][cursorCol] = TerminalCell.EMPTY
+                // Move to next line
+                cursorCol = 0
+                cursorRow++
+                if (cursorRow > scrollBottom) {
+                    scrollUp()
+                    cursorRow = scrollBottom
+                }
+            }
+
+            // Check boundary again after wrap
+            if (cursorRow >= 0 && cursorRow < rows && cursorCol >= 0 && cursorCol < cols) {
+                // Destructive overwrite logic
+                // 1. Clear integrity at current position
+                clearWideCharIntegrityAt(cursorRow, cursorCol)
+
+                // 2. If writing a wide char, ensure the next cell is also cleared of any partial wide chars
+                if (isWide && cursorCol + 1 < cols) {
+                    clearWideCharIntegrityAt(cursorRow, cursorCol + 1)
+                }
+
+                val cell = TerminalCell(
+                    char = effectiveChar,
+                    foregroundColor = if (isReverse) currentBackground else currentForeground,
+                    backgroundColor = if (isReverse) currentForeground else currentBackground,
+                    isBold = isBold,
+                    isUnderline = isUnderline,
+                    isReverse = isReverse,
+                    isWideCharPadding = false
+                )
+                buffer[cursorRow][cursorCol] = cell
+
+                if (isWide && cursorCol + 1 < cols) {
+                    // Write padding cell
+                    val paddingCell = cell.copy(char = ' ', isWideCharPadding = true)
+                    buffer[cursorRow][cursorCol + 1] = paddingCell
+                }
+
+                cursorCol += if (isWide) 2 else 1
+                
+                if (cursorCol >= cols) {
+                    delayedWrap = true
+                    cursorCol = cols - 1
+                }
+            }
+        }
+    }
+
+    private fun mapCharacter(char: Char): Char {
+        // Only map if G0 is DEC Special Graphics
+        // (Assuming G0 is always active for now)
+        if (g0Charset != Charset.DEC_SPECIAL_GRAPHICS) return char
+
+        // Mapping based on vt100.net/docs/vt100-ug/table3-9.html
+        return when (char) {
+            'j' -> '┘' // Lower right corner
+            'k' -> '┐' // Upper right corner
+            'l' -> '┌' // Upper left corner
+            'm' -> '└' // Lower left corner
+            'n' -> '┼' // Crossing lines
+            'q' -> '─' // Horizontal line
+            't' -> '├' // Left 'T'
+            'u' -> '┤' // Right 'T'
+            'v' -> '┴' // Bottom 'T'
+            'w' -> '┬' // Top 'T'
+            'x' -> '│' // Vertical line
+            'a' -> '▒' // Checker board
+            '`' -> '◆' // Diamond
+            'f' -> '°' // Degree symbol
+            'g' -> '±' // Plus/minus
+            'h' -> '␤' // New line symbol (approx)
+            'i' -> '␋' // Vertical tab symbol (approx)
+            'y' -> '≤' // Less than or equal
+            'z' -> '≥' // Greater than or equal
+            '{' -> 'π' // Pi
+            '|' -> '≠' // Not equal
+            '}' -> '£' // Pound sterling
+            '~' -> '·' // Cent dot
+            else -> char
+        }
+    }
+
+    fun setCursorVisible(visible: Boolean) {
+        isCursorVisible = visible
+    }
+
+    fun setCharset(index: Int, charset: Charset) {
+        if (index == 0) {
+            g0Charset = charset
+        } else if (index == 1) {
+            g1Charset = charset
+        }
+    }
+
+    /**
+     * Clears wide character integrity at the given position.
+     * If the cell at (row, col) is part of a wide character (either the main char or padding),
+     * both cells are cleared to maintain buffer integrity.
+     */
+    private fun clearWideCharIntegrityAt(row: Int, col: Int) {
+        if (row < 0 || row >= rows || col < 0 || col >= cols) return
+        val target = buffer[row][col]
+
+        if (target.isWideChar) {
+            // This is the left half (main char), clear it and the right padding
+            buffer[row][col] = TerminalCell.EMPTY
+            if (col + 1 < cols) {
+                // Ensure next one is actually padding before clearing (safe to clear anyway)
+                if (buffer[row][col + 1].isWideCharPadding) {
+                    buffer[row][col + 1] = TerminalCell.EMPTY
+                }
+            }
+        } else if (target.isWideCharPadding) {
+            // This is the right padding, clear it and the left half
+            buffer[row][col] = TerminalCell.EMPTY
+            if (col - 1 >= 0) {
+                if (buffer[row][col - 1].isWideChar) {
+                    buffer[row][col - 1] = TerminalCell.EMPTY
                 }
             }
         }
@@ -131,6 +275,7 @@ class TerminalScreenBuffer(
      * Move cursor to absolute position (1-indexed as per VT100 spec)
      */
     fun moveCursor(row: Int, col: Int) {
+        delayedWrap = false
         cursorRow = (row - 1).coerceIn(0, rows - 1)
         cursorCol = (col - 1).coerceIn(0, cols - 1)
     }
@@ -139,6 +284,7 @@ class TerminalScreenBuffer(
      * Move cursor relatively
      */
     fun moveCursorRelative(rowDelta: Int, colDelta: Int) {
+        delayedWrap = false
         cursorRow = (cursorRow + rowDelta).coerceIn(0, rows - 1)
         cursorCol = (cursorCol + colDelta).coerceIn(0, cols - 1)
     }
@@ -147,6 +293,7 @@ class TerminalScreenBuffer(
      * Move cursor to column (1-indexed)
      */
     fun moveCursorToColumn(col: Int) {
+        delayedWrap = false
         cursorCol = (col - 1).coerceIn(0, cols - 1)
     }
 
@@ -154,6 +301,7 @@ class TerminalScreenBuffer(
      * Clear the entire screen
      */
     fun clearScreen() {
+        delayedWrap = false
         // Instead of creating a new buffer, we should clear the existing one to preserve reference if it's primary or alternate locally
         // But for simplicity in this MVP, re-creating is fine as long as we assign it back to `buffer`
         // However, `buffer` is a reference. 
@@ -171,6 +319,7 @@ class TerminalScreenBuffer(
      * Clear from cursor to end of screen
      */
     fun clearToEndOfScreen() {
+        delayedWrap = false
         // Clear rest of current line
         for (c in cursorCol until cols) {
             buffer[cursorRow][c] = TerminalCell.EMPTY
@@ -187,6 +336,7 @@ class TerminalScreenBuffer(
      * Clear from start of screen to cursor
      */
     fun clearToStartOfScreen() {
+        delayedWrap = false
         // Clear all lines above
         for (r in 0 until cursorRow) {
             for (c in 0 until cols) {
@@ -203,6 +353,7 @@ class TerminalScreenBuffer(
      * Clear the current line
      */
     fun clearLine() {
+        delayedWrap = false
         for (c in 0 until cols) {
             buffer[cursorRow][c] = TerminalCell.EMPTY
         }
@@ -212,6 +363,7 @@ class TerminalScreenBuffer(
      * Clear from cursor to end of line
      */
     fun clearToEndOfLine() {
+        delayedWrap = false
         for (c in cursorCol until cols) {
             buffer[cursorRow][c] = TerminalCell.EMPTY
         }
@@ -221,6 +373,7 @@ class TerminalScreenBuffer(
      * Clear from start of line to cursor
      */
     fun clearToStartOfLine() {
+        delayedWrap = false
         for (c in 0..cursorCol.coerceAtMost(cols - 1)) {
             buffer[cursorRow][c] = TerminalCell.EMPTY
         }
@@ -264,6 +417,7 @@ class TerminalScreenBuffer(
      * @param bottom Bottom line (1-indexed, inclusive)
      */
     fun setScrollRegion(top: Int, bottom: Int) {
+        delayedWrap = false
         // Convert from 1-indexed to 0-indexed
         scrollTop = (top - 1).coerceIn(0, rows - 1)
         scrollBottom = (bottom - 1).coerceIn(scrollTop, rows - 1)
@@ -273,6 +427,7 @@ class TerminalScreenBuffer(
      * Reset scrolling region to full screen
      */
     fun resetScrollRegion() {
+        delayedWrap = false
         scrollTop = 0
         scrollBottom = rows - 1
     }
@@ -281,7 +436,9 @@ class TerminalScreenBuffer(
      * Set text styling based on SGR (Select Graphic Rendition) parameters
      */
     fun setGraphicsMode(params: List<Int>) {
-        for (param in params) {
+        var i = 0
+        while (i < params.size) {
+            val param = params[i]
             when (param) {
                 0 -> resetStyle()
                 1 -> isBold = true
@@ -299,6 +456,26 @@ class TerminalScreenBuffer(
                 35 -> currentForeground = Color(0xFFFF79C6)  // Magenta
                 36 -> currentForeground = Color(0xFF8BE9FD)  // Cyan
                 37 -> currentForeground = Color.White
+                // Extended foreground color (38)
+                38 -> {
+                    // Next param determines mode: 5 for 256-color, 2 for TrueColor
+                    if (i + 1 < params.size) {
+                        val mode = params[i + 1]
+                        if (mode == 5 && i + 2 < params.size) {
+                            // 38;5;n : 256-color
+                            val colorIndex = params[i + 2]
+                            currentForeground = Xterm256Color.getColor(colorIndex)
+                            i += 2 // Consumed mode and index
+                        } else if (mode == 2 && i + 4 < params.size) {
+                            // 38;2;r;g;b : TrueColor
+                            val r = params[i + 2]
+                            val g = params[i + 3]
+                            val b = params[i + 4]
+                            currentForeground = Color(r, g, b)
+                            i += 4 // Consumed mode, r, g, b
+                        }
+                    }
+                }
                 39 -> currentForeground = Color.White  // Default
                 // Standard background colors (40-47)
                 40 -> currentBackground = Color.Black
@@ -309,6 +486,25 @@ class TerminalScreenBuffer(
                 45 -> currentBackground = Color(0xFFFF79C6)  // Magenta
                 46 -> currentBackground = Color(0xFF8BE9FD)  // Cyan
                 47 -> currentBackground = Color.White
+                // Extended background color (48)
+                48 -> {
+                    if (i + 1 < params.size) {
+                        val mode = params[i + 1]
+                        if (mode == 5 && i + 2 < params.size) {
+                            // 48;5;n : 256-color
+                            val colorIndex = params[i + 2]
+                            currentBackground = Xterm256Color.getColor(colorIndex)
+                            i += 2
+                        } else if (mode == 2 && i + 4 < params.size) {
+                            // 48;2;r;g;b : TrueColor
+                            val r = params[i + 2]
+                            val g = params[i + 3]
+                            val b = params[i + 4]
+                            currentBackground = Color(r, g, b)
+                            i += 4
+                        }
+                    }
+                }
                 49 -> currentBackground = Color.Black  // Default
                 // Bright foreground colors (90-97)
                 90 -> currentForeground = Color(0xFF6E6E6E)   // Bright Black (Gray)
@@ -329,6 +525,7 @@ class TerminalScreenBuffer(
                 106 -> currentBackground = Color(0xFFA4FFFF)  // Bright Cyan
                 107 -> currentBackground = Color(0xFFFFFFFF)  // Bright White
             }
+            i++
         }
     }
 
@@ -448,6 +645,9 @@ class TerminalScreenBuffer(
         val charsToDelete = count.coerceAtMost(cols - cursorCol)
         if (charsToDelete <= 0) return
 
+        // Check integrity at start of deletion (cursorCol)
+        clearWideCharIntegrityAt(cursorRow, cursorCol)
+
         // Shift characters to the left
         for (c in cursorCol until cols - charsToDelete) {
             buffer[cursorRow][c] = buffer[cursorRow][c + charsToDelete]
@@ -465,6 +665,13 @@ class TerminalScreenBuffer(
     fun insertCharacters(count: Int) {
         val charsToInsert = count.coerceAtMost(cols - cursorCol)
         if (charsToInsert <= 0) return
+
+        // Check integrity at insertion point (cursorCol)
+        // Only clear if we are inserting at a padding cell (breaking the wide char to the left)
+        // If we are at the start of a wide char, it will just be shifted right, so no need to clear.
+        if (buffer[cursorRow][cursorCol].isWideCharPadding) {
+            clearWideCharIntegrityAt(cursorRow, cursorCol)
+        }
 
         // Shift characters to the right
         for (c in cols - 1 downTo cursorCol + charsToInsert) {

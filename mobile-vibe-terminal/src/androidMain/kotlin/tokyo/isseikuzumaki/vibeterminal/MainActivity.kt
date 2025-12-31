@@ -11,7 +11,9 @@ import org.koin.core.context.startKoin
 import tokyo.isseikuzumaki.vibeterminal.di.appModule
 import tokyo.isseikuzumaki.vibeterminal.di.dataModule
 import tokyo.isseikuzumaki.vibeterminal.di.platformModule
+import tokyo.isseikuzumaki.vibeterminal.platform.launchSecondaryDisplay
 import tokyo.isseikuzumaki.vibeterminal.ui.screens.ConnectionListScreen
+import tokyo.isseikuzumaki.vibeterminal.util.Logger
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,6 +31,14 @@ class MainActivity : ComponentActivity() {
                 androidContext(this@MainActivity)
                 modules(appModule, dataModule, platformModule())
             }
+        }
+
+        // Start TerminalService to monitor secondary display connections
+        try {
+            launchSecondaryDisplay(this)
+            Logger.d("MainActivity: TerminalService started for display monitoring")
+        } catch (e: Exception) {
+            Logger.e(e, "MainActivity: Failed to start TerminalService")
         }
 
         enableEdgeToEdge()

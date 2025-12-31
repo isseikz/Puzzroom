@@ -12,8 +12,12 @@ data class TerminalCell(
     val backgroundColor: Color = Color.Black,
     val isBold: Boolean = false,
     val isUnderline: Boolean = false,
-    val isReverse: Boolean = false
+    val isReverse: Boolean = false,
+    val isWideCharPadding: Boolean = false
 ) {
+    val isWideChar: Boolean
+        get() = UnicodeWidth.isWideChar(char)
+
     companion object {
         val EMPTY = TerminalCell()
     }

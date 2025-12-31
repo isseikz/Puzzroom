@@ -3,6 +3,7 @@ package tokyo.isseikuzumaki.vibeterminal.terminal
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.test.assertFalse
 import androidx.compose.ui.graphics.Color
 
 /**
@@ -646,5 +647,549 @@ class TerminalScreenBufferTest {
         buffer.deleteLines(1)
         buffer.saveCursor()
         buffer.restoreCursor()
+    }
+
+    // ========== Wide Character (Full-width) Handling ==========
+
+    @Test
+    fun testWriteAtLastCell_DoesNotScrollImmediately() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        // 1. Write marker at top
+        buffer.moveCursor(1, 1)
+        buffer.writeChar('A')
+
+        // 2. Move to last cell of last line
+        buffer.moveCursor(5, 10) // row 5, col 10 (1-indexed)
+
+        // 3. Write char at last cell
+        buffer.writeChar('Z')
+
+        val screenBuffer = buffer.getBuffer()
+
+        // 4. Verify no scroll happened yet
+        // The marker 'A' should still be at (0,0)
+        assertEquals('A', screenBuffer[0][0].char, "Screen should not scroll immediately after writing to last cell")
+        assertEquals('Z', screenBuffer[4][9].char, "Char should be written at last cell")
+        
+        // 5. Verify cursor state (conceptually at the end of line, waiting for next char to wrap)
+        // Note: Implementation dependent, but typically cursor stays at last col or moves to a "phantom" col
+        // For now, checking content integrity is most important
+    }
+
+    /**
+     * Test: 全角文字の基本的な書き込み
+     *
+     * 操作: writeChar('あ')
+     *
+     * 期待されるバッファ状態:
+     *   Col:  0   1   2   3 ...
+     *        [あ][P] [ ] [ ] ...
+     *        ↑   ↑
+     *      wide padding
+     *
+     * 全角文字を書き込むと:
+     * 1. 現在位置に文字が書き込まれ、isWideChar=true がセットされる
+     * 2. 次の位置にパディングセル（isWideCharPadding=true）が配置される
+     * 3. カーソルは2つ進む（全角文字は2セル幅）
+     */
+    @Test
+    fun testWideChar_BasicWrite() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        buffer.writeChar('あ')  // Hiragana 'a' - should occupy 2 cells
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('あ', screenBuffer[0][0].char, "Wide char should be written")
+        assertTrue(screenBuffer[0][0].isWideChar, "Cell should be marked as wide char")
+        assertTrue(screenBuffer[0][1].isWideCharPadding, "Next cell should be padding")
+        assertEquals(2, buffer.cursorCol, "Cursor should advance by 2")
+    }
+
+    /**
+     * Test: 複数の全角文字の連続書き込み
+     *
+     * 操作: writeChar('日'), writeChar('本'), writeChar('語')
+     *
+     * 期待されるバッファ状態:
+     *   Col:  0   1   2   3   4   5   6 ...
+     *        [日][P] [本][P] [語][P] [ ] ...
+     *
+     * 3文字 × 2セル = 6セル消費、カーソルは列6に移動
+     */
+    @Test
+    fun testWideChar_MultipleWideChars() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        buffer.writeChar('日')  // Kanji
+        buffer.writeChar('本')  // Kanji
+        buffer.writeChar('語')  // Kanji
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('日', screenBuffer[0][0].char)
+        assertTrue(screenBuffer[0][0].isWideChar)
+        assertTrue(screenBuffer[0][1].isWideCharPadding)
+
+        assertEquals('本', screenBuffer[0][2].char)
+        assertTrue(screenBuffer[0][2].isWideChar)
+        assertTrue(screenBuffer[0][3].isWideCharPadding)
+
+        assertEquals('語', screenBuffer[0][4].char)
+        assertTrue(screenBuffer[0][4].isWideChar)
+        assertTrue(screenBuffer[0][5].isWideCharPadding)
+
+        assertEquals(6, buffer.cursorCol, "Cursor should be at position 6")
+    }
+
+    /**
+     * Test: 半角文字と全角文字の混在
+     *
+     * 操作: writeChar('A'), writeChar('あ'), writeChar('B')
+     *
+     * 期待されるバッファ状態:
+     *   Col:  0   1   2   3   4 ...
+     *        [A] [あ][P] [B] [ ] ...
+     *        ↑   ↑       ↑
+     *       1セル 2セル  1セル
+     *
+     * 半角文字は1セル、全角文字は2セルを消費
+     * 合計: 1 + 2 + 1 = 4セル、カーソルは列4に移動
+     */
+    @Test
+    fun testWideChar_MixedWithNarrow() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        buffer.writeChar('A')   // Narrow (1 cell)
+        buffer.writeChar('あ')  // Wide (2 cells)
+        buffer.writeChar('B')   // Narrow (1 cell)
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('A', screenBuffer[0][0].char)
+        assertFalse(screenBuffer[0][0].isWideChar)
+
+        assertEquals('あ', screenBuffer[0][1].char)
+        assertTrue(screenBuffer[0][1].isWideChar)
+        assertTrue(screenBuffer[0][2].isWideCharPadding)
+
+        assertEquals('B', screenBuffer[0][3].char)
+        assertFalse(screenBuffer[0][3].isWideChar)
+
+        assertEquals(4, buffer.cursorCol)
+    }
+
+    /**
+     * Test: 最終列での全角文字書き込み時の自動折り返し
+     *
+     * ターミナルサイズ: 10列 × 5行
+     *
+     * 操作:
+     *   1. moveCursor(1, 10) → カーソルを最終列（列9、0-indexed）に移動
+     *   2. writeChar('あ') → 全角文字（2セル必要）を書き込み
+     *
+     * 期待される動作:
+     *   最終列から全角文字を書き込もうとすると、パディングセルを
+     *   置くスペースがないため:
+     *   1. 最終列は空白のまま残す
+     *   2. 次の行の先頭から全角文字を書き込む
+     *
+     * 期待されるバッファ状態:
+     *   Row 0: [ ][ ][ ][ ][ ][ ][ ][ ][ ][ ]  ← 列9は空白
+     *   Row 1: [あ][P][ ][ ][ ][ ][ ][ ][ ][ ]  ← 全角文字は次行に
+     */
+    @Test
+    fun testWideChar_AtLineEnd_Wraps() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        // Move cursor to column 9 (last column, 0-indexed)
+        buffer.moveCursor(1, 10)  // 1-indexed: row 1, col 10
+
+        // Write a wide char - should wrap to next line because it needs 2 cells
+        buffer.writeChar('あ')
+
+        val screenBuffer = buffer.getBuffer()
+        // The last cell of row 0 should be empty (can't fit wide char)
+        assertEquals(' ', screenBuffer[0][9].char, "Last cell should be empty")
+
+        // Wide char should be on row 1
+        assertEquals('あ', screenBuffer[1][0].char, "Wide char should wrap to next line")
+        assertTrue(screenBuffer[1][0].isWideChar)
+        assertTrue(screenBuffer[1][1].isWideCharPadding)
+
+        assertEquals(1, buffer.cursorRow, "Cursor should be on row 1")
+        assertEquals(2, buffer.cursorCol, "Cursor should be at column 2")
+    }
+
+    /**
+     * Test: 最後から2番目の列での全角文字書き込み
+     *
+     * ターミナルサイズ: 10列 × 5行
+     *
+     * 操作:
+     *   1. moveCursor(1, 9) → カーソルを列9（0-indexedで列8）に移動
+     *   2. writeChar('あ') → 全角文字を書き込み
+     *
+     * 期待される動作:
+     *   列8-9の2セルに全角文字がぴったり収まる。
+     *   書き込み後、カーソルは次の行の先頭に折り返す。
+     *
+     * 期待されるバッファ状態:
+     *   Row 0: [ ][ ][ ][ ][ ][ ][ ][ ][あ][P]  ← 列8-9に全角文字
+     *   Row 1: (カーソル位置)
+     */
+    @Test
+    fun testWideChar_AtSecondToLastColumn() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        // Move cursor to column 9 (second to last, 0-indexed = 8)
+        buffer.moveCursor(1, 9)  // 1-indexed
+
+        // Write a wide char - should fit
+        buffer.writeChar('あ')
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('あ', screenBuffer[0][8].char, "Wide char should be at col 8")
+        assertTrue(screenBuffer[0][8].isWideChar)
+        assertTrue(screenBuffer[0][9].isWideCharPadding, "Padding at col 9")
+
+        // With Delayed Wrap, cursor stays at the last column
+        assertEquals(0, buffer.cursorRow, "Cursor should NOT wrap immediately (Delayed Wrap)")
+        assertEquals(9, buffer.cursorCol, "Cursor should be at last column")
+    }
+
+    /**
+     * Test: 全角文字を半角文字で上書き
+     *
+     * 操作:
+     *   1. writeChar('あ') → [あ][P] を書き込み
+     *   2. moveCursor(1, 1) → カーソルを列0に戻す
+     *   3. writeChar('X') → 全角文字の先頭セルを上書き
+     *
+     * 期待される動作:
+     *   全角文字の先頭セルを上書きすると、全角文字は不完全になるため:
+     *   1. 上書きした位置に'X'が入る
+     *   2. パディングセル（列1）は空白にクリアされる
+     *
+     * 期待されるバッファ状態:
+     *   Before: [あ][P]
+     *   After:  [X] [ ]  ← パディングもクリア
+     */
+    @Test
+    fun testWideChar_OverwriteWideChar() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        // Write a wide char
+        buffer.writeChar('あ')
+
+        // Move back and overwrite with narrow char
+        buffer.moveCursor(1, 1)
+        buffer.writeChar('X')
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('X', screenBuffer[0][0].char, "Wide char should be overwritten")
+        assertFalse(screenBuffer[0][0].isWideChar, "Cell should not be marked as wide")
+        // The padding cell should be cleared
+        assertEquals(' ', screenBuffer[0][1].char, "Padding cell should be cleared")
+        assertFalse(screenBuffer[0][1].isWideCharPadding, "Padding flag should be cleared")
+    }
+
+    /**
+     * Test: 全角文字のパディングセルを上書き
+     *
+     * 操作:
+     *   1. writeChar('あ') → [あ][P] を書き込み
+     *   2. moveCursor(1, 2) → カーソルを列1（パディング位置）に移動
+     *   3. writeChar('X') → パディングセルを上書き
+     *
+     * 期待される動作:
+     *   パディングセルを上書きすると、元の全角文字は不完全になるため:
+     *   1. 元の全角文字（列0）は空白にクリアされる
+     *   2. 上書きした位置（列1）に'X'が入る
+     *
+     * 期待されるバッファ状態:
+     *   Before: [あ][P]
+     *   After:  [ ] [X]  ← 元の全角文字もクリア
+     */
+    @Test
+    fun testWideChar_OverwritePaddingCell() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        // Write a wide char
+        buffer.writeChar('あ')
+
+        // Move to padding cell (col 1) and overwrite
+        buffer.moveCursor(1, 2)  // 1-indexed
+        buffer.writeChar('X')
+
+        val screenBuffer = buffer.getBuffer()
+        // The original wide char should be cleared
+        assertEquals(' ', screenBuffer[0][0].char, "Original wide char should be cleared")
+        assertFalse(screenBuffer[0][0].isWideChar, "Wide char flag should be cleared")
+
+        assertEquals('X', screenBuffer[0][1].char, "X should overwrite padding")
+        assertFalse(screenBuffer[0][1].isWideCharPadding, "Padding flag should be cleared")
+    }
+
+    /**
+     * Test: 半角文字を全角文字で上書き
+     *
+     * 操作:
+     *   1. writeChar('A'), writeChar('B'), writeChar('C') → [A][B][C]
+     *   2. moveCursor(1, 2) → カーソルを列1（'B'の位置）に移動
+     *   3. writeChar('あ') → 'B'の位置に全角文字を書き込み
+     *
+     * 期待される動作:
+     *   全角文字は2セル必要なため、'B'の位置と'C'の位置を占める。
+     *   1. 列1に全角文字が入る
+     *   2. 列2は全角文字のパディングに置き換わる（'C'は消える）
+     *
+     * 期待されるバッファ状態:
+     *   Before: [A][B][C]
+     *   After:  [A][あ][P]  ← 'C'はパディングに置き換わる
+     */
+    @Test
+    fun testWideChar_OverwriteWithWideChar() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        // Write ABC
+        buffer.writeChar('A')
+        buffer.writeChar('B')
+        buffer.writeChar('C')
+
+        // Move back and overwrite B with wide char
+        buffer.moveCursor(1, 2)  // Position of 'B'
+        buffer.writeChar('あ')
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('A', screenBuffer[0][0].char, "A should remain")
+        assertEquals('あ', screenBuffer[0][1].char, "Wide char should be at position 1")
+        assertTrue(screenBuffer[0][1].isWideChar)
+        // C at position 2 should be replaced by padding
+        assertTrue(screenBuffer[0][2].isWideCharPadding, "Position 2 should be padding")
+    }
+
+    /**
+     * Test: 全角文字を含む行のスクロール
+     *
+     * ターミナルサイズ: 10列 × 3行
+     *
+     * 操作:
+     *   1. 各行に全角文字を書き込み:
+     *      Row 0: [あ][P][い][P]
+     *      Row 1: [う][P][え][P]
+     *      Row 2: [お][P][か][P]
+     *   2. 最終行でさらに10文字書き込み → スクロールがトリガー
+     *
+     * 期待される動作:
+     *   スクロール時、全角文字とそのパディングは一緒に移動する。
+     *   Row 0の内容は消え、Row 1の内容がRow 0に移動する。
+     *
+     * 期待されるバッファ状態（スクロール後）:
+     *   Row 0: [う][P][え][P]  ← 元のRow 1
+     *   Row 1: [お][P][か][P]  ← 元のRow 2
+     *   Row 2: [X][X][X]...    ← 新しい内容
+     */
+    @Test
+    fun testWideChar_ScrollWithWideChars() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 3)
+
+        // Fill first line with wide chars
+        buffer.moveCursor(1, 1)
+        buffer.writeChar('あ')
+        buffer.writeChar('い')
+
+        // Fill second line
+        buffer.moveCursor(2, 1)
+        buffer.writeChar('う')
+        buffer.writeChar('え')
+
+        // Fill third line
+        buffer.moveCursor(3, 1)
+        buffer.writeChar('お')
+        buffer.writeChar('か')
+
+        // Trigger scroll by writing more on last line
+        for (i in 0 until 10) {
+            buffer.writeChar('X')
+        }
+
+        val screenBuffer = buffer.getBuffer()
+        // First line (was second) should have う and え
+        assertEquals('う', screenBuffer[0][0].char, "First line should have scrolled content")
+        assertTrue(screenBuffer[0][0].isWideChar)
+    }
+
+    /**
+     * Test: 全角文字を含む行のクリア
+     *
+     * 操作:
+     *   1. writeChar('あ'), writeChar('い') → [あ][P][い][P]
+     *   2. clearLine() → 行全体をクリア
+     *
+     * 期待される動作:
+     *   clearLine()は行のすべてのセルを空白にクリアする。
+     *   全角文字フラグとパディングフラグも同時にクリアされる。
+     *
+     * 期待されるバッファ状態:
+     *   Before: [あ][P][い][P]
+     *   After:  [ ] [ ] [ ] [ ]  ← すべてのフラグもクリア
+     */
+    @Test
+    fun testWideChar_ClearLine() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        buffer.writeChar('あ')
+        buffer.writeChar('い')
+
+        buffer.moveCursor(1, 3)
+        buffer.clearLine()
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals(' ', screenBuffer[0][0].char, "Wide char should be cleared")
+        assertFalse(screenBuffer[0][0].isWideChar, "Wide char flag should be cleared")
+        assertEquals(' ', screenBuffer[0][1].char, "Padding should be cleared")
+        assertFalse(screenBuffer[0][1].isWideCharPadding, "Padding flag should be cleared")
+    }
+
+    /**
+     * Test: スクロール領域内での全角文字処理
+     *
+     * ターミナルサイズ: 10列 × 10行
+     *
+     * 操作:
+     *   1. setScrollRegion(3, 7) → スクロール領域を行3-7に設定
+     *   2. スクロール領域内（行7）に全角文字を書き込み、スクロールをトリガー
+     *   3. スクロール領域外（行1と行10）にも全角文字を書き込み
+     *
+     * 期待される動作:
+     *   - スクロール領域内でスクロールが発生
+     *   - スクロール領域外（行1と行10）の内容は影響を受けない
+     *
+     * これはbyobuやtmuxのステータスバー動作に関連する重要なテスト。
+     */
+    @Test
+    fun testWideChar_InScrollRegion() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 10)
+
+        // Set scroll region to lines 3-7
+        buffer.setScrollRegion(3, 7)
+
+        // Write wide chars at bottom of scroll region
+        buffer.moveCursor(7, 1)
+        buffer.writeChar('あ')
+        buffer.writeChar('い')
+        buffer.writeChar('う')
+        buffer.writeChar('え')
+        buffer.writeChar('お')  // Should trigger scroll within region
+
+        // Lines outside region should not be affected
+        buffer.moveCursor(1, 1)
+        buffer.writeChar('外')  // Outside scroll region
+
+        buffer.moveCursor(10, 1)
+        buffer.writeChar('外')  // Outside scroll region (below)
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('外', screenBuffer[0][0].char, "Line above region should be unchanged")
+        assertEquals('外', screenBuffer[9][0].char, "Line below region should be unchanged")
+    }
+
+    /**
+     * Test: 代替スクリーンバッファでの全角文字処理
+     *
+     * 操作:
+     *   1. writeChar('主') → プライマリバッファに書き込み
+     *   2. useAlternateScreenBuffer() → 代替バッファに切り替え
+     *   3. writeChar('副') → 代替バッファに書き込み
+     *   4. usePrimaryScreenBuffer() → プライマリバッファに戻る
+     *
+     * 期待される動作:
+     *   - 代替バッファ切り替え時、プライマリの内容は保持される
+     *   - 代替バッファは空の状態から開始
+     *   - プライマリに戻ると、元の全角文字が復元される
+     */
+    @Test
+    fun testWideChar_AlternateBuffer() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        // Write to primary buffer
+        buffer.writeChar('主')
+
+        // Switch to alternate buffer
+        buffer.useAlternateScreenBuffer()
+
+        // Alternate should be empty
+        val altBuffer = buffer.getBuffer()
+        assertEquals(' ', altBuffer[0][0].char, "Alternate should be empty")
+
+        // Write wide char to alternate
+        buffer.writeChar('副')
+        assertEquals('副', buffer.getBuffer()[0][0].char)
+        assertTrue(buffer.getBuffer()[0][0].isWideChar)
+
+        // Switch back to primary
+        buffer.usePrimaryScreenBuffer()
+
+        // Primary should still have original wide char
+        assertEquals('主', buffer.getBuffer()[0][0].char)
+        assertTrue(buffer.getBuffer()[0][0].isWideChar)
+    }
+
+    /**
+     * Test: バッファリサイズ時の全角文字保持
+     *
+     * 操作:
+     *   1. writeChar('あ'), writeChar('い') → [あ][P][い][P]
+     *   2. resize(5, 3) → バッファを小さくリサイズ
+     *
+     * 期待される動作:
+     *   リサイズ後も、新しいサイズに収まる全角文字は保持される。
+     *   全角文字フラグとパディングフラグも保持される。
+     *
+     * 期待されるバッファ状態（リサイズ後、5列×3行）:
+     *   [あ][P][い][P][ ]  ← 全角文字とパディングが保持される
+     */
+    @Test
+    fun testWideChar_Resize() {
+        val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
+
+        buffer.writeChar('あ')
+        buffer.writeChar('い')
+
+        // Resize to smaller
+        buffer.resize(newCols = 5, newRows = 3)
+
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('あ', screenBuffer[0][0].char, "Wide char should be preserved")
+        assertTrue(screenBuffer[0][0].isWideChar)
+        assertTrue(screenBuffer[0][1].isWideCharPadding)
+        assertEquals('い', screenBuffer[0][2].char, "Second wide char should be preserved")
+    }
+
+    /**
+     * Test: 半角・全角混在時のカーソル位置追跡
+     *
+     * 操作:
+     *   1. writeChar('A')   → 列0に書き込み、カーソル→列1
+     *   2. writeChar('あ')  → 列1-2に書き込み、カーソル→列3
+     *   3. writeChar('B')   → 列3に書き込み、カーソル→列4
+     *   4. writeChar('い')  → 列4-5に書き込み、カーソル→列6
+     *
+     * 期待されるバッファ状態:
+     *   Col:  0   1   2   3   4   5   6
+     *        [A] [あ][P] [B] [い][P] (cursor)
+     *
+     * カーソル位置は各文字のセル幅を正しく反映して列6になる。
+     */
+    @Test
+    fun testWideChar_CursorPositionAfterWrite() {
+        val buffer = TerminalScreenBuffer(cols = 20, rows = 5)
+
+        // Write mix of wide and narrow chars
+        buffer.writeChar('A')   // col 0 -> cursor at 1
+        buffer.writeChar('あ')  // col 1-2 -> cursor at 3
+        buffer.writeChar('B')   // col 3 -> cursor at 4
+        buffer.writeChar('い')  // col 4-5 -> cursor at 6
+
+        assertEquals(6, buffer.cursorCol, "Cursor should account for wide char widths")
     }
 }

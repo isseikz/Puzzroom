@@ -8,6 +8,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
@@ -38,7 +39,7 @@ fun MacroButton(
             BorderStroke(1.dp, Color(0xFF39D353))
         } else null,
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-        modifier = modifier.height(36.dp)
+        modifier = modifier.height(36.dp).focusProperties { canFocus = false }
     ) {
         Text(
             text = label,
