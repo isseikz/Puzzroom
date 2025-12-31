@@ -4,6 +4,7 @@ import android.app.Presentation
 import android.content.Context
 import android.os.Bundle
 import android.view.Display
+import android.view.WindowManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +16,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -28,6 +30,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.focus.focusProperties
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -36,6 +39,8 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import io.github.isseikz.kmpinput.TerminalInputContainer
+import io.github.isseikz.kmpinput.rememberTerminalInputContainerState
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalSizeCalculator
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalStateProvider
 import tokyo.isseikuzumaki.vibeterminal.ui.components.TerminalCanvas
@@ -74,6 +79,10 @@ class TerminalPresentation(
         super.onCreate(savedInstanceState)
         try {
             Logger.d("TerminalPresentation onCreate")
+
+            // Allow focus on secondary display to capture keyboard input
+            // Input will be forwarded to main terminal via TerminalStateProvider
+            Logger.d("Window is focusable for keyboard input capture")
 
             // Initialize SavedStateRegistry
             savedStateRegistryController.performRestore(savedInstanceState)
@@ -160,6 +169,22 @@ class TerminalPresentation(
         val terminalState by TerminalStateProvider.state.collectAsState()
         val textMeasurer = rememberTextMeasurer()
         val density = LocalDensity.current
+        val scope = rememberCoroutineScope()
+
+        // TerminalInputContainer state for capturing keyboard input
+        val terminalInputState = rememberTerminalInputContainerState()
+
+        // Collect input from TerminalInputContainer and forward to main terminal
+        LaunchedEffect(terminalInputState.isReady) {
+            if (terminalInputState.isReady) {
+                Logger.d("SecondaryDisplay: TerminalInputContainer is ready, collecting ptyInputStream")
+                terminalInputState.ptyInputStream.collect { bytes ->
+                    val text = bytes.decodeToString()
+                    Logger.d("SecondaryDisplay: Received input: '$text'")
+                    TerminalStateProvider.sendInputFromSecondaryDisplay(text)
+                }
+            }
+        }
 
         // Measure actual character dimensions using TextMeasurer
         val textStyle = remember {
@@ -217,33 +242,39 @@ class TerminalPresentation(
             Logger.d("Accurate dimensions: ${accurateDimensions.cols} x ${accurateDimensions.rows} (charSize: ${charDimensions.first} x ${charDimensions.second})")
         }
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black)
+        // Wrap entire display in TerminalInputContainer to capture keyboard input
+        TerminalInputContainer(
+            state = terminalInputState,
+            modifier = Modifier.fillMaxSize()
         ) {
-            if (terminalState.isConnected && terminalState.buffer.isNotEmpty()) {
-                // Force recomposition when buffer updates using key()
-                key(terminalState.bufferUpdateCounter) {
-                    // Render terminal output
-                    TerminalCanvas(
-                        buffer = terminalState.buffer,
-                        cursorRow = terminalState.cursorRow,
-                        cursorCol = terminalState.cursorCol,
-                        modifier = Modifier.fillMaxSize()
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
+            ) {
+                if (terminalState.isConnected && terminalState.buffer.isNotEmpty()) {
+                    // Force recomposition when buffer updates using key()
+                    key(terminalState.bufferUpdateCounter) {
+                        // Render terminal output
+                        TerminalCanvas(
+                            buffer = terminalState.buffer,
+                            cursorRow = terminalState.cursorRow,
+                            cursorCol = terminalState.cursorCol,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                } else {
+                    // Show waiting message when not connected
+                    Text(
+                        text = "Waiting for terminal connection...\n\nConnect to SSH server on the main display\nto see terminal output here.\n\nTap here to enable keyboard input.",
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(32.dp)
                     )
                 }
-            } else {
-                // Show waiting message when not connected
-                Text(
-                    text = "Waiting for terminal connection...\n\nConnect to SSH server on the main display\nto see terminal output here.",
-                    color = Color.White,
-                    style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(32.dp)
-                )
             }
         }
     }

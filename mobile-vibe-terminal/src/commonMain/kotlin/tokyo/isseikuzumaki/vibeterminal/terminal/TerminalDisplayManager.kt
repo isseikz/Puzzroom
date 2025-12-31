@@ -100,5 +100,24 @@ object TerminalDisplayManager {
         _isDisplayConnected.value = false
         _useExternalDisplay.value = true
         _terminalDisplayTarget.value = DisplayTarget.MAIN
+        _focusRestorationCounter.value = 0
+    }
+
+    // ========== Focus Restoration Signal ==========
+
+    private val _focusRestorationCounter = MutableStateFlow(0)
+
+    /**
+     * A counter that increments when the main display should reclaim focus.
+     * TerminalScreen observes this to request focus after presentation is shown.
+     */
+    val focusRestorationCounter: StateFlow<Int> = _focusRestorationCounter.asStateFlow()
+
+    /**
+     * Signal that the main display should reclaim focus.
+     * Called after secondary display presentation is shown.
+     */
+    fun requestFocusRestoration() {
+        _focusRestorationCounter.value++
     }
 }

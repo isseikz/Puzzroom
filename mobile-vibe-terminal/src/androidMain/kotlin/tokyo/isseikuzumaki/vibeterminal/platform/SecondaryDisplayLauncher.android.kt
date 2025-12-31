@@ -10,6 +10,31 @@ import tokyo.isseikuzumaki.vibeterminal.service.TerminalService
 import tokyo.isseikuzumaki.vibeterminal.util.Logger
 
 /**
+ * Android implementation to stop secondary display service.
+ */
+actual fun stopSecondaryDisplay(context: Any?) {
+    try {
+        Logger.d("stopSecondaryDisplay: called")
+
+        if (context !is Context) {
+            Logger.e("stopSecondaryDisplay: context is not Android Context (type: ${context?.javaClass?.name})")
+            return
+        }
+
+        Logger.d("stopSecondaryDisplay: stopping TerminalService")
+
+        val serviceIntent = Intent(context, TerminalService::class.java).apply {
+            action = TerminalService.ACTION_STOP
+        }
+        context.startService(serviceIntent)
+
+        Logger.d("stopSecondaryDisplay: stop command sent")
+    } catch (e: Exception) {
+        Logger.e(e, "Exception in stopSecondaryDisplay")
+    }
+}
+
+/**
  * Android implementation of secondary display launcher.
  *
  * This function:

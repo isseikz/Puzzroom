@@ -119,6 +119,12 @@ class TerminalScreenModel(
             Logger.d("Resize request from secondary display: ${cols}x${rows}")
             resizeTerminal(cols, rows, widthPx, heightPx, tokyo.isseikuzumaki.vibeterminal.terminal.DisplayTarget.SECONDARY)
         }
+
+        // Register input callback from secondary display
+        TerminalStateProvider.onSecondaryDisplayInput = { input ->
+            Logger.d("Input from secondary display: '$input'")
+            sendInput(input, appendNewline = false)
+        }
     }
 
     /**

@@ -11,3 +11,10 @@ package tokyo.isseikuzumaki.vibeterminal.platform
  * @param context Platform-specific context (Android: Context, others: Unit)
  */
 expect fun launchSecondaryDisplay(context: Any?)
+
+/**
+ * Platform-specific function to stop the secondary display service.
+ *
+ * @param context Platform-specific context (Android: Context, others: Unit)
+ */
+expect fun stopSecondaryDisplay(context: Any?)

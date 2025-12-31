@@ -133,4 +133,20 @@ object TerminalStateProvider {
     fun clearSecondaryDisplayMetrics() {
         _secondaryDisplayMetrics.value = null
     }
+
+    // ========== Secondary Display Input ==========
+
+    /**
+     * Callback for input from secondary display.
+     * Set by TerminalScreenModel to handle input from secondary display's TerminalInputContainer.
+     */
+    var onSecondaryDisplayInput: ((String) -> Unit)? = null
+
+    /**
+     * Send input from secondary display to main terminal.
+     * Called by TerminalPresentation when input is received.
+     */
+    fun sendInputFromSecondaryDisplay(input: String) {
+        onSecondaryDisplayInput?.invoke(input)
+    }
 }
