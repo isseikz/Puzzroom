@@ -41,6 +41,8 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import io.github.isseikz.kmpinput.TerminalInputContainer
 import io.github.isseikz.kmpinput.rememberTerminalInputContainerState
+import tokyo.isseikuzumaki.vibeterminal.terminal.DisplayTarget
+import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalDisplayManager
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalSizeCalculator
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalStateProvider
 import tokyo.isseikuzumaki.vibeterminal.ui.components.TerminalCanvas
@@ -214,8 +216,18 @@ class TerminalPresentation(
             )
         }
 
+        // Watch display target to only request resize when secondary display is active
+        val displayTarget by TerminalDisplayManager.terminalDisplayTarget.collectAsState()
+
         // Request resize if dimensions differ from current buffer
-        LaunchedEffect(accurateDimensions, terminalState.buffer.size) {
+        // Only when secondary display is the active target
+        LaunchedEffect(accurateDimensions, terminalState.buffer.size, displayTarget) {
+            // Only request resize when secondary display is the active display target
+            if (displayTarget != DisplayTarget.SECONDARY) {
+                Logger.d("SecondaryDisplay: Skipping resize request because displayTarget=$displayTarget (not SECONDARY)")
+                return@LaunchedEffect
+            }
+
             val currentRows = terminalState.buffer.size
             val currentCols = terminalState.buffer.firstOrNull()?.size ?: 0
 
