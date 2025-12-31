@@ -96,6 +96,38 @@ data class TerminalScreen(
 
         val secondaryMetrics by TerminalStateProvider.secondaryDisplayMetrics.collectAsState()
 
+        // SSH Connection Logic - Independent of display mode
+        var hasConnected by remember { mutableStateOf(false) }
+
+        LaunchedEffect(Unit) {
+            if (hasConnected) return@LaunchedEffect
+
+            // セカンダリディスプレイのサイズ取得を試みる (1秒タイムアウト)
+            val secondarySize = withTimeoutOrNull(1000L) {
+                TerminalStateProvider.secondaryDisplayMetrics
+                    .filterNotNull()
+                    .first()
+            }
+
+            if (!state.isConnected && !state.isConnecting) {
+                if (secondarySize != null) {
+                    Logger.d("Connecting with secondary display size: ${secondarySize.cols}x${secondarySize.rows}")
+                    screenModel.connect(
+                        secondarySize.cols,
+                        secondarySize.rows,
+                        secondarySize.widthPx,
+                        secondarySize.heightPx
+                    )
+                } else {
+                    // Use default terminal size for initial connection
+                    // Will be resized when main display UI is measured
+                    Logger.d("Connecting with default size: 80x24")
+                    screenModel.connect(80, 24, 800, 600)
+                }
+                hasConnected = true
+            }
+        }
+
         var showFileExplorer by remember { mutableStateOf(false) }
         var selectedFilePath by remember { mutableStateOf<String?>(null) }
         var fileExplorerInitialPath by remember { mutableStateOf<String?>(null) }
@@ -370,33 +402,22 @@ data class TerminalScreen(
                                 previousSecondaryState = isSecondaryConnected
                             }
 
-                            // Connect to SSH with the measured terminal size
-                            var hasConnected by remember { mutableStateOf(false) }
-
-                            LaunchedEffect(Unit) {
-                                if (hasConnected) return@LaunchedEffect
-
-                                // セカンダリディスプレイのサイズ取得を試みる (1秒タイムアウト)
-                                val secondarySize = withTimeoutOrNull(1000L) {
-                                    TerminalStateProvider.secondaryDisplayMetrics
-                                        .filterNotNull()
-                                        .first()
-                                }
-
-                                if (!state.isConnected && !state.isConnecting) {
-                                    if (secondarySize != null) {
-                                        Logger.d("Connecting with secondary display size: ${secondarySize.cols}x${secondarySize.rows}")
-                                        screenModel.connect(
-                                            secondarySize.cols,
-                                            secondarySize.rows,
-                                            secondarySize.widthPx,
-                                            secondarySize.heightPx
+                            // Resize terminal to actual measured size after connection
+                            // (initial connection uses default 80x24, resize to actual size when UI is measured)
+                            LaunchedEffect(state.isConnected, terminalSize.cols, terminalSize.rows) {
+                                if (state.isConnected && terminalSize.cols > 0 && terminalSize.rows > 0 && !isSecondaryConnected) {
+                                    val currentCols = state.screenBuffer.firstOrNull()?.size ?: 0
+                                    val currentRows = state.screenBuffer.size
+                                    if (currentCols != terminalSize.cols || currentRows != terminalSize.rows) {
+                                        Logger.d("Resizing terminal to measured size: ${terminalSize.cols}x${terminalSize.rows}")
+                                        screenModel.resizeTerminal(
+                                            terminalSize.cols,
+                                            terminalSize.rows,
+                                            terminalSize.widthPx,
+                                            terminalSize.heightPx,
+                                            DisplayTarget.MAIN
                                         )
-                                    } else if (terminalSize.cols > 0 && terminalSize.rows > 0) {
-                                        Logger.d("Connecting with main display size: ${terminalSize.cols}x${terminalSize.rows}")
-                                        screenModel.connect(terminalSize.cols, terminalSize.rows, terminalSize.widthPx, terminalSize.heightPx)
                                     }
-                                    hasConnected = true
                                 }
                             }
 
