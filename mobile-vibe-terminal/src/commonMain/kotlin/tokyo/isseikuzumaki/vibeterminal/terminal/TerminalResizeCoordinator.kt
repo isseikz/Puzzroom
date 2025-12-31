@@ -23,10 +23,16 @@ data class DisplayMetrics(
  * - Emits target metrics when they change
  *
  * This class separates resize decision logic from UI, making it unit-testable.
- *
- * TODO: Implement the logic (TDD - tests written first)
  */
 class TerminalResizeCoordinator {
+
+    // ========== Internal State ==========
+
+    private var currentTarget: DisplayTarget = DisplayTarget.MAIN
+    private var mainMetrics: DisplayMetrics? = null
+    private var secondaryMetrics: DisplayMetrics? = null
+
+    // ========== Output ==========
 
     private val _targetMetrics = MutableStateFlow<DisplayMetrics?>(null)
 
@@ -35,6 +41,8 @@ class TerminalResizeCoordinator {
      * Emits when the active display's metrics change.
      */
     val targetMetrics: StateFlow<DisplayMetrics?> = _targetMetrics.asStateFlow()
+
+    // ========== Pure Function (Testable Logic) ==========
 
     /**
      * Pure function to determine which metrics to use.
@@ -58,35 +66,67 @@ class TerminalResizeCoordinator {
         main: DisplayMetrics?,
         secondary: DisplayMetrics?
     ): DisplayMetrics? {
-        // TODO: Implement - currently returns null to fail tests
-        return null
+        return when (target) {
+            DisplayTarget.MAIN -> main
+            DisplayTarget.SECONDARY -> secondary ?: main  // Fallback to main if secondary unavailable
+        }
     }
+
+    // ========== State Mutators ==========
 
     /**
      * Set the active display target.
+     * Updates targetMetrics if the resulting metrics change.
      */
     fun setDisplayTarget(target: DisplayTarget) {
-        // TODO: Implement
+        if (currentTarget != target) {
+            currentTarget = target
+            updateTargetMetrics()
+        }
     }
 
     /**
      * Set main display metrics.
+     * Updates targetMetrics if target is MAIN or if it's used as fallback.
      */
     fun setMainDisplayMetrics(metrics: DisplayMetrics) {
-        // TODO: Implement
+        if (mainMetrics != metrics) {
+            mainMetrics = metrics
+            updateTargetMetrics()
+        }
     }
 
     /**
      * Set secondary display metrics.
+     * Updates targetMetrics if target is SECONDARY.
      */
     fun setSecondaryDisplayMetrics(metrics: DisplayMetrics) {
-        // TODO: Implement
+        if (secondaryMetrics != metrics) {
+            secondaryMetrics = metrics
+            updateTargetMetrics()
+        }
     }
 
     /**
      * Clear secondary display metrics (e.g., when secondary display disconnects).
+     * If target is SECONDARY, will fall back to main metrics.
      */
     fun clearSecondaryDisplayMetrics() {
-        // TODO: Implement
+        if (secondaryMetrics != null) {
+            secondaryMetrics = null
+            updateTargetMetrics()
+        }
+    }
+
+    // ========== Internal ==========
+
+    /**
+     * Recalculate and emit targetMetrics based on current state.
+     */
+    private fun updateTargetMetrics() {
+        val newMetrics = determineTargetMetrics(currentTarget, mainMetrics, secondaryMetrics)
+        if (_targetMetrics.value != newMetrics) {
+            _targetMetrics.value = newMetrics
+        }
     }
 }
