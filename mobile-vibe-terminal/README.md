@@ -15,6 +15,7 @@ Mobile Vibe Terminal は、AI時代のSSHクライアントです。スマート
 - **Magic Deploy**: ビルド完了を検知してAPKを自動転送・インストール
 - **Connection Management**: サーバー接続設定の永続化と管理
 - **Smart File Explorer**: SSHセッションの作業ディレクトリを起点としたファイルブラウザ
+- **Hardware & Display Stability**: 物理キーボードの挿抜や外部ディスプレイ（セカンダリディスプレイ）接続時のリサイズ等によるActivity再生成を防止し、実行中のセッション状態を維持
 
 ## アーキテクチャ (Architecture)
 
