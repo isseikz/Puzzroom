@@ -32,10 +32,26 @@ class TriggerChannel {
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
 
+    private val _debugEvents = MutableSharedFlow<String>(
+        replay = 0,
+        extraBufferCapacity = 20,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+
     /**
      * トリガーイベントを購読するための Flow
      */
     val triggerEvents: Flow<TriggerEvent> = _triggerEvents.asSharedFlow()
+
+    /**
+     * デバッグメッセージを購読するための Flow
+     */
+    val debugEvents: Flow<String> = _debugEvents.asSharedFlow()
+
+    suspend fun sendDebugMessage(message: String) {
+        Timber.d("TriggerChannel Debug: $message")
+        _debugEvents.emit(message)
+    }
 
     /**
      * 受信したデータからトリガーイベントを処理する
@@ -44,18 +60,28 @@ class TriggerChannel {
      */
     suspend fun handleIncomingData(inputStream: InputStream) {
         try {
-            val data = inputStream.bufferedReader().use { it.readText() }
+            sendDebugMessage("Reading from stream...")
+            // Read line by line instead of readText() to handle streams that stay open
+            val reader = inputStream.bufferedReader()
+            val data = reader.readLine() ?: run {
+                sendDebugMessage("Stream empty or closed")
+                return
+            }
+            sendDebugMessage("Received data: '$data'")
             Timber.d("TriggerChannel: Received data: $data")
 
             // データをパースしてAPK URLを抽出
             val apkUrl = parseApkUrl(data)
             if (apkUrl != null) {
+                sendDebugMessage("Parsed URL: $apkUrl")
                 Timber.d("TriggerChannel: Parsed APK URL: $apkUrl")
                 _triggerEvents.emit(TriggerEvent(apkUrl = apkUrl))
             } else {
-                Timber.w("TriggerChannel: Could not parse APK URL from data")
+                sendDebugMessage("Failed to parse URL from: $data")
+                Timber.w("TriggerChannel: Could not parse APK URL from data: $data")
             }
         } catch (e: Exception) {
+            sendDebugMessage("Error: ${e.message}")
             Timber.e(e, "TriggerChannel: Error handling incoming data")
         }
     }
@@ -71,8 +97,10 @@ class TriggerChannel {
     private fun parseApkUrl(data: String): String? {
         val trimmedData = data.trim()
 
-        // 単純なURL形式をチェック
-        if (trimmedData.startsWith("http://") || trimmedData.startsWith("https://")) {
+        // 単純なURL形式または絶対パス形式をチェック
+        if (trimmedData.startsWith("http://") || 
+            trimmedData.startsWith("https://") ||
+            trimmedData.startsWith("/")) {
             return trimmedData.lines().firstOrNull()?.trim()
         }
 

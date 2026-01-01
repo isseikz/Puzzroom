@@ -8,12 +8,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.isActive
 import org.apache.sshd.client.SshClient
 import org.apache.sshd.client.channel.ChannelShell
 import org.apache.sshd.client.session.ClientSession
 import org.apache.sshd.common.channel.PtyMode
 import org.apache.sshd.common.forward.PortForwardingEventListener
+import org.apache.sshd.common.channel.Channel
+import org.apache.sshd.common.channel.ChannelListener
 import org.apache.sshd.common.session.Session
+import org.apache.sshd.common.session.SessionListener
 import org.apache.sshd.common.util.net.SshdSocketAddress
 import org.apache.sshd.sftp.client.SftpClient
 import org.apache.sshd.sftp.client.SftpClientFactory
@@ -105,6 +109,91 @@ class MinaSshdRepository : SshRepository {
             // 1. Create and start SSH client
             Timber.d("1. Creating SSH client...")
             val sshClient = SshClient.setUpDefaultClient()
+
+            // Register TriggerForwardingChannel factory to intercept forwarded-tcpip requests
+            Timber.d("1a. Registering TriggerForwardingChannel factory...")
+            val factories = sshClient.channelFactories.toMutableList()
+            factories.removeIf { it.name == "forwarded-tcpip"}
+            factories.add(object : org.apache.sshd.common.channel.ChannelFactory {
+                override fun createChannel(session: Session): org.apache.sshd.common.channel.Channel = TriggerForwardingChannel()
+                override fun getName(): String = "forwarded-tcpip"
+            })
+            sshClient.channelFactories = factories
+
+            // Add session listener for debug events
+            Timber.d("1b. Adding session listener...")
+            sshClient.addSessionListener(object : SessionListener {
+                override fun sessionCreated(session: Session) {
+                    val msg = "Session created: ${session.javaClass.simpleName}"
+                    Timber.d(msg)
+                    triggerScope.launch { TriggerChannel.getInstance().sendDebugMessage(msg) }
+                }
+
+                override fun sessionEvent(session: Session, event: SessionListener.Event) {
+                    val msg = "Session event: $event"
+                    Timber.d(msg)
+                    triggerScope.launch { TriggerChannel.getInstance().sendDebugMessage(msg) }
+                }
+
+                override fun sessionException(session: Session, t: Throwable) {
+                    val msg = "Session exception: ${t.message}"
+                    Timber.e(t, msg)
+                    triggerScope.launch { TriggerChannel.getInstance().sendDebugMessage(msg) }
+                }
+
+                override fun sessionDisconnect(
+                    session: Session,
+                    reason: Int,
+                    msg: String,
+                    language: String,
+                    initiator: Boolean
+                ) {
+                    val debugMsg = "Session disconnect: reason=$reason, msg=$msg, initiator=$initiator"
+                    Timber.d(debugMsg)
+                    triggerScope.launch { TriggerChannel.getInstance().sendDebugMessage(debugMsg) }
+                }
+
+                override fun sessionClosed(session: Session) {
+                    val msg = "Session closed"
+                    Timber.d(msg)
+                    triggerScope.launch { TriggerChannel.getInstance().sendDebugMessage(msg) }
+                }
+            })
+
+            // Add channel listener for debug events
+            Timber.d("1c. Adding channel listener...")
+            sshClient.addChannelListener(object : ChannelListener {
+                override fun channelInitialized(channel: Channel) {
+                    val msg = "Channel initialized: ${channel.javaClass.simpleName} (id=${channel.channelId})"
+                    Timber.d(msg)
+                    triggerScope.launch { TriggerChannel.getInstance().sendDebugMessage(msg) }
+                }
+
+                override fun channelOpenSuccess(channel: Channel) {
+                    val msg = "Channel open success: ${channel.javaClass.simpleName} (id=${channel.channelId})"
+                    Timber.d(msg)
+                    triggerScope.launch { TriggerChannel.getInstance().sendDebugMessage(msg) }
+                }
+
+                override fun channelOpenFailure(channel: Channel, reason: Throwable) {
+                    val msg = "Channel open failure: ${channel.javaClass.simpleName} - ${reason.message}"
+                    Timber.e(reason, msg)
+                    triggerScope.launch { TriggerChannel.getInstance().sendDebugMessage(msg) }
+                }
+
+                override fun channelStateChanged(channel: Channel, hint: String?) {
+                    val msg = "Channel state changed: ${channel.javaClass.simpleName} - hint=$hint"
+                    Timber.d(msg)
+                    triggerScope.launch { TriggerChannel.getInstance().sendDebugMessage(msg) }
+                }
+
+                override fun channelClosed(channel: Channel, reason: Throwable?) {
+                    val msg = "Channel closed: ${channel.javaClass.simpleName} (id=${channel.channelId}), reason=${reason?.message}"
+                    Timber.d(msg)
+                    triggerScope.launch { TriggerChannel.getInstance().sendDebugMessage(msg) }
+                }
+            })
+
             Timber.d("2. Starting SSH client...")
             sshClient.start()
             client = sshClient
@@ -203,72 +292,34 @@ class MinaSshdRepository : SshRepository {
     /**
      * リモートポートフォワーディングを開始してトリガーチャネルを設定する
      *
-     * サーバー上のポート58080への接続を受け付け、TriggerChannelに転送する
+     * サーバー上のポート58080への接続を受け付け、TriggerForwardingChannel（インターセプト）に転送する
      */
     private fun startTriggerPortForwarding() {
         val currentSession = session ?: return
 
         try {
-            Timber.d("=== Starting Remote Port Forwarding ===")
+            Timber.d("=== Starting Remote Port Forwarding (Interceptor Mode) ===")
             Timber.d("Trigger port: ${SshConstants.TRIGGER_PORT}")
 
             // リモートポートフォワーディングを設定
-            // サーバーの58080ポートへの接続を受け付ける
-            val remoteAddress = SshdSocketAddress("localhost", SshConstants.TRIGGER_PORT)
-            val localAddress = SshdSocketAddress("localhost", 0) // ローカルでは使用しない
-
-            // ポートフォワーディングイベントリスナーを追加
-            currentSession.addPortForwardingEventListener(object : PortForwardingEventListener {
-                override fun establishingExplicitTunnel(
-                    session: Session?,
-                    local: SshdSocketAddress?,
-                    remote: SshdSocketAddress?,
-                    localForwarding: Boolean
-                ) {
-                    Timber.d("Establishing tunnel: local=$local, remote=$remote, localForwarding=$localForwarding")
-                }
-
-                override fun establishedExplicitTunnel(
-                    session: Session?,
-                    local: SshdSocketAddress?,
-                    remote: SshdSocketAddress?,
-                    localForwarding: Boolean,
-                    tracker: SshdSocketAddress?,
-                    throwable: Throwable?
-                ) {
-                    Timber.d("Tunnel established: local=$local, remote=$remote, tracker=$tracker, error=${throwable?.message}")
-                }
-
-                override fun tearingDownExplicitTunnel(
-                    session: Session?,
-                    address: SshdSocketAddress?,
-                    localForwarding: Boolean,
-                    tracker: SshdSocketAddress?
-                ) {
-                    Timber.d("Tearing down tunnel: address=$address, tracker=$tracker")
-                }
-
-                override fun tornDownExplicitTunnel(
-                    session: Session?,
-                    address: SshdSocketAddress?,
-                    localForwarding: Boolean,
-                    tracker: SshdSocketAddress?,
-                    throwable: Throwable?
-                ) {
-                    Timber.d("Tunnel torn down: address=$address, error=${throwable?.message}")
-                }
-            })
+            // サーバーの58080ポートへの接続を要求するが、
+            // 実際には TriggerForwardingChannel がインターセプトするため、
+            // ローカルアドレスはダミーで良い。
+            val remoteAddress = SshdSocketAddress("0.0.0.0", SshConstants.TRIGGER_PORT)
+            val localAddress = SshdSocketAddress("localhost", 9999) // Dummy
 
             // リモートポートフォワーディングを開始
-            // 注意: これはサーバーがGatewayPorts設定を許可している必要がある場合がある
             val tracker = currentSession.startRemotePortForwarding(remoteAddress, localAddress)
             triggerForwardingEnabled = true
 
-            Timber.d("Remote port forwarding started: tracker=$tracker")
+            val msg = "Remote port forwarding started (Interceptor): tracker=$tracker"
+            Timber.d(msg)
+            triggerScope.launch { TriggerChannel.getInstance().sendDebugMessage(msg) }
             Timber.d("=== Remote Port Forwarding Setup Complete ===")
         } catch (e: Exception) {
-            Timber.w(e, "Failed to start remote port forwarding (this is optional, continuing without it)")
+            Timber.w(e, "Failed to start remote port forwarding")
             triggerForwardingEnabled = false
+            triggerScope.launch { TriggerChannel.getInstance().sendDebugMessage("Forwarding setup failed: ${e.message}") }
         }
     }
 

@@ -1,6 +1,9 @@
 package tokyo.isseikuzumaki.vibeterminal.installer
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
+import android.widget.Toast
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -59,6 +62,8 @@ class TriggerEventHandler(
      */
     val installConfirmationRequests: Flow<InstallConfirmationRequest> = _installConfirmationRequests.asSharedFlow()
 
+    val debugEvents: Flow<String> = triggerChannel.debugEvents
+
     private var isListening = false
 
     /**
@@ -88,6 +93,10 @@ class TriggerEventHandler(
     private suspend fun handleTriggerEvent(event: TriggerEvent) {
         Timber.d("=== Handling Trigger Event ===")
         Timber.d("APK URL: ${event.apkUrl}")
+
+        withContext(Dispatchers.Main) {
+            Toast.makeText(context, "Trigger received: ${event.apkUrl}", Toast.LENGTH_SHORT).show()
+        }
 
         try {
             // APKをダウンロード
