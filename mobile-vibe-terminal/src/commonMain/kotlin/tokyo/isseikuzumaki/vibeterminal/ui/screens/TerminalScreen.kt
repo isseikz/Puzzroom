@@ -501,10 +501,13 @@ data class TerminalScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             row.forEachIndexed { colIndex, cell ->
-                                TerminalCellView(
-                                    cell = cell,
-                                    isCursor = rowIndex == cursorRow && colIndex == cursorCol
-                                )
+                                // Skip padding cells - wide chars already occupy 2 cell widths
+                                if (!cell.isWideCharPadding) {
+                                    TerminalCellView(
+                                        cell = cell,
+                                        isCursor = rowIndex == cursorRow && colIndex == cursorCol
+                                    )
+                                }
                             }
                         }
                     }
