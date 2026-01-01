@@ -290,6 +290,47 @@ class TerminalScreenBuffer(
     }
 
     /**
+     * Line Feed (LF) - スクロール領域を考慮したカーソル下移動
+     *
+     * カーソルを1行下に移動する。scrollBottom に達している場合は
+     * スクロール領域内でスクロールを発生させ、カーソルは scrollBottom に留まる。
+     *
+     * ECMA-48準拠: byobu/tmux のステータスバー動作に必須。
+     */
+    fun lineFeed() {
+        delayedWrap = false
+        if (cursorRow >= scrollBottom) {
+            // scrollBottom に達している場合はスクロール
+            scrollUp()
+            cursorRow = scrollBottom
+        } else {
+            // まだ scrollBottom に達していない場合は単に下に移動
+            cursorRow++
+        }
+    }
+
+    /**
+     * Reverse Index (RI) - スクロール領域を考慮したカーソル上移動
+     *
+     * カーソルを1行上に移動する。scrollTop に達している場合は
+     * スクロール領域内で逆スクロール（下方向へスクロール）を発生させ、
+     * スクロール領域の先頭に空行を挿入する。カーソルは scrollTop に留まる。
+     *
+     * ECMA-48準拠: vim などの上方向スクロールに使用される。
+     */
+    fun reverseIndex() {
+        delayedWrap = false
+        if (cursorRow <= scrollTop) {
+            // scrollTop に達している場合は逆スクロール
+            scrollDown()
+            cursorRow = scrollTop
+        } else {
+            // まだ scrollTop に達していない場合は単に上に移動
+            cursorRow--
+        }
+    }
+
+    /**
      * Move cursor to column (1-indexed)
      */
     fun moveCursorToColumn(col: Int) {

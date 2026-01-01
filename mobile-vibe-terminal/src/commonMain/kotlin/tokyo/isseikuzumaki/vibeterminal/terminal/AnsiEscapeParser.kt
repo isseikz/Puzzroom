@@ -48,8 +48,8 @@ class AnsiEscapeParser(private val screenBuffer: TerminalScreenBuffer) {
             '\r' -> {  // Carriage return
                 screenBuffer.moveCursorToColumn(1)
             }
-            '\n' -> {  // Line feed
-                screenBuffer.moveCursorRelative(1, 0)
+            '\n' -> {  // Line feed - スクロール領域を考慮
+                screenBuffer.lineFeed()
             }
             '\b' -> {  // Backspace
                 screenBuffer.moveCursorRelative(0, -1)
@@ -87,8 +87,17 @@ class AnsiEscapeParser(private val screenBuffer: TerminalScreenBuffer) {
                 scsChar = ')'
                 state = State.SCS
             }
-            'M' -> {  // Reverse index (move up and scroll if needed)
-                screenBuffer.moveCursorRelative(-1, 0)
+            'D' -> {  // Index (IND) - LFと同等、スクロール領域を考慮
+                screenBuffer.lineFeed()
+                state = State.NORMAL
+            }
+            'E' -> {  // Next Line (NEL) - CR + LF と同等
+                screenBuffer.moveCursorToColumn(1)
+                screenBuffer.lineFeed()
+                state = State.NORMAL
+            }
+            'M' -> {  // Reverse Index (RI) - スクロール領域を考慮した上移動
+                screenBuffer.reverseIndex()
                 state = State.NORMAL
             }
             '7' -> {  // Save cursor position
