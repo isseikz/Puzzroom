@@ -41,6 +41,7 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import io.github.isseikz.kmpinput.TerminalInputContainer
 import io.github.isseikz.kmpinput.rememberTerminalInputContainerState
+import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalFontConfig
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalSizeCalculator
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalStateProvider
 import tokyo.isseikuzumaki.vibeterminal.ui.components.TerminalCanvas
@@ -132,7 +133,7 @@ class TerminalPresentation(
 
             // Use conservative estimates for initial calculation
             // This ensures terminal fits even before TextMeasurer provides exact values
-            val fontSizeSp = TERMINAL_FONT_SIZE_SP
+            val fontSizeSp = TerminalFontConfig.fontSize.value
             val density = displayMetrics.density
 
             val dimensions = TerminalSizeCalculator.calculateWithEstimatedCharSize(
@@ -160,10 +161,6 @@ class TerminalPresentation(
         }
     }
 
-    companion object {
-        const val TERMINAL_FONT_SIZE_SP = 14f
-    }
-
     @Composable
     private fun SecondaryTerminalDisplay() {
         val terminalState by TerminalStateProvider.state.collectAsState()
@@ -189,8 +186,8 @@ class TerminalPresentation(
         // Measure actual character dimensions using TextMeasurer
         val textStyle = remember {
             TextStyle(
-                fontFamily = FontFamily.Monospace,
-                fontSize = TERMINAL_FONT_SIZE_SP.sp
+                fontFamily = TerminalFontConfig.fontFamily,
+                fontSize = TerminalFontConfig.fontSize
             )
         }
 
