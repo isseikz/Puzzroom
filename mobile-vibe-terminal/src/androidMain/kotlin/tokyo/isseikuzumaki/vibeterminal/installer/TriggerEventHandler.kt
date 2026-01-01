@@ -16,6 +16,7 @@ import kotlinx.coroutines.withContext
 import timber.log.Timber
 import tokyo.isseikuzumaki.vibeterminal.data.datastore.PreferencesHelper
 import tokyo.isseikuzumaki.vibeterminal.domain.installer.ApkInstaller
+import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
 import tokyo.isseikuzumaki.vibeterminal.ssh.TriggerChannel
 import tokyo.isseikuzumaki.vibeterminal.ssh.TriggerEvent
 import java.io.File
@@ -49,7 +50,8 @@ data class InstallConfirmationRequest(
 class TriggerEventHandler(
     private val context: Context,
     private val preferencesHelper: PreferencesHelper,
-    private val apkInstaller: ApkInstaller
+    private val apkInstaller: ApkInstaller,
+    private val sshRepository: SshRepository
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val triggerChannel = TriggerChannel.getInstance()
@@ -92,7 +94,7 @@ class TriggerEventHandler(
      */
     private suspend fun handleTriggerEvent(event: TriggerEvent) {
         Timber.d("=== Handling Trigger Event ===")
-        Timber.d("APK URL: ${event.apkUrl}")
+        Timber.d("APK Path/URL: ${event.apkUrl}")
 
         withContext(Dispatchers.Main) {
             Toast.makeText(context, "Trigger received: ${event.apkUrl}", Toast.LENGTH_SHORT).show()
@@ -126,17 +128,61 @@ class TriggerEventHandler(
     }
 
     /**
-     * APKをダウンロードする
+     * APKをダウンロードする (HTTP or SFTP)
      */
     private suspend fun downloadApk(apkUrl: String): File? = withContext(Dispatchers.IO) {
         try {
             Timber.d("=== Downloading APK ===")
-            Timber.d("URL: $apkUrl")
+            Timber.d("Target: $apkUrl")
 
             val cacheDir = apkInstaller.getCacheDir()
             val apkFile = File(cacheDir, "downloaded_${System.currentTimeMillis()}.apk")
 
-            val url = URL(apkUrl)
+            if (apkUrl.startsWith("http://") || apkUrl.startsWith("https://")) {
+                downloadHttp(apkUrl, apkFile)
+            } else {
+                downloadSftp(apkUrl, apkFile)
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Error downloading APK")
+            null
+        }
+    }
+
+    private suspend fun downloadSftp(remotePath: String, localFile: File): File? {
+        try {
+            // Expand tilde (~) if present
+            val expandedPath = if (remotePath.startsWith("~/")) {
+                val homeResult = sshRepository.executeCommand("echo \$HOME")
+                val homePath = homeResult.getOrNull()?.trim() ?: ""
+                if (homePath.isNotEmpty()) {
+                    remotePath.replaceFirst("~", homePath)
+                } else {
+                    remotePath
+                }
+            } else {
+                remotePath
+            }
+            
+            Timber.d("SFTP Download: $expandedPath -> ${localFile.absolutePath}")
+            val result = sshRepository.downloadFile(expandedPath, localFile)
+            
+            return if (result.isSuccess) {
+                Timber.d("SFTP Download complete")
+                localFile
+            } else {
+                Timber.e("SFTP Download failed: ${result.exceptionOrNull()?.message}")
+                null
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "SFTP Download exception")
+            return null
+        }
+    }
+
+    private fun downloadHttp(urlStr: String, outputFile: File): File? {
+        try {
+            val url = URL(urlStr)
             val connection = url.openConnection() as HttpURLConnection
             connection.apply {
                 requestMethod = "GET"
@@ -150,15 +196,15 @@ class TriggerEventHandler(
                 val responseCode = connection.responseCode
 
                 if (responseCode != HttpURLConnection.HTTP_OK) {
-                    Timber.e("Download failed with response code: $responseCode")
-                    return@withContext null
+                    Timber.e("HTTP Download failed with response code: $responseCode")
+                    return null
                 }
 
                 val contentLength = connection.contentLength
                 Timber.d("Content length: $contentLength bytes")
 
                 connection.inputStream.use { input ->
-                    FileOutputStream(apkFile).use { output ->
+                    FileOutputStream(outputFile).use { output ->
                         val buffer = ByteArray(8192)
                         var bytesRead: Int
                         var totalBytesRead = 0L
@@ -172,18 +218,16 @@ class TriggerEventHandler(
                                 Timber.d("Downloaded: ${totalBytesRead / (1024 * 1024)} MB")
                             }
                         }
-
-                        Timber.d("Download complete: $totalBytesRead bytes")
+                        Timber.d("HTTP Download complete: $totalBytesRead bytes")
                     }
                 }
-
-                apkFile
+                return outputFile
             } finally {
                 connection.disconnect()
             }
         } catch (e: Exception) {
-            Timber.e(e, "Error downloading APK")
-            null
+            Timber.e(e, "HTTP Download exception")
+            return null
         }
     }
 
@@ -233,10 +277,11 @@ class TriggerEventHandler(
         fun getInstance(
             context: Context,
             preferencesHelper: PreferencesHelper,
-            apkInstaller: ApkInstaller
+            apkInstaller: ApkInstaller,
+            sshRepository: SshRepository
         ): TriggerEventHandler {
             return instance ?: synchronized(this) {
-                instance ?: TriggerEventHandler(context, preferencesHelper, apkInstaller).also {
+                instance ?: TriggerEventHandler(context, preferencesHelper, apkInstaller, sshRepository).also {
                     instance = it
                 }
             }

@@ -32,7 +32,7 @@ actual fun platformModule() = module {
 
     single { PreferencesHelper(get()) }
 
-    factory<SshRepository> { MinaSshdRepository() }
+    single<SshRepository> { MinaSshdRepository() }
 
     factory<ApkInstaller> {
         val context = get<Context>()
@@ -43,7 +43,8 @@ actual fun platformModule() = module {
         val context = get<Context>()
         val preferencesHelper = get<PreferencesHelper>()
         val apkInstaller = get<ApkInstaller>()
-        TriggerEventHandler.getInstance(context, preferencesHelper, apkInstaller)
+        val sshRepository = get<SshRepository>()
+        TriggerEventHandler.getInstance(context, preferencesHelper, apkInstaller, sshRepository)
     }
 
     factory<ConnectionRepository> {

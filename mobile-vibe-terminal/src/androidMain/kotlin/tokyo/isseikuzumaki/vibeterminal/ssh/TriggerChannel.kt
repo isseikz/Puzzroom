@@ -70,15 +70,16 @@ class TriggerChannel {
             sendDebugMessage("Received data: '$data'")
             Timber.d("TriggerChannel: Received data: $data")
 
-            // データをパースしてAPK URLを抽出
-            val apkUrl = parseApkUrl(data)
-            if (apkUrl != null) {
-                sendDebugMessage("Parsed URL: $apkUrl")
-                Timber.d("TriggerChannel: Parsed APK URL: $apkUrl")
-                _triggerEvents.emit(TriggerEvent(apkUrl = apkUrl))
+            // データをパースしてパスを抽出
+            val path = extractPath(data)
+            if (path != null) {
+                sendDebugMessage("Extracted Path: $path")
+                Timber.d("TriggerChannel: Extracted Path: $path")
+                _triggerEvents.emit(TriggerEvent(apkUrl = path))
             } else {
-                sendDebugMessage("Failed to parse URL from: $data")
-                Timber.w("TriggerChannel: Could not parse APK URL from data: $data")
+                // extractPath は空文字列以外はnullを返さないため、ここは実質的に到達しないはず
+                sendDebugMessage("Failed to extract path from: $data")
+                Timber.w("TriggerChannel: Could not extract path from data: $data")
             }
         } catch (e: Exception) {
             sendDebugMessage("Error: ${e.message}")
@@ -87,22 +88,16 @@ class TriggerChannel {
     }
 
     /**
-     * 受信データからAPK URLをパースする
+     * 受信データから対象パスを抽出する
      *
-     * 期待されるフォーマット:
-     * - 単純なURL文字列
-     * - JSON形式: {"url": "https://..."}
-     * - キー=値形式: url=https://...
+     * 以下の順で評価する:
+     * 1. JSON形式: {"url": "..."}
+     * 2. キー=値形式: url=...
+     * 3. その他の文字列（そのままパスとして扱う）
      */
-    private fun parseApkUrl(data: String): String? {
+    private fun extractPath(data: String): String? {
         val trimmedData = data.trim()
-
-        // 単純なURL形式または絶対パス形式をチェック
-        if (trimmedData.startsWith("http://") || 
-            trimmedData.startsWith("https://") ||
-            trimmedData.startsWith("/")) {
-            return trimmedData.lines().firstOrNull()?.trim()
-        }
+        if (trimmedData.isEmpty()) return null
 
         // JSON形式をチェック: {"url": "..."} または {"apkUrl": "..."}
         val jsonUrlPattern = Regex(""""(?:url|apkUrl)"\s*:\s*"([^"]+)"""")
@@ -116,7 +111,9 @@ class TriggerChannel {
             return match.groupValues[1].trim()
         }
 
-        return null
+        // フォールバック: そのままパスとして扱う
+        // ユーザーの意図通り、パース不要でそのまま渡す
+        return trimmedData
     }
 
     companion object {
