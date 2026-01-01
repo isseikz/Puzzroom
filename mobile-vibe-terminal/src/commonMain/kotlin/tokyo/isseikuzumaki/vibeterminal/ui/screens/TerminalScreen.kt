@@ -50,6 +50,7 @@ import tokyo.isseikuzumaki.vibeterminal.util.Logger
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import org.jetbrains.compose.resources.stringResource
 import puzzroom.mobile_vibe_terminal.generated.resources.*
+import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalFontConfig
 
 data class TerminalScreen(
     val config: ConnectionConfig
@@ -317,20 +318,20 @@ data class TerminalScreen(
                     // Main Display Mode: Standard Layout
                     TerminalInputContainer(
                         state = terminalInputState,
-                        modifier = Modifier.weight(1f).fillMaxWidth()
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
                     ) {
                         // Main Display Mode: Show Terminal
                         BoxWithConstraints(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(8.dp)
+                            modifier = Modifier.fillMaxSize()
                         ) {
                             val textMeasurer = rememberTextMeasurer()
                             val innerDensity = androidx.compose.ui.platform.LocalDensity.current
 
                             val textStyle = androidx.compose.ui.text.TextStyle(
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 14.sp
+                                fontFamily = TerminalFontConfig.fontFamily,
+                                fontSize = TerminalFontConfig.fontSize
                             )
 
                             // Measure character size
@@ -506,14 +507,14 @@ data class TerminalScreen(
         // Force recomposition when buffer updates
         key(bufferUpdateCounter) {
             Column(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxSize()
             ) {
                 if (screenBuffer.isEmpty()) {
                     Text(
                         text = stringResource(Res.string.terminal_initializing),
                         color = Color.Gray,
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 12.sp
+                        fontFamily = TerminalFontConfig.fontFamily,
+                        fontSize = TerminalFontConfig.fontSize
                     )
                 } else {
                     screenBuffer.forEachIndexed { rowIndex, row ->
@@ -521,10 +522,13 @@ data class TerminalScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             row.forEachIndexed { colIndex, cell ->
-                                TerminalCellView(
-                                    cell = cell,
-                                    isCursor = rowIndex == cursorRow && colIndex == cursorCol
-                                )
+                                // Skip padding cells - wide chars already occupy 2 cell widths
+                                if (!cell.isWideCharPadding) {
+                                    TerminalCellView(
+                                        cell = cell,
+                                        isCursor = rowIndex == cursorRow && colIndex == cursorCol
+                                    )
+                                }
                             }
                         }
                     }
@@ -553,8 +557,8 @@ data class TerminalScreen(
         Text(
             text = cell.char.toString(),
             color = foregroundColor,
-            fontFamily = FontFamily.Monospace,
-            fontSize = 12.sp,
+            fontFamily = TerminalFontConfig.fontFamily,
+            fontSize = TerminalFontConfig.fontSize,
             modifier = Modifier.background(backgroundColor),
             style = androidx.compose.ui.text.TextStyle(
                 fontWeight = if (cell.isBold) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal,
