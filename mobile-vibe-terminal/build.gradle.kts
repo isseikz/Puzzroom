@@ -167,3 +167,44 @@ dependencies {
     debugImplementation("com.willowtreeapps.hyperion:hyperion-core:0.9.38")
     debugImplementation("com.willowtreeapps.hyperion:hyperion-timber:0.9.38")
 }
+
+abstract class NotifyApkPathTask : DefaultTask() {
+    @get:javax.inject.Inject
+    abstract val execOperations: org.gradle.process.ExecOperations
+    
+    @get:InputDirectory
+    abstract val apkDirectory: DirectoryProperty
+
+    @TaskAction
+    fun notifyPath() {
+        val dir = apkDirectory.get().asFile
+        val apkFile = dir.walkTopDown().find { it.name.endsWith(".apk") && !it.name.contains("unaligned") }
+        
+        if (apkFile != null) {
+            val absolutePath = apkFile.absolutePath
+            println("Found APK at: $absolutePath")
+            try {
+                execOperations.exec {
+                    commandLine("sh", "-c", "echo \"$absolutePath\" | nc -w 1 localhost 58080")
+                    isIgnoreExitValue = true
+                }
+                println("Sent APK path to localhost:58080")
+            } catch (e: Exception) {
+                println("Failed to send APK path: ${e.message}")
+            }
+        } else {
+            println("APK file not found in $dir")
+        }
+    }
+}
+
+tasks.register<NotifyApkPathTask>("notifyApkPath") {
+    apkDirectory.set(layout.buildDirectory.dir("outputs/apk/debug"))
+}
+
+// Hook into assembleDebug
+afterEvaluate {
+    tasks.named("assembleDebug") {
+        finalizedBy("notifyApkPath")
+    }
+}
