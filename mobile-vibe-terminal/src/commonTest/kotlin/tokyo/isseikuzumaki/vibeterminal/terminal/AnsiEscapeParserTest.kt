@@ -1546,4 +1546,475 @@ class AnsiEscapeParserTest {
         assertEquals('２', screenBuffer[0][2].char)
         assertEquals('３', screenBuffer[0][4].char)
     }
+
+    // ========== スクロール領域対応テスト (ECMA-48) ==========
+    // LF, IND, NEL, RI がスクロール領域を正しく処理することを検証する。
+    // byobu, tmux, screen などのステータスバーを使用するアプリケーションに必須。
+
+    /**
+     * テスト: Line Feed (\n) が scrollBottom でスクロールを発生させる
+     *
+     * 操作:
+     *   1. スクロール領域を行3-7に設定 (ESC[3;7r)
+     *   2. 行3-7にコンテンツを書き込み
+     *   3. 行8-9にステータスバーを書き込み
+     *   4. カーソルを行7に移動して \n を送信
+     *
+     * 期待されるバッファ状態 (スクロール後):
+     *   Row 1: [         ] ← スクロール領域外（変化なし）
+     *   Row 2: [         ] ← スクロール領域外（変化なし）
+     *   Row 3: [Line 4   ] ← 元のLine 3が消え、Line 4が上に移動
+     *   Row 4: [Line 5   ]
+     *   Row 5: [Line 6   ]
+     *   Row 6: [Line 7   ]
+     *   Row 7: [         ] ← 新しい空行、カーソルはここ
+     *   Row 8: [Status A ] ← ステータスバー（変化なし）
+     *   Row 9: [Status B ] ← ステータスバー（変化なし）
+     *
+     * スクロール領域内のみがスクロールし、ステータスバーは固定される。
+     * これはbyobuやtmuxのステータスバー動作に必須の機能。
+     */
+    @Test
+    fun testLineFeed_AtScrollBottom_ShouldScroll() {
+        val buffer = TerminalScreenBuffer(cols = 20, rows = 10)
+        val parser = AnsiEscapeParser(buffer)
+
+        // Set scroll region to rows 3-7 (1-indexed)
+        parser.processText("\u001B[3;7r")
+
+        // Write content in scroll region
+        parser.processText("\u001B[3;1HLine 3")
+        parser.processText("\u001B[4;1HLine 4")
+        parser.processText("\u001B[5;1HLine 5")
+        parser.processText("\u001B[6;1HLine 6")
+        parser.processText("\u001B[7;1HLine 7")
+
+        // Write status bar content (outside scroll region)
+        parser.processText("\u001B[8;1HStatus A")
+        parser.processText("\u001B[9;1HStatus B")
+
+        // Position cursor at scrollBottom (row 7) and send LF
+        parser.processText("\u001B[7;1H")
+        parser.processText("\n")
+
+        val screenBuffer = buffer.getBuffer()
+
+        // Cursor should stay at scrollBottom (row 6, 0-indexed)
+        assertEquals(6, buffer.cursorRow, "Cursor should stay at scrollBottom after LF")
+
+        // Scroll region should have scrolled - "Line 3" should be gone
+        assertEquals('L', screenBuffer[2][0].char, "Row 3 should now have Line 4")
+        assertEquals('4', screenBuffer[2][5].char, "Row 3 should have '4' from Line 4")
+
+        // Status bar should be unchanged
+        assertEquals('S', screenBuffer[7][0].char, "Status bar row 8 should be unchanged")
+        assertEquals('S', screenBuffer[8][0].char, "Status bar row 9 should be unchanged")
+    }
+
+    /**
+     * テスト: Line Feed (\n) が scrollBottom 以外ではスクロールしない
+     *
+     * 操作:
+     *   1. スクロール領域を行3-7に設定 (ESC[3;7r)
+     *   2. 行3-4にコンテンツを書き込み
+     *   3. カーソルを行5（スクロール領域の中間）に移動
+     *   4. \n を送信
+     *
+     * 期待される動作:
+     *   Row 3: [Line 3   ] ← 変化なし
+     *   Row 4: [Line 4   ] ← 変化なし
+     *   Row 5: [         ] ← 元のカーソル位置
+     *   Row 6: [         ] ← LF後のカーソル位置（単に下に移動）
+     *
+     * scrollBottom に達していない場合、スクロールは発生せず
+     * カーソルが1行下に移動するのみ。
+     */
+    @Test
+    fun testLineFeed_NotAtScrollBottom_ShouldOnlyMoveCursor() {
+        val buffer = TerminalScreenBuffer(cols = 20, rows = 10)
+        val parser = AnsiEscapeParser(buffer)
+
+        // Set scroll region to rows 3-7
+        parser.processText("\u001B[3;7r")
+
+        // Write content
+        parser.processText("\u001B[3;1HLine 3")
+        parser.processText("\u001B[4;1HLine 4")
+
+        // Position cursor at row 5 (middle of scroll region) and send LF
+        parser.processText("\u001B[5;1H")
+        parser.processText("\n")
+
+        // Cursor should move down to row 6
+        assertEquals(5, buffer.cursorRow, "Cursor should move down within scroll region")
+
+        // Content should NOT scroll
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('L', screenBuffer[2][0].char, "Line 3 should still be at row 3")
+        assertEquals('3', screenBuffer[2][5].char)
+    }
+
+    /**
+     * テスト: ESC D (Index/IND) が scrollBottom でスクロールを発生させる
+     *
+     * ESC D は ECMA-48 で定義された Index コマンド。
+     * Line Feed と同様の動作を行う。
+     *
+     * 操作:
+     *   1. スクロール領域を行3-7に設定 (ESC[3;7r)
+     *   2. 行3, 7にコンテンツを書き込み
+     *   3. 行8にステータスバーを書き込み
+     *   4. カーソルを行7に移動して ESC D を送信
+     *
+     * 期待される動作:
+     *   - スクロール領域がスクロール
+     *   - カーソルは scrollBottom に留まる
+     *   - ステータスバーは影響を受けない
+     *
+     * ESC D は \n と同等だが、一部のアプリケーションは明示的に
+     * ESC D を使用するため、個別にテストする。
+     */
+    @Test
+    fun testIndex_IND_AtScrollBottom_ShouldScroll() {
+        val buffer = TerminalScreenBuffer(cols = 20, rows = 10)
+        val parser = AnsiEscapeParser(buffer)
+
+        // Set scroll region to rows 3-7
+        parser.processText("\u001B[3;7r")
+
+        // Write content
+        parser.processText("\u001B[3;1HLine 3")
+        parser.processText("\u001B[7;1HLine 7")
+
+        // Write status bar
+        parser.processText("\u001B[8;1HStatus")
+
+        // Position cursor at scrollBottom and send IND (ESC D)
+        parser.processText("\u001B[7;1H")
+        parser.processText("\u001BD")  // ESC D = Index
+
+        val screenBuffer = buffer.getBuffer()
+
+        // Cursor should stay at scrollBottom
+        assertEquals(6, buffer.cursorRow, "Cursor should stay at scrollBottom after IND")
+
+        // Status bar should be unchanged
+        assertEquals('S', screenBuffer[7][0].char, "Status bar should be unchanged")
+    }
+
+    /**
+     * テスト: ESC D (Index/IND) が scrollBottom 以外で移動のみ行う
+     *
+     * 操作:
+     *   1. スクロール領域を行3-7に設定
+     *   2. カーソルを行5に移動して ESC D を送信
+     *
+     * 期待される動作:
+     *   - カーソルが行5から行6に移動
+     *   - スクロールは発生しない
+     */
+    @Test
+    fun testIndex_IND_NotAtScrollBottom_ShouldOnlyMoveCursor() {
+        val buffer = TerminalScreenBuffer(cols = 20, rows = 10)
+        val parser = AnsiEscapeParser(buffer)
+
+        // Set scroll region to rows 3-7
+        parser.processText("\u001B[3;7r")
+
+        // Position cursor at row 5 and send IND
+        parser.processText("\u001B[5;1H")
+        parser.processText("\u001BD")
+
+        // Cursor should move down
+        assertEquals(5, buffer.cursorRow, "Cursor should move down after IND")
+    }
+
+    /**
+     * テスト: ESC E (Next Line/NEL) が scrollBottom で列0に移動しスクロール
+     *
+     * ESC E は ECMA-48 で定義された Next Line コマンド。
+     * CR + LF と同等の動作を行う。
+     *
+     * 操作:
+     *   1. スクロール領域を行3-7に設定
+     *   2. 行7の列10にカーソルを移動
+     *   3. ESC E を送信
+     *
+     * 期待される動作:
+     *   - カーソルが列0に移動（CR相当）
+     *   - スクロール領域がスクロール（LF相当）
+     *   - カーソルは行7（scrollBottom）に留まる
+     *   - ステータスバーは影響を受けない
+     *
+     * NEL は一部のアプリケーションで改行処理に使用される。
+     * CR と LF を別々に送る代わりに NEL を使用することで
+     * 1バイト節約できる。
+     */
+    @Test
+    fun testNextLine_NEL_AtScrollBottom_ShouldScrollAndReturnToColumn0() {
+        val buffer = TerminalScreenBuffer(cols = 20, rows = 10)
+        val parser = AnsiEscapeParser(buffer)
+
+        // Set scroll region to rows 3-7
+        parser.processText("\u001B[3;7r")
+
+        // Write content
+        parser.processText("\u001B[3;1HLine 3")
+        parser.processText("\u001B[7;10HMiddle")  // Cursor at column 10
+
+        // Write status bar
+        parser.processText("\u001B[8;1HStatus")
+
+        // Position cursor at scrollBottom, column 10, and send NEL
+        parser.processText("\u001B[7;10H")
+        parser.processText("\u001BE")  // ESC E = Next Line
+
+        val screenBuffer = buffer.getBuffer()
+
+        // Cursor should be at column 0
+        assertEquals(0, buffer.cursorCol, "Cursor should be at column 0 after NEL")
+
+        // Cursor should stay at scrollBottom
+        assertEquals(6, buffer.cursorRow, "Cursor should stay at scrollBottom after NEL")
+
+        // Status bar should be unchanged
+        assertEquals('S', screenBuffer[7][0].char, "Status bar should be unchanged")
+    }
+
+    /**
+     * テスト: ESC E (Next Line/NEL) が scrollBottom 以外で次の行の列0に移動
+     *
+     * 操作:
+     *   1. スクロール領域を行3-7に設定
+     *   2. カーソルを行5の列10に移動
+     *   3. ESC E を送信
+     *
+     * 期待される動作:
+     *   - カーソルが列0に移動（CR相当）
+     *   - カーソルが行6に移動（LF相当）
+     *   - スクロールは発生しない
+     */
+    @Test
+    fun testNextLine_NEL_NotAtScrollBottom_ShouldMoveToNextLineColumn0() {
+        val buffer = TerminalScreenBuffer(cols = 20, rows = 10)
+        val parser = AnsiEscapeParser(buffer)
+
+        // Set scroll region to rows 3-7
+        parser.processText("\u001B[3;7r")
+
+        // Position cursor at row 5, column 10
+        parser.processText("\u001B[5;10H")
+        parser.processText("\u001BE")  // ESC E = Next Line
+
+        // Cursor should be at next row, column 0
+        assertEquals(5, buffer.cursorRow, "Cursor should move to next row")
+        assertEquals(0, buffer.cursorCol, "Cursor should be at column 0")
+    }
+
+    /**
+     * テスト: ESC M (Reverse Index/RI) が scrollTop で逆スクロールを発生させる
+     *
+     * ESC M は ECMA-48 で定義された Reverse Index コマンド。
+     * カーソルを上に移動し、scrollTop にいる場合は逆スクロールを発生させる。
+     *
+     * 操作:
+     *   1. スクロール領域を行3-7に設定
+     *   2. 行3-4, 7にコンテンツを書き込み
+     *   3. 行1にヘッダー、行8にステータスバーを書き込み
+     *   4. カーソルを行3（scrollTop）に移動して ESC M を送信
+     *
+     * 期待されるバッファ状態 (逆スクロール後):
+     *   Row 1: [Top      ] ← スクロール領域外（変化なし）
+     *   Row 2: [         ] ← スクロール領域外（変化なし）
+     *   Row 3: [         ] ← 新しい空行が挿入、カーソルはここ
+     *   Row 4: [Line 3   ] ← 元のLine 3が下に移動
+     *   Row 5: [Line 4   ] ← 元のLine 4が下に移動
+     *   Row 6: [         ]
+     *   Row 7: [         ] ← 元のLine 7は押し出されて消える
+     *   Row 8: [Status   ] ← ステータスバー（変化なし）
+     *
+     * 逆スクロールはvimなどで上方向にスクロールする際に使用される。
+     */
+    @Test
+    fun testReverseIndex_RI_AtScrollTop_ShouldReverseScroll() {
+        val buffer = TerminalScreenBuffer(cols = 20, rows = 10)
+        val parser = AnsiEscapeParser(buffer)
+
+        // Set scroll region to rows 3-7
+        parser.processText("\u001B[3;7r")
+
+        // Write content
+        parser.processText("\u001B[3;1HLine 3")
+        parser.processText("\u001B[4;1HLine 4")
+        parser.processText("\u001B[7;1HLine 7")
+
+        // Write content outside scroll region
+        parser.processText("\u001B[1;1HTop")
+        parser.processText("\u001B[8;1HStatus")
+
+        // Position cursor at scrollTop (row 3) and send RI
+        parser.processText("\u001B[3;1H")
+        parser.processText("\u001BM")  // ESC M = Reverse Index
+
+        val screenBuffer = buffer.getBuffer()
+
+        // Cursor should stay at scrollTop
+        assertEquals(2, buffer.cursorRow, "Cursor should stay at scrollTop after RI")
+
+        // Row 3 should now be blank (new line inserted)
+        assertEquals(' ', screenBuffer[2][0].char, "Row 3 should be blank after reverse scroll")
+
+        // Old Line 3 should now be at row 4
+        assertEquals('L', screenBuffer[3][0].char, "Old Line 3 should shift to row 4")
+        assertEquals('3', screenBuffer[3][5].char)
+
+        // Content outside scroll region should be unchanged
+        assertEquals('T', screenBuffer[0][0].char, "Top row should be unchanged")
+        assertEquals('S', screenBuffer[7][0].char, "Status bar should be unchanged")
+    }
+
+    /**
+     * テスト: ESC M (Reverse Index/RI) が scrollTop 以外で上移動のみ行う
+     *
+     * 操作:
+     *   1. スクロール領域を行3-7に設定
+     *   2. 行3にコンテンツを書き込み
+     *   3. カーソルを行5に移動して ESC M を送信
+     *
+     * 期待される動作:
+     *   - カーソルが行5から行4に移動
+     *   - スクロールは発生しない
+     *   - コンテンツは変化なし
+     */
+    @Test
+    fun testReverseIndex_RI_NotAtScrollTop_ShouldOnlyMoveCursorUp() {
+        val buffer = TerminalScreenBuffer(cols = 20, rows = 10)
+        val parser = AnsiEscapeParser(buffer)
+
+        // Set scroll region to rows 3-7
+        parser.processText("\u001B[3;7r")
+
+        // Write content
+        parser.processText("\u001B[3;1HLine 3")
+
+        // Position cursor at row 5 and send RI
+        parser.processText("\u001B[5;1H")
+        parser.processText("\u001BM")
+
+        // Cursor should move up
+        assertEquals(3, buffer.cursorRow, "Cursor should move up after RI")
+
+        // Content should NOT scroll
+        val screenBuffer = buffer.getBuffer()
+        assertEquals('L', screenBuffer[2][0].char, "Line 3 should still be at row 3")
+    }
+
+    /**
+     * テスト: byobu + logcat の実際のシナリオ
+     *
+     * 報告された実際の問題を再現するテスト:
+     * - byobu がステータスバー（行9-10）を除外するスクロール領域（行1-8）を設定
+     * - logcat が継続的に \n で出力
+     * - ステータスバーは下部に固定されたまま維持されるべき
+     *
+     * 操作:
+     *   1. スクロール領域を行1-8に設定 (ESC[1;8r)
+     *   2. 行9-10にbyobuステータスバーを書き込み
+     *   3. 行1-8にログ行を書き込み（スクロール領域を埋める）
+     *   4. 新しいログ3行を \n 付きで書き込み（スクロールを発生させる）
+     *
+     * 期待されるバッファ状態:
+     *   Row 1-5: [古いログ行がスクロールして上に移動]
+     *   Row 6:   [New log A]
+     *   Row 7:   [New log B]
+     *   Row 8:   [New log C] ← カーソルはここ
+     *   Row 9:   [[byobu] Session A | 12:34] ← 変化なし
+     *   Row 10:  [[status] CPU: 50%        ] ← 変化なし
+     *
+     * このテストが失敗する場合:
+     * - ステータスバーが上書きされる（カーソルがscrollBottomを超える）
+     * - スクロールが発生せずログが停滞する
+     */
+    @Test
+    fun testByobuScenario_LogcatWithStatusBar() {
+        val buffer = TerminalScreenBuffer(cols = 40, rows = 10)
+        val parser = AnsiEscapeParser(buffer)
+
+        // byobu sets scroll region (rows 1-8, status bar at rows 9-10)
+        parser.processText("\u001B[1;8r")
+
+        // Write initial status bar
+        parser.processText("\u001B[9;1H[byobu] Session A | 12:34")
+        parser.processText("\u001B[10;1H[status] CPU: 50%")
+
+        // Simulate logcat output filling the scroll region
+        for (i in 1..8) {
+            parser.processText("\u001B[$i;1HLog line $i")
+        }
+
+        // Simulate new logcat lines (should trigger scroll)
+        parser.processText("\u001B[8;1H")  // Move to bottom of scroll region
+        parser.processText("New log A\n")
+        parser.processText("New log B\n")
+        parser.processText("New log C\n")
+
+        val screenBuffer = buffer.getBuffer()
+
+        // Status bar should be completely unchanged
+        assertEquals('[', screenBuffer[8][0].char, "Status bar row 9 should start with '['")
+        assertEquals('b', screenBuffer[8][1].char, "Status bar should have 'byobu'")
+        assertEquals('[', screenBuffer[9][0].char, "Status bar row 10 should start with '['")
+        assertEquals('s', screenBuffer[9][1].char, "Status bar should have 'status'")
+
+        // Cursor should be at scrollBottom (row 8, 0-indexed: 7)
+        assertEquals(7, buffer.cursorRow, "Cursor should stay within scroll region")
+    }
+
+    /**
+     * テスト: スクロール領域なし（全画面）で LF が画面全体をスクロール
+     *
+     * スクロール領域が設定されていない場合、デフォルトで画面全体が
+     * スクロール領域となる。
+     *
+     * 操作:
+     *   1. スクロール領域は設定しない（デフォルト: 全画面）
+     *   2. 5行すべてにコンテンツを書き込み
+     *   3. カーソルを最終行に移動して \n を送信
+     *
+     * 期待されるバッファ状態 (スクロール後):
+     *   Row 1: [Line 2   ] ← 元のLine 1が消え、Line 2が上に移動
+     *   Row 2: [Line 3   ]
+     *   Row 3: [Line 4   ]
+     *   Row 4: [Line 5   ]
+     *   Row 5: [         ] ← 新しい空行、カーソルはここ
+     *
+     * これは通常のターミナル動作（スクロール領域なし）の基本テスト。
+     */
+    @Test
+    fun testLineFeed_FullScreen_ShouldScrollEntireScreen() {
+        val buffer = TerminalScreenBuffer(cols = 20, rows = 5)
+        val parser = AnsiEscapeParser(buffer)
+
+        // No scroll region set (full screen)
+
+        // Fill all lines
+        parser.processText("\u001B[1;1HLine 1")
+        parser.processText("\u001B[2;1HLine 2")
+        parser.processText("\u001B[3;1HLine 3")
+        parser.processText("\u001B[4;1HLine 4")
+        parser.processText("\u001B[5;1HLine 5")
+
+        // Move to last row and send LF
+        parser.processText("\u001B[5;1H")
+        parser.processText("\n")
+
+        val screenBuffer = buffer.getBuffer()
+
+        // Cursor should stay at last row
+        assertEquals(4, buffer.cursorRow, "Cursor should stay at last row")
+
+        // Line 1 should be gone, Line 2 should now be at row 1
+        assertEquals('L', screenBuffer[0][0].char, "Row 1 should have Line 2")
+        assertEquals('2', screenBuffer[0][5].char, "Row 1 should have '2' from Line 2")
+    }
 }
