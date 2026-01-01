@@ -96,10 +96,6 @@ class TriggerEventHandler(
         Timber.d("=== Handling Trigger Event ===")
         Timber.d("APK Path/URL: ${event.apkUrl}")
 
-        withContext(Dispatchers.Main) {
-            Toast.makeText(context, "Trigger received: ${event.apkUrl}", Toast.LENGTH_SHORT).show()
-        }
-
         try {
             // APKをダウンロード
             val apkFile = downloadApk(event.apkUrl)

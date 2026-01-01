@@ -37,14 +37,6 @@ fun TriggerEventHost(
         }
     }
 
-    // デバッグメッセージを表示
-    val context = androidx.compose.ui.platform.LocalContext.current
-    LaunchedEffect(triggerEventHandler) {
-        triggerEventHandler.debugEvents.collect { message ->
-            android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
-        }
-    }
-
     // メインコンテンツを表示
     content()
 
