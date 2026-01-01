@@ -2,46 +2,155 @@ package tokyo.isseikuzumaki.vibeterminal.ssh
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import org.apache.sshd.client.channel.AbstractClientChannel
+import org.apache.sshd.common.channel.AbstractChannel
+import org.apache.sshd.common.channel.Channel
+import org.apache.sshd.client.future.DefaultOpenFuture
+import org.apache.sshd.client.future.OpenFuture
 import org.apache.sshd.common.util.buffer.Buffer
 import timber.log.Timber
 import java.io.ByteArrayInputStream
 
 /**
- * SSH Port Forwarding (forwarded-tcpip) request interceptor.
- * It intercepts data directed to the forwarded port and passes it to the TriggerChannel.
+ * SSH Port Forwarding (forwarded-tcpip) リクエストをインターセプトするチャネル
+ * フォワードされたポートに送信されたデータを受信し、TriggerChannelに渡す
+ *
+ * AbstractChannel を直接拡張してサーバー開始のチャネルを適切に処理する
  */
-class TriggerForwardingChannel : AbstractClientChannel("forwarded-tcpip") {
+class TriggerForwardingChannel : AbstractChannel("forwarded-tcpip", false) {
 
-    override fun doOpen() {
-        val msg = "TriggerForwardingChannel: Channel opened (Interceptor active)"
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val dataBuffer = StringBuilder()
+
+    /**
+     * サーバーからチャネルオープンリクエストを受信した時に呼ばれる
+     * forwarded-tcpip の場合: connected_address, connected_port, originator_address, originator_port
+     */
+    override fun open(recipient: Long, rwSize: Long, packetSize: Long, buffer: Buffer): OpenFuture {
+        val msg = "TriggerForwardingChannel: open() recipient=$recipient rwSize=$rwSize packetSize=$packetSize"
         Timber.d(msg)
-        //CoroutineScope(Dispatchers.IO).launch {
-        //    TriggerChannel.getInstance().sendDebugMessage(msg)
-        //}
+        scope.launch {
+            TriggerChannel.getInstance().sendDebugMessage(msg)
+        }
+
+        // フォワーディング情報を読み取る
+        val connectedAddress = buffer.getString()
+        val connectedPort = buffer.getInt()
+        val originatorAddress = buffer.getString()
+        val originatorPort = buffer.getInt()
+        val info = "Connected: $connectedAddress:$connectedPort from $originatorAddress:$originatorPort"
+        Timber.d("TriggerForwardingChannel: $info")
+        scope.launch {
+            TriggerChannel.getInstance().sendDebugMessage(info)
+        }
+
+        // リモートウィンドウパラメータを設定
+        setRecipient(recipient)
+
+        val future = DefaultOpenFuture(this.toString(), this.futureLock)
+
+        try {
+            // チャネルオープンを確認
+            sendOpenConfirmation()
+            future.setOpened()
+
+            val openMsg = "TriggerForwardingChannel: Channel opened successfully"
+            Timber.d(openMsg)
+            scope.launch {
+                TriggerChannel.getInstance().sendDebugMessage(openMsg)
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "TriggerForwardingChannel: Failed to open channel")
+            scope.launch {
+                TriggerChannel.getInstance().sendDebugMessage("Open failed: ${e.message}")
+            }
+            future.setException(e)
+        }
+
+        return future
     }
 
-    override fun doWriteData(buffer: ByteArray, off: Int, len: Long) {
-        
-        // Process asynchronously to avoid blocking SSH I/O thread
-        //CoroutineScope(Dispatchers.IO).launch {
-         //   TriggerChannel.getInstance().sendDebugMessage("Interceptor received: '$buffer'")
-            
-            //val data = String(buffer, off, len.toInt(), Charsets.UTF_8).trim()
-            //if (data.isNotEmpty()) {
-            //    // Wrap in InputStream to match existing interface
-            //    val inputStream = ByteArrayInputStream(data.toByteArray(Charsets.UTF_8))
-            //    TriggerChannel.getInstance().handleIncomingData(inputStream)
-            //}
-            
-        //}
-
-        // Close channel asynchronously to signal completion
-        close(false)
+    /**
+     * クライアント開始のチャネルがサーバーに承認された時に呼ばれる
+     * forwarded-tcpip はサーバー開始なのでこれは通常呼ばれない
+     */
+    override fun handleOpenSuccess(packetSize: Long, rwSize: Long, maxPacketSize: Long, buffer: Buffer) {
+        val msg = "TriggerForwardingChannel: handleOpenSuccess (unexpected for server-initiated channel)"
+        Timber.d(msg)
+        scope.launch {
+            TriggerChannel.getInstance().sendDebugMessage(msg)
+        }
     }
 
-    override fun doWriteExtendedData(buffer: ByteArray, off: Int, len: Long) {
-        Timber.d("TriggerForwardingChannel: Received extended data (ignored)")
+    /**
+     * チャネルオープンが失敗した時に呼ばれる
+     */
+    override fun handleOpenFailure(buffer: Buffer) {
+        val reasonCode = buffer.getInt()
+        val message = buffer.getString()
+        val lang = buffer.getString()
+        val msg = "TriggerForwardingChannel: handleOpenFailure reason=$reasonCode msg=$message"
+        Timber.e(msg)
+        scope.launch {
+            TriggerChannel.getInstance().sendDebugMessage(msg)
+        }
+    }
+
+    override fun doWriteData(data: ByteArray, off: Int, len: Long) {
+        try {
+            val received = String(data, off, len.toInt(), Charsets.UTF_8)
+            Timber.d("TriggerForwardingChannel: Received ${len} bytes: '$received'")
+
+            scope.launch {
+                TriggerChannel.getInstance().sendDebugMessage("Received: $received")
+            }
+
+            // データをバッファに追加
+            dataBuffer.append(received)
+
+            // 改行があればデータを処理
+            if (received.contains("\n") || received.contains("\r")) {
+                val fullData = dataBuffer.toString().trim()
+                dataBuffer.clear()
+
+                if (fullData.isNotEmpty()) {
+                    scope.launch {
+                        try {
+                            val inputStream = ByteArrayInputStream(fullData.toByteArray(Charsets.UTF_8))
+                            TriggerChannel.getInstance().handleIncomingData(inputStream)
+                        } catch (e: Exception) {
+                            Timber.e(e, "Error processing trigger data")
+                            TriggerChannel.getInstance().sendDebugMessage("Error: ${e.message}")
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "TriggerForwardingChannel: Error in doWriteData")
+            scope.launch {
+                TriggerChannel.getInstance().sendDebugMessage("doWriteData error: ${e.message}")
+            }
+        }
+    }
+
+    override fun doWriteExtendedData(data: ByteArray, off: Int, len: Long) {
+        Timber.d("TriggerForwardingChannel: Received extended data (${len} bytes, ignored)")
+    }
+
+    /**
+     * チャネルオープン確認メッセージをサーバーに送信
+     */
+    private fun sendOpenConfirmation() {
+        val session = getSession()
+        val buffer = session.createBuffer(
+            org.apache.sshd.common.SshConstants.SSH_MSG_CHANNEL_OPEN_CONFIRMATION,
+            Int.SIZE_BYTES * 4
+        )
+        buffer.putInt(getRecipient().toLong())
+        buffer.putInt(getChannelId().toLong())
+        buffer.putInt(localWindow.size.toLong())
+        buffer.putInt(localWindow.packetSize.toLong())
+        session.writePacket(buffer)
     }
 }

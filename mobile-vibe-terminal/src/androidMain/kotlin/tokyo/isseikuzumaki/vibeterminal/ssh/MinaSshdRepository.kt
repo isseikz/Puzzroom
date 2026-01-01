@@ -136,8 +136,9 @@ class MinaSshdRepository : SshRepository {
                 }
 
                 override fun sessionException(session: Session, t: Throwable) {
-                    val msg = "Session exception: ${t.message}"
+                    val msg = "Session exception: ${t.javaClass.simpleName}: ${t.message}"
                     Timber.e(t, msg)
+                    t.printStackTrace()
                     triggerScope.launch { TriggerChannel.getInstance().sendDebugMessage(msg) }
                 }
 
