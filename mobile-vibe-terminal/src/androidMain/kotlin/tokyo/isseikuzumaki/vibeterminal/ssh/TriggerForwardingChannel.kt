@@ -6,6 +6,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.apache.sshd.common.channel.AbstractChannel
 import org.apache.sshd.common.channel.Channel
+import org.apache.sshd.common.channel.Window
+import org.apache.sshd.common.PropertyResolver
 import org.apache.sshd.client.future.DefaultOpenFuture
 import org.apache.sshd.client.future.OpenFuture
 import org.apache.sshd.common.util.buffer.Buffer
@@ -48,9 +50,12 @@ class TriggerForwardingChannel : AbstractChannel("forwarded-tcpip", false) {
         // リモートウィンドウパラメータを設定
         setRecipient(recipient)
 
-        // ウィンドウを初期化 (これが重要: これがないとデータが流れない)
-        remoteWindow.init(rwSize, packetSize, getSession())
-        configureWindow()
+        // ウィンドウを初期化 (リフレクションを使用してprotectedメソッドにアクセス)
+        val windowSize = 2097152L
+        val localPacketSize = 32768L
+        
+        initWindow(remoteWindow, rwSize, packetSize, getSession())
+        initWindow(localWindow, windowSize, localPacketSize, getSession())
 
         val winMsg = "Windows initialized: Local=${localWindow.size}/${localWindow.packetSize}, Remote=${remoteWindow.size}/${remoteWindow.packetSize}"
         Timber.d(winMsg)
@@ -62,7 +67,10 @@ class TriggerForwardingChannel : AbstractChannel("forwarded-tcpip", false) {
 
         try {
             // チャネルオープンを確認
+            Timber.d("Sending open confirmation...")
             sendOpenConfirmation()
+            Timber.d("Open confirmation sent.")
+            
             future.setOpened()
 
             val openMsg = "TriggerForwardingChannel: Channel opened successfully"
@@ -70,15 +78,20 @@ class TriggerForwardingChannel : AbstractChannel("forwarded-tcpip", false) {
             scope.launch {
                 TriggerChannel.getInstance().sendDebugMessage(openMsg)
             }
-        } catch (e: Exception) {
-            Timber.e(e, "TriggerForwardingChannel: Failed to open channel")
+        } catch (t: Throwable) {
+            Timber.e(t, "TriggerForwardingChannel: Failed to open channel")
             scope.launch {
-                TriggerChannel.getInstance().sendDebugMessage("Open failed: ${e.message}")
+                TriggerChannel.getInstance().sendDebugMessage("Open failed: ${t.message}")
             }
-            future.setException(e)
+            future.setException(t)
         }
 
         return future
+    }
+
+    override fun handleData(buffer: Buffer) {
+        Timber.d("TriggerForwardingChannel: handleData called, available=${buffer.available()}")
+        super.handleData(buffer)
     }
 
     /**
@@ -169,12 +182,25 @@ class TriggerForwardingChannel : AbstractChannel("forwarded-tcpip", false) {
         val session = getSession()
         val buffer = session.createBuffer(
             org.apache.sshd.common.SshConstants.SSH_MSG_CHANNEL_OPEN_CONFIRMATION,
-            Int.SIZE_BYTES * 4
+            64 // Sufficient size
         )
         buffer.putInt(getRecipient().toLong())
         buffer.putInt(getChannelId().toLong())
         buffer.putInt(localWindow.size.toLong())
         buffer.putInt(localWindow.packetSize.toLong())
         session.writePacket(buffer)
+    }
+
+    private fun initWindow(window: Window, size: Long, packetSize: Long, resolver: PropertyResolver) {
+        try {
+            val method = Window::class.java.getDeclaredMethod("init", Long::class.javaPrimitiveType, Long::class.javaPrimitiveType, PropertyResolver::class.java)
+            method.isAccessible = true
+            method.invoke(window, size, packetSize, resolver)
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to init window via reflection")
+            scope.launch {
+                TriggerChannel.getInstance().sendDebugMessage("Window init failed: ${e.message}")
+            }
+        }
     }
 }
