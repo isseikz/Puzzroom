@@ -40,7 +40,7 @@ fun InstallConfirmationDialog(
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "新しいAPKファイルがダウンロードされました。インストールしますか?",
+                    text = "新しいAPKファイルを検出しました。ダウンロードしてインストールしますか?",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -56,13 +56,10 @@ fun InstallConfirmationDialog(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "ファイル: ${request.apkFile.name}",
+                    text = "ファイル名: ${request.fileName}",
                     style = MaterialTheme.typography.bodySmall
                 )
-                Text(
-                    text = "サイズ: ${formatFileSize(request.apkFile.length())}",
-                    style = MaterialTheme.typography.bodySmall
-                )
+                // サイズはダウンロード前なので不明
             }
         },
         confirmButton = {
@@ -86,16 +83,4 @@ fun InstallConfirmationDialog(
             }
         }
     )
-}
-
-/**
- * ファイルサイズを人間が読みやすい形式にフォーマットする
- */
-private fun formatFileSize(bytes: Long): String {
-    return when {
-        bytes < 1024 -> "$bytes B"
-        bytes < 1024 * 1024 -> String.format("%.1f KB", bytes / 1024.0)
-        bytes < 1024 * 1024 * 1024 -> String.format("%.1f MB", bytes / (1024.0 * 1024.0))
-        else -> String.format("%.1f GB", bytes / (1024.0 * 1024.0 * 1024.0))
-    }
 }

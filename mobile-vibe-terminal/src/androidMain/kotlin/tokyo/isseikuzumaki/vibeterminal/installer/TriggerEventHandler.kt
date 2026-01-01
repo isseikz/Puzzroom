@@ -34,7 +34,7 @@ import java.net.HttpURLConnection
  */
 data class InstallConfirmationRequest(
     val apkUrl: String,
-    val apkFile: File,
+    val fileName: String,
     val onConfirm: () -> Unit,
     val onCancel: () -> Unit
 )
@@ -43,9 +43,9 @@ data class InstallConfirmationRequest(
  * トリガーイベントを処理してAPKのダウンロードとインストールを行うハンドラー
  *
  * TriggerChannelからのイベントを購読し、以下の処理を行う:
- * 1. APKをダウンロード
- * 2. 自動インストールが有効な場合は直接インストール
- * 3. 無効な場合はユーザーに確認ダイアログを表示
+ * 1. 自動インストール設定を確認
+ * 2. 有効なら即ダウンロード＆インストール
+ * 3. 無効なら確認ダイアログを表示し、承認後にダウンロード＆インストール
  */
 class TriggerEventHandler(
     private val context: Context,
@@ -97,30 +97,39 @@ class TriggerEventHandler(
         Timber.d("APK Path/URL: ${event.apkUrl}")
 
         try {
-            // APKをダウンロード
-            val apkFile = downloadApk(event.apkUrl)
-            if (apkFile == null) {
-                Timber.e("Failed to download APK")
-                return
-            }
-
-            Timber.d("APK downloaded: ${apkFile.absolutePath}")
-
             // 自動インストール設定を確認
             val autoInstallEnabled = preferencesHelper.autoInstallEnabled.first()
 
             if (autoInstallEnabled) {
-                // 自動インストールが有効な場合は直接インストール
-                Timber.d("Auto-install enabled, launching install...")
-                launchInstallIntent(apkFile)
+                // 自動インストールが有効な場合は直接ダウンロードしてインストール
+                Timber.d("Auto-install enabled, proceeding to download and install...")
+                downloadAndInstall(event.apkUrl)
             } else {
-                // 確認ダイアログを表示
-                Timber.d("Auto-install disabled, requesting confirmation...")
-                requestInstallConfirmation(event.apkUrl, apkFile)
+                // 確認ダイアログを表示 (ダウンロード前)
+                Timber.d("Auto-install disabled, requesting confirmation before download...")
+                requestInstallConfirmation(event.apkUrl)
             }
         } catch (e: Exception) {
             Timber.e(e, "Error handling trigger event")
         }
+    }
+
+    private suspend fun downloadAndInstall(apkUrl: String) {
+        withContext(Dispatchers.Main) {
+            Toast.makeText(context, "Downloading APK...", Toast.LENGTH_SHORT).show()
+        }
+        
+        val apkFile = downloadApk(apkUrl)
+        if (apkFile == null) {
+            Timber.e("Failed to download APK")
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "Download failed", Toast.LENGTH_SHORT).show()
+            }
+            return
+        }
+
+        Timber.d("APK downloaded: ${apkFile.absolutePath}")
+        launchInstallIntent(apkFile)
     }
 
     /**
@@ -230,20 +239,19 @@ class TriggerEventHandler(
     /**
      * インストール確認をリクエストする
      */
-    private suspend fun requestInstallConfirmation(apkUrl: String, apkFile: File) {
+    private suspend fun requestInstallConfirmation(apkUrl: String) {
+        val fileName = apkUrl.substringAfterLast('/')
         _installConfirmationRequests.emit(
             InstallConfirmationRequest(
                 apkUrl = apkUrl,
-                apkFile = apkFile,
+                fileName = fileName,
                 onConfirm = {
                     scope.launch {
-                        launchInstallIntent(apkFile)
+                        downloadAndInstall(apkUrl)
                     }
                 },
                 onCancel = {
-                    // キャンセル時はAPKファイルを削除
-                    apkFile.delete()
-                    Timber.d("Install cancelled, APK file deleted")
+                    Timber.d("Install cancelled by user")
                 }
             )
         )
@@ -261,6 +269,10 @@ class TriggerEventHandler(
             Timber.d("Install intent launched successfully")
         } else {
             Timber.e("Failed to launch install intent: ${result.exceptionOrNull()?.message}")
+            // エラー時はToastを出す
+            scope.launch(Dispatchers.Main) {
+                Toast.makeText(context, "Install failed: ${result.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
+            }
         }
     }
 
