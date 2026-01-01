@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +24,9 @@ import cafe.adriel.voyager.koin.koinScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
+import tokyo.isseikuzumaki.vibeterminal.data.datastore.PreferencesHelper
 import tokyo.isseikuzumaki.vibeterminal.domain.model.ConnectionConfig
 import tokyo.isseikuzumaki.vibeterminal.domain.model.SavedConnection
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.ConnectionListScreenModel
@@ -39,11 +43,17 @@ class ConnectionListScreen : Screen {
         val navigator = LocalNavigator.currentOrThrow
         val screenModel = koinScreenModel<ConnectionListScreenModel>()
         val state by screenModel.state.collectAsState()
+        val preferencesHelper = koinInject<PreferencesHelper>()
+        val coroutineScope = rememberCoroutineScope()
 
         var showPasswordDialog by remember { mutableStateOf(false) }
         var selectedConnection by remember { mutableStateOf<SavedConnection?>(null) }
         var password by remember { mutableStateOf("") }
         var savePassword by remember { mutableStateOf(false) }
+        var showSettingsMenu by remember { mutableStateOf(false) }
+
+        // Auto-install setting
+        val autoInstallEnabled by preferencesHelper.autoInstallEnabled.collectAsState(initial = false)
 
         // External display connection state (informational)
         val isDisplayConnected by TerminalDisplayManager.isDisplayConnected.collectAsState()
@@ -74,6 +84,52 @@ class ConnectionListScreen : Screen {
                                 color = Color(0xFF00FF00),
                                 modifier = Modifier.padding(end = 16.dp)
                             )
+                        }
+
+                        // Settings menu
+                        Box {
+                            IconButton(onClick = { showSettingsMenu = true }) {
+                                Icon(
+                                    Icons.Default.Settings,
+                                    contentDescription = "Settings",
+                                    tint = Color(0xFF00FF00)
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showSettingsMenu,
+                                onDismissRequest = { showSettingsMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(stringResource(Res.string.settings_auto_install))
+                                                Text(
+                                                    stringResource(Res.string.settings_auto_install_description),
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = Color.Gray
+                                                )
+                                            }
+                                            Switch(
+                                                checked = autoInstallEnabled,
+                                                onCheckedChange = { enabled ->
+                                                    coroutineScope.launch {
+                                                        preferencesHelper.setAutoInstallEnabled(enabled)
+                                                    }
+                                                }
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            preferencesHelper.setAutoInstallEnabled(!autoInstallEnabled)
+                                        }
+                                    }
+                                )
+                            }
                         }
                     }
                 )

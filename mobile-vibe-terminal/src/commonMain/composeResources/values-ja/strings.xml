@@ -115,6 +115,18 @@
     <string name="macro_nav_page_up">ページ上</string>
     <string name="macro_nav_page_down">ページ下</string>
 
+    <!-- Settings -->
+    <string name="settings_auto_install">APK自動インストール</string>
+    <string name="settings_auto_install_description">リモートトリガーからAPKを受信した際に自動でインストール</string>
+
+    <!-- Install Confirmation Dialog -->
+    <string name="install_dialog_title">APKをインストール</string>
+    <string name="install_dialog_message">新しいAPKファイルがダウンロードされました。インストールしますか?</string>
+    <string name="install_dialog_source">ダウンロード元:</string>
+    <string name="install_dialog_file">ファイル:</string>
+    <string name="install_dialog_size">サイズ:</string>
+    <string name="install_dialog_confirm">インストール</string>
+
     <!-- Vim Macro Keys -->
     <string name="macro_vim_insert">挿入モード</string>
     <string name="macro_vim_append">追加</string>

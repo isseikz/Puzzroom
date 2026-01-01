@@ -115,6 +115,18 @@
     <string name="macro_nav_page_up">Page Up</string>
     <string name="macro_nav_page_down">Page Down</string>
 
+    <!-- Settings -->
+    <string name="settings_auto_install">Auto Install APK</string>
+    <string name="settings_auto_install_description">Automatically install APK when received from remote trigger</string>
+
+    <!-- Install Confirmation Dialog -->
+    <string name="install_dialog_title">Install APK</string>
+    <string name="install_dialog_message">A new APK file has been downloaded. Would you like to install it?</string>
+    <string name="install_dialog_source">Download source:</string>
+    <string name="install_dialog_file">File:</string>
+    <string name="install_dialog_size">Size:</string>
+    <string name="install_dialog_confirm">Install</string>
+
     <!-- Vim Macro Keys -->
     <string name="macro_vim_insert">Insert mode</string>
     <string name="macro_vim_append">Append</string>
