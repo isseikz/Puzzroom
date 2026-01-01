@@ -48,6 +48,16 @@ class TriggerForwardingChannel : AbstractChannel("forwarded-tcpip", false) {
         // リモートウィンドウパラメータを設定
         setRecipient(recipient)
 
+        // ウィンドウを初期化 (これが重要: これがないとデータが流れない)
+        remoteWindow.init(rwSize, packetSize, getSession())
+        configureWindow()
+
+        val winMsg = "Windows initialized: Local=${localWindow.size}/${localWindow.packetSize}, Remote=${remoteWindow.size}/${remoteWindow.packetSize}"
+        Timber.d(winMsg)
+        scope.launch {
+            TriggerChannel.getInstance().sendDebugMessage(winMsg)
+        }
+
         val future = DefaultOpenFuture(this.toString(), this.futureLock)
 
         try {
@@ -111,26 +121,40 @@ class TriggerForwardingChannel : AbstractChannel("forwarded-tcpip", false) {
 
             // 改行があればデータを処理
             if (received.contains("\n") || received.contains("\r")) {
-                val fullData = dataBuffer.toString().trim()
-                dataBuffer.clear()
-
-                if (fullData.isNotEmpty()) {
-                    scope.launch {
-                        try {
-                            val inputStream = ByteArrayInputStream(fullData.toByteArray(Charsets.UTF_8))
-                            TriggerChannel.getInstance().handleIncomingData(inputStream)
-                        } catch (e: Exception) {
-                            Timber.e(e, "Error processing trigger data")
-                            TriggerChannel.getInstance().sendDebugMessage("Error: ${e.message}")
-                        }
-                    }
-                }
+                processBuffer()
             }
         } catch (e: Exception) {
             Timber.e(e, "TriggerForwardingChannel: Error in doWriteData")
             scope.launch {
                 TriggerChannel.getInstance().sendDebugMessage("doWriteData error: ${e.message}")
             }
+        }
+    }
+
+    override fun handleEof() {
+        super.handleEof()
+        Timber.d("TriggerForwardingChannel: EOF received")
+        processBuffer()
+    }
+
+    private fun processBuffer() {
+        if (dataBuffer.isEmpty()) return
+
+        val fullData = dataBuffer.toString().trim()
+        dataBuffer.clear()
+
+        if (fullData.isNotEmpty()) {
+            scope.launch {
+                try {
+                    val inputStream = ByteArrayInputStream(fullData.toByteArray(Charsets.UTF_8))
+                    TriggerChannel.getInstance().handleIncomingData(inputStream)
+                } catch (e: Exception) {
+                    Timber.e(e, "Error processing trigger data")
+                    TriggerChannel.getInstance().sendDebugMessage("Error: ${e.message}")
+                }
+            }
+            // データの受信が完了したらチャネルを閉じて、クライアント(nc)を終了させる
+            close(false)
         }
     }
 
