@@ -24,18 +24,10 @@ import java.io.FileOutputStream
 import java.net.URL
 import java.net.HttpURLConnection
 
-/**
- * インストール確認リクエストを表すデータクラス
- *
- * @param apkUrl ダウンロード元URL
- * @param apkFile ダウンロード済みのAPKファイル
- * @param onConfirm 確認時のコールバック
- * @param onCancel キャンセル時のコールバック
- */
 data class InstallConfirmationRequest(
     val apkUrl: String,
     val fileName: String,
-    val onConfirm: () -> Unit,
+    val onConfirm: (Boolean) -> Unit,
     val onCancel: () -> Unit
 )
 
@@ -245,8 +237,12 @@ class TriggerEventHandler(
             InstallConfirmationRequest(
                 apkUrl = apkUrl,
                 fileName = fileName,
-                onConfirm = {
+                onConfirm = { autoInstall ->
                     scope.launch {
+                        if (autoInstall) {
+                            Timber.d("Enabling auto-install setting")
+                            preferencesHelper.setAutoInstallEnabled(true)
+                        }
                         downloadAndInstall(apkUrl)
                     }
                 },
