@@ -346,6 +346,12 @@ class TerminalScreenModel(
         _state.update { it.copy(isSoftKeyboardVisible = !it.isSoftKeyboardVisible) }
     }
 
+    fun setSoftKeyboardVisible(visible: Boolean) {
+        if (_state.value.isSoftKeyboardVisible != visible) {
+            _state.update { it.copy(isSoftKeyboardVisible = visible) }
+        }
+    }
+
     fun toggleCtrl() {
         _state.update { it.copy(isCtrlActive = !it.isCtrlActive) }
     }

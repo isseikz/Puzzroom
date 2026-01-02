@@ -88,6 +88,13 @@ data class TerminalScreen(
             }
         }
 
+        // Monitor actual keyboard visibility (System -> App)
+        // This ensures the icon state stays in sync even when keyboard is dismissed by system/user
+        val isImeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+        LaunchedEffect(isImeVisible) {
+            screenModel.setSoftKeyboardVisible(isImeVisible)
+        }
+
         // ターミナル表示先を監視 (TerminalDisplayManager の derived state)
         val displayTarget by TerminalDisplayManager.terminalDisplayTarget.collectAsState()
         val isSecondaryConnected = displayTarget == DisplayTarget.SECONDARY
