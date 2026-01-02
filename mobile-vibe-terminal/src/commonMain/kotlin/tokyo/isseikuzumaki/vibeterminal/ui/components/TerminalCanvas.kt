@@ -7,14 +7,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.unit.sp // Import sp
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalCell
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalFontConfig
 
 @Composable
 fun TerminalCanvas(
@@ -25,8 +23,8 @@ fun TerminalCanvas(
 ) {
     val textMeasurer = rememberTextMeasurer()
     val textStyle = TextStyle(
-        fontFamily = FontFamily.Monospace,
-        fontSize = 14.sp
+        fontFamily = TerminalFontConfig.fontFamily,
+        fontSize = TerminalFontConfig.fontSize
     )
 
     // Calculate cell dimensions based on a sample char
