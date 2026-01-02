@@ -1,6 +1,7 @@
 package tokyo.isseikuzumaki.vibeterminal
 
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -11,7 +12,9 @@ import org.koin.core.context.startKoin
 import tokyo.isseikuzumaki.vibeterminal.di.appModule
 import tokyo.isseikuzumaki.vibeterminal.di.dataModule
 import tokyo.isseikuzumaki.vibeterminal.di.platformModule
+import tokyo.isseikuzumaki.vibeterminal.input.HardwareKeyboardHandler
 import tokyo.isseikuzumaki.vibeterminal.platform.launchSecondaryDisplay
+import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalStateProvider
 import tokyo.isseikuzumaki.vibeterminal.ui.components.TriggerEventHost
 import tokyo.isseikuzumaki.vibeterminal.ui.screens.ConnectionListScreen
 import tokyo.isseikuzumaki.vibeterminal.util.Logger
@@ -48,5 +51,32 @@ class MainActivity : ComponentActivity() {
                 Navigator(ConnectionListScreen())
             }
         }
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // Only intercept in command mode when terminal is connected
+        val isCommandMode = TerminalStateProvider.isCommandMode.value
+        val isConnected = TerminalStateProvider.state.value.isConnected
+
+        if (isCommandMode && isConnected) {
+            val result = HardwareKeyboardHandler.processKeyEvent(event, isCommandMode)
+            when (result) {
+                is HardwareKeyboardHandler.KeyResult.Handled -> {
+                    Logger.d("MainActivity: Sending key sequence to terminal: '${result.sequence}'")
+                    TerminalStateProvider.sendHardwareKeyboardInput(result.sequence)
+                    return true
+                }
+                is HardwareKeyboardHandler.KeyResult.Ignored -> {
+                    // Modifier key only, let system handle
+                    return super.dispatchKeyEvent(event)
+                }
+                is HardwareKeyboardHandler.KeyResult.PassThrough -> {
+                    // Unknown key, let system handle
+                    return super.dispatchKeyEvent(event)
+                }
+            }
+        }
+
+        return super.dispatchKeyEvent(event)
     }
 }
