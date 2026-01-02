@@ -2,6 +2,8 @@ package tokyo.isseikuzumaki.vibeterminal.service
 
 import android.app.Presentation
 import android.content.Context
+import android.graphics.Point
+import android.os.Build
 import android.os.Bundle
 import android.view.Display
 import android.view.WindowManager
@@ -118,23 +120,46 @@ class TerminalPresentation(
     }
 
     /**
+     * Get the actual size of the secondary display.
+     * Uses WindowMetrics on API 30+ and display.getRealSize on older APIs.
+     */
+    private fun getDisplaySize(): Pair<Int, Int> {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // API 30+: Use WindowMetrics
+            val windowManager = context.getSystemService(WindowManager::class.java)
+            val bounds = windowManager.currentWindowMetrics.bounds
+            Pair(bounds.width(), bounds.height())
+        } else {
+            // API 29 and below: Use display.getRealSize
+            val size = Point()
+            @Suppress("DEPRECATION")
+            display.getRealSize(size)
+            Pair(size.x, size.y)
+        }
+    }
+
+    /**
      * Calculate terminal size based on secondary display dimensions.
      * Uses conservative estimates to ensure terminal fits within display.
      * Actual precise calculation is done in Composable using TextMeasurer.
      */
     private fun calculateAndNotifyDisplaySize() {
         try {
-            // Get display metrics
-            val displayMetrics = context.resources.displayMetrics
-            val widthPx = displayMetrics.widthPixels
-            val heightPx = displayMetrics.heightPixels
+            // Get actual secondary display size
+            val (widthPx, heightPx) = getDisplaySize()
 
-            Logger.d("Secondary display size: ${widthPx}x${heightPx}px")
+            // Get density from display metrics (for secondary display)
+            val displayMetrics = android.util.DisplayMetrics()
+            @Suppress("DEPRECATION")
+            display.getMetrics(displayMetrics)
+            val density = displayMetrics.density
+
+            Logger.d("Secondary display size: ${widthPx}x${heightPx}px, density=$density")
+            Logger.d("Primary display density: ${context.resources.displayMetrics.density}")
 
             // Use conservative estimates for initial calculation
             // This ensures terminal fits even before TextMeasurer provides exact values
             val fontSizeSp = TerminalFontConfig.fontSize.value
-            val density = displayMetrics.density
 
             val dimensions = TerminalSizeCalculator.calculateWithEstimatedCharSize(
                 displayWidthPx = widthPx,
@@ -196,10 +221,8 @@ class TerminalPresentation(
             Pair(sampleLayout.size.width.toFloat(), sampleLayout.size.height.toFloat())
         }
 
-        // Get display metrics for accurate size calculation
-        val displayMetrics = context.resources.displayMetrics
-        val displayWidthPx = displayMetrics.widthPixels
-        val displayHeightPx = displayMetrics.heightPixels
+        // Get actual secondary display size for accurate calculation
+        val (displayWidthPx, displayHeightPx) = remember { getDisplaySize() }
 
         // Calculate accurate terminal dimensions based on measured character size
         val accurateDimensions = remember(charDimensions, displayWidthPx, displayHeightPx) {
@@ -217,9 +240,9 @@ class TerminalPresentation(
             val currentCols = terminalState.buffer.firstOrNull()?.size ?: 0
 
             if (currentRows > 0 && currentCols > 0) {
-                // Only resize if current buffer exceeds accurate dimensions (would clip)
-                if (currentCols > accurateDimensions.cols || currentRows > accurateDimensions.rows) {
-                    Logger.d("Buffer size ($currentCols x $currentRows) exceeds accurate dimensions (${accurateDimensions.cols} x ${accurateDimensions.rows}), requesting resize")
+                // Resize if buffer size differs from accurate dimensions
+                if (currentCols != accurateDimensions.cols || currentRows != accurateDimensions.rows) {
+                    Logger.d("Buffer size ($currentCols x $currentRows) differs from accurate dimensions (${accurateDimensions.cols} x ${accurateDimensions.rows}), requesting resize")
                     TerminalStateProvider.setSecondaryDisplayMetrics(
                         accurateDimensions.cols,
                         accurateDimensions.rows,
@@ -236,7 +259,9 @@ class TerminalPresentation(
             }
 
             Logger.d("Terminal state: isConnected=${terminalState.isConnected}, bufferSize=${terminalState.buffer.size}")
+            Logger.d("Display size: ${displayWidthPx} x ${displayHeightPx}px")
             Logger.d("Accurate dimensions: ${accurateDimensions.cols} x ${accurateDimensions.rows} (charSize: ${charDimensions.first} x ${charDimensions.second})")
+            Logger.d("Required height: ${accurateDimensions.rows} * ${charDimensions.second} = ${accurateDimensions.rows * charDimensions.second}px")
         }
 
         // Wrap entire display in TerminalInputContainer to capture keyboard input
