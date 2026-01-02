@@ -35,6 +35,7 @@ object MacroConfig {
         MacroKey("↓", MacroAction.DirectSend("\u001B[B"), "Down"),
         MacroKey("→", MacroAction.DirectSend("\u001B[C"), "Right"),
         MacroKey("←", MacroAction.DirectSend("\u001B[D"), "Left"),
+        MacroKey("↵", MacroAction.DirectSend("\r"), "Enter"),
         MacroKey("Home", MacroAction.DirectSend("\u001B[H"), "Home"),
         MacroKey("End", MacroAction.DirectSend("\u001B[F"), "End"),
         MacroKey("PgUp", MacroAction.DirectSend("\u001B[5~"), "Page Up"),
