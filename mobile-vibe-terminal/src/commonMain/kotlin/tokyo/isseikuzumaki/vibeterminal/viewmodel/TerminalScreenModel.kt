@@ -22,10 +22,6 @@ import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalStateProvider
 import tokyo.isseikuzumaki.vibeterminal.ui.components.macro.MacroTab
 import tokyo.isseikuzumaki.vibeterminal.util.Logger
 
-enum class InputMode {
-    COMMAND, TEXT
-}
-
 data class TerminalState(
     val isConnecting: Boolean = false,
     val isConnected: Boolean = false,
@@ -39,7 +35,8 @@ data class TerminalState(
     val bufferUpdateCounter: Int = 0,  // Trigger UI updates
     val selectedMacroTab: MacroTab = MacroTab.BASIC,
     val hasAutoSwitchedToNav: Boolean = false,
-    val inputMode: InputMode = InputMode.COMMAND,
+    val isImeEnabled: Boolean = false,
+    val isSoftKeyboardVisible: Boolean = false,
     val isCtrlActive: Boolean = false,
     val isAltActive: Boolean = false,
     val lastFileExplorerPath: String? = null,  // Last opened path in File Explorer (loaded from database)
@@ -62,7 +59,8 @@ data class TerminalState(
                 bufferUpdateCounter == other.bufferUpdateCounter &&
                 selectedMacroTab == other.selectedMacroTab &&
                 hasAutoSwitchedToNav == other.hasAutoSwitchedToNav &&
-                inputMode == other.inputMode &&
+                isImeEnabled == other.isImeEnabled &&
+                isSoftKeyboardVisible == other.isSoftKeyboardVisible &&
                 isCtrlActive == other.isCtrlActive &&
                 isAltActive == other.isAltActive &&
                 lastFileExplorerPath == other.lastFileExplorerPath &&
@@ -71,7 +69,8 @@ data class TerminalState(
 
     override fun hashCode(): Int {
         var result = bufferUpdateCounter
-        result = 31 * result + inputMode.hashCode()
+        result = 31 * result + isImeEnabled.hashCode()
+        result = 31 * result + isSoftKeyboardVisible.hashCode()
         result = 31 * result + isCtrlActive.hashCode()
         result = 31 * result + isAltActive.hashCode()
         result = 31 * result + lastFileExplorerPath.hashCode()
@@ -96,10 +95,10 @@ class TerminalScreenModel(
 
     // Regex pattern for detecting APK deployment marker
     private val deployPattern = try {
-        Regex(config.deployPattern ?: """>> VIBE_DEPLOY:\s*(.+\.apk)""")
+        (config.deployPattern ?: """>> VIBE_DEPLOY:\s*(.+\.apk)""").toRegex()
     } catch (e: Exception) {
         Logger.e(e, "Invalid regex pattern: ${config.deployPattern}. Using default.")
-        Regex(""">> VIBE_DEPLOY:\s*(.+\.apk)""")
+        """>> VIBE_DEPLOY:\s*(.+\.apk)""".toRegex()
     }
 
     // Raw output accumulator for pattern detection
@@ -125,6 +124,15 @@ class TerminalScreenModel(
             Logger.d("Input from secondary display: '$input'")
             sendInput(input, appendNewline = false)
         }
+
+        // Register input callback from hardware keyboard
+        TerminalStateProvider.onHardwareKeyboardInput = { input ->
+            Logger.d("Input from hardware keyboard: '$input'")
+            sendInput(input, appendNewline = false)
+        }
+
+        // Initialize command mode state
+        TerminalStateProvider.setCommandMode(!_state.value.isImeEnabled)
     }
 
     /**
@@ -321,14 +329,26 @@ class TerminalScreenModel(
         }
     }
 
-    fun setInputMode(mode: InputMode) {
-        _state.update { it.copy(inputMode = mode) }
+    fun setImeEnabled(enabled: Boolean) {
+        _state.update { it.copy(isImeEnabled = enabled) }
+        TerminalStateProvider.setCommandMode(!enabled)
     }
 
-    fun toggleInputMode() {
+    fun toggleImeMode() {
         _state.update {
-            val nextMode = if (it.inputMode == InputMode.COMMAND) InputMode.TEXT else InputMode.COMMAND
-            it.copy(inputMode = nextMode)
+            val nextImeState = !it.isImeEnabled
+            TerminalStateProvider.setCommandMode(!nextImeState)
+            it.copy(isImeEnabled = nextImeState)
+        }
+    }
+
+    fun toggleSoftKeyboard() {
+        _state.update { it.copy(isSoftKeyboardVisible = !it.isSoftKeyboardVisible) }
+    }
+
+    fun setSoftKeyboardVisible(visible: Boolean) {
+        if (_state.value.isSoftKeyboardVisible != visible) {
+            _state.update { it.copy(isSoftKeyboardVisible = visible) }
         }
     }
 

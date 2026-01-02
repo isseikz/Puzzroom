@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.KeyboardHide
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,8 +38,8 @@ import io.github.isseikz.kmpinput.InputMode as KmpInputMode
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 
-import tokyo.isseikuzumaki.vibeterminal.viewmodel.InputMode
 import tokyo.isseikuzumaki.vibeterminal.terminal.DisplayTarget
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalDisplayManager
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalStateProvider
@@ -70,11 +71,28 @@ data class TerminalScreen(
 
         // Terminal Input Library State
         val terminalInputState = rememberTerminalInputContainerState()
+        val keyboardController = LocalSoftwareKeyboardController.current
 
         // Sync Input Mode (App -> Library)
-        LaunchedEffect(state.inputMode) {
-            val mode = if (state.inputMode == InputMode.TEXT) KmpInputMode.TEXT else KmpInputMode.RAW
+        LaunchedEffect(state.isImeEnabled) {
+            val mode = if (state.isImeEnabled) KmpInputMode.TEXT else KmpInputMode.RAW
             terminalInputState.setInputMode(mode)
+        }
+
+        // Sync Keyboard Visibility (App -> System)
+        LaunchedEffect(state.isSoftKeyboardVisible) {
+            if (state.isSoftKeyboardVisible) {
+                keyboardController?.show()
+            } else {
+                keyboardController?.hide()
+            }
+        }
+
+        // Monitor actual keyboard visibility (System -> App)
+        // This ensures the icon state stays in sync even when keyboard is dismissed by system/user
+        val isImeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+        LaunchedEffect(isImeVisible) {
+            screenModel.setSoftKeyboardVisible(isImeVisible)
         }
 
         // ターミナル表示先を監視 (TerminalDisplayManager の derived state)
@@ -145,26 +163,6 @@ data class TerminalScreen(
         }
 
         Scaffold(
-            floatingActionButton = {
-                // Show FAB with TerminalInputContainer only in secondary display mode
-                if (isSecondaryConnected && state.isConnected) {
-                    TerminalInputContainer(
-                        state = terminalInputState,
-                        modifier = Modifier.size(56.dp)
-                    ) {
-                        FloatingActionButton(
-                            onClick = { /* TerminalInputContainer handles tap */ },
-                            containerColor = Color(0xFF00FF00),
-                            contentColor = Color.Black
-                        ) {
-                            Icon(
-                                Icons.Default.Keyboard,
-                                contentDescription = "Keyboard"
-                            )
-                        }
-                    }
-                }
-            },
             topBar = {
                 TopAppBar(
                     title = {
@@ -290,8 +288,7 @@ data class TerminalScreen(
 
                 if (isSecondaryConnected) {
                     // Secondary Display Mode: Show Macro Panel Full Screen
-                    // Terminal output is shown on secondary display
-                    // Input is captured by TerminalPresentation on secondary display
+                    // We pass terminalInputState to MacroInputPanel to wrap the Keyboard Toggle button
                     MacroInputPanel(
                         state = state,
                         inputText = TextFieldValue(""),
@@ -303,8 +300,11 @@ data class TerminalScreen(
                         onTabSelected = { tab ->
                             screenModel.selectMacroTab(tab)
                         },
-                        onToggleInputMode = {
-                            screenModel.toggleInputMode()
+                        onToggleImeMode = {
+                            screenModel.toggleImeMode()
+                        },
+                        onToggleSoftKeyboard = {
+                            screenModel.toggleSoftKeyboard()
                         },
                         onToggleCtrl = {
                             screenModel.toggleCtrl()
@@ -312,7 +312,8 @@ data class TerminalScreen(
                         onToggleAlt = {
                             screenModel.toggleAlt()
                         },
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
+                        terminalInputState = terminalInputState  // Pass state here
                     )
                 } else {
                     // Main Display Mode: Standard Layout
@@ -453,8 +454,11 @@ data class TerminalScreen(
                             onTabSelected = { tab ->
                                 screenModel.selectMacroTab(tab)
                             },
-                            onToggleInputMode = {
-                                screenModel.toggleInputMode()
+                            onToggleImeMode = {
+                                screenModel.toggleImeMode()
+                            },
+                            onToggleSoftKeyboard = {
+                                screenModel.toggleSoftKeyboard()
                             },
                             onToggleCtrl = {
                                 screenModel.toggleCtrl()
