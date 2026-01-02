@@ -149,4 +149,34 @@ object TerminalStateProvider {
     fun sendInputFromSecondaryDisplay(input: String) {
         onSecondaryDisplayInput?.invoke(input)
     }
+
+    // ========== Hardware Keyboard Input ==========
+
+    /**
+     * Whether the terminal is in command mode (RAW mode).
+     * Updated by TerminalScreenModel when input mode changes.
+     */
+    private val _isCommandMode = MutableStateFlow(true)
+    val isCommandMode: StateFlow<Boolean> = _isCommandMode.asStateFlow()
+
+    /**
+     * Update command mode state.
+     */
+    fun setCommandMode(isCommand: Boolean) {
+        _isCommandMode.value = isCommand
+    }
+
+    /**
+     * Callback for hardware keyboard input.
+     * Set by TerminalScreenModel to handle direct keyboard input.
+     */
+    var onHardwareKeyboardInput: ((String) -> Unit)? = null
+
+    /**
+     * Send input from hardware keyboard to terminal.
+     * Called by MainActivity when a key event is processed.
+     */
+    fun sendHardwareKeyboardInput(input: String) {
+        onHardwareKeyboardInput?.invoke(input)
+    }
 }
