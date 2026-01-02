@@ -140,9 +140,6 @@ object HardwareKeyboardHandler {
             KeyEvent.KEYCODE_F11 -> "\u001B[23~"
             KeyEvent.KEYCODE_F12 -> "\u001B[24~"
 
-            // Space
-            KeyEvent.KEYCODE_SPACE -> " "
-
             else -> null
         }
     }
