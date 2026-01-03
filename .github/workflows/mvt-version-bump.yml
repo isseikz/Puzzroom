@@ -117,7 +117,7 @@ jobs:
 
     - name: Create and push tag
       run: |
-        TAG_NAME="mvt-v${{ steps.calc_version.outputs.new_version_name }}"
+        TAG_NAME="vt-v${{ steps.calc_version.outputs.new_version_name }}"
         git tag -a "$TAG_NAME" -m "Mobile Vibe Terminal version ${{ steps.calc_version.outputs.new_version_name }}"
         git push origin "$TAG_NAME"
         echo "Created and pushed tag: $TAG_NAME"
@@ -131,9 +131,9 @@ jobs:
         echo "| Previous Version | ${{ steps.get_version.outputs.current_version_name }} |" >> $GITHUB_STEP_SUMMARY
         echo "| New Version | ${{ steps.calc_version.outputs.new_version_name }} |" >> $GITHUB_STEP_SUMMARY
         echo "| Version Code | ${{ steps.calc_version.outputs.new_version_code }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| Tag | mvt-v${{ steps.calc_version.outputs.new_version_name }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Tag | vt-v${{ steps.calc_version.outputs.new_version_name }} |" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
         echo "1. Navigate to [Releases](/${{ github.repository }}/releases)" >> $GITHUB_STEP_SUMMARY
-        echo "2. Create a new release from tag \`mvt-v${{ steps.calc_version.outputs.new_version_name }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "2. Create a new release from tag \`vt-v${{ steps.calc_version.outputs.new_version_name }}\`" >> $GITHUB_STEP_SUMMARY
         echo "3. Mark as pre-release to trigger Google Play upload" >> $GITHUB_STEP_SUMMARY
