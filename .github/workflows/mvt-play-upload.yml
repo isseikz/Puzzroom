@@ -6,8 +6,8 @@ on:
 
 jobs:
   upload-to-play-store:
-    # Only run for Mobile Vibe Terminal releases (v*.*.* tags)
-    if: startsWith(github.event.release.tag_name, 'v')
+    # Only run for Mobile Vibe Terminal releases (mvt-v*.*.* tags)
+    if: startsWith(github.event.release.tag_name, 'mvt-v')
     runs-on: ubuntu-latest
 
     permissions:
@@ -32,7 +32,8 @@ jobs:
       id: version
       run: |
         TAG_NAME="${{ github.event.release.tag_name }}"
-        VERSION_NAME="${TAG_NAME#v}"
+        # Remove "mvt-v" prefix to get version name
+        VERSION_NAME="${TAG_NAME#mvt-v}"
         echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
         echo "Building version: $VERSION_NAME"
 
