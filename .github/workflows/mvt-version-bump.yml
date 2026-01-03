@@ -1,0 +1,139 @@
+name: Mobile Vibe Terminal - Version Bump and Tag
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  version-bump:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v4
+
+    - name: Get current version from build.gradle.kts
+      id: get_version
+      run: |
+        # mobile-vibe-terminal/build.gradle.kts から現在のバージョンを取得
+        VERSION_CODE=$(grep "versionCode = " mobile-vibe-terminal/build.gradle.kts | head -1 | awk '{print $3}')
+        VERSION_NAME=$(grep "versionName = " mobile-vibe-terminal/build.gradle.kts | head -1 | awk '{print $3}' | sed 's/"//g')
+
+        echo "Current versionCode: $VERSION_CODE"
+        echo "Current versionName: $VERSION_NAME"
+
+        echo "current_version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+        echo "current_version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+
+    - name: Calculate new version
+      id: calc_version
+      run: |
+        CURRENT_VERSION="${{ steps.get_version.outputs.current_version_name }}"
+        VERSION_TYPE="${{ github.event.inputs.version_type }}"
+
+        # バージョン文字列をパース (1.0 → 1.0.0 として扱う)
+        IFS='.' read -ra VERSION_PARTS <<< "$CURRENT_VERSION"
+        MAJOR=${VERSION_PARTS[0]:-0}
+        MINOR=${VERSION_PARTS[1]:-0}
+        PATCH=${VERSION_PARTS[2]:-0}
+
+        # バージョンタイプに応じて新しいバージョンを計算
+        case $VERSION_TYPE in
+          "major")
+            NEW_MAJOR=$((MAJOR + 1))
+            NEW_MINOR=0
+            NEW_PATCH=0
+            ;;
+          "minor")
+            NEW_MAJOR=$MAJOR
+            NEW_MINOR=$((MINOR + 1))
+            NEW_PATCH=0
+            ;;
+          "patch")
+            NEW_MAJOR=$MAJOR
+            NEW_MINOR=$MINOR
+            NEW_PATCH=$((PATCH + 1))
+            ;;
+        esac
+
+        NEW_VERSION_NAME="$NEW_MAJOR.$NEW_MINOR.$NEW_PATCH"
+        # versionCode = MAJOR * 10000 + MINOR * 100 + PATCH
+        NEW_VERSION_CODE=$((NEW_MAJOR * 10000 + NEW_MINOR * 100 + NEW_PATCH))
+
+        echo "New versionCode: $NEW_VERSION_CODE"
+        echo "New versionName: $NEW_VERSION_NAME"
+
+        echo "new_version_code=$NEW_VERSION_CODE" >> $GITHUB_OUTPUT
+        echo "new_version_name=$NEW_VERSION_NAME" >> $GITHUB_OUTPUT
+
+    - name: Update build.gradle.kts
+      run: |
+        # versionCode を更新
+        sed -i "s/versionCode = ${{ steps.get_version.outputs.current_version_code }}/versionCode = ${{ steps.calc_version.outputs.new_version_code }}/g" mobile-vibe-terminal/build.gradle.kts
+
+        # versionName を更新
+        sed -i "s/versionName = \"${{ steps.get_version.outputs.current_version_name }}\"/versionName = \"${{ steps.calc_version.outputs.new_version_name }}\"/g" mobile-vibe-terminal/build.gradle.kts
+
+        echo "Updated build.gradle.kts:"
+        grep -n "versionCode\|versionName" mobile-vibe-terminal/build.gradle.kts
+
+    - name: Verify build
+      run: ./gradlew :mobile-vibe-terminal:assembleDebug --no-daemon
+
+    - name: Configure Git
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+
+    - name: Commit and push changes
+      run: |
+        git add mobile-vibe-terminal/build.gradle.kts
+        git commit -m "chore(mvt): bump version to ${{ steps.calc_version.outputs.new_version_name }} (versionCode: ${{ steps.calc_version.outputs.new_version_code }})"
+        git push origin main
+
+    - name: Create and push tag
+      run: |
+        TAG_NAME="v${{ steps.calc_version.outputs.new_version_name }}"
+        git tag -a "$TAG_NAME" -m "Mobile Vibe Terminal version ${{ steps.calc_version.outputs.new_version_name }}"
+        git push origin "$TAG_NAME"
+        echo "Created and pushed tag: $TAG_NAME"
+
+    - name: Output summary
+      run: |
+        echo "## Version Bump Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+        echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Previous Version | ${{ steps.get_version.outputs.current_version_name }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| New Version | ${{ steps.calc_version.outputs.new_version_name }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Version Code | ${{ steps.calc_version.outputs.new_version_code }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Tag | v${{ steps.calc_version.outputs.new_version_name }} |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+        echo "1. Navigate to [Releases](/${{ github.repository }}/releases)" >> $GITHUB_STEP_SUMMARY
+        echo "2. Create a new release from tag \`v${{ steps.calc_version.outputs.new_version_name }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "3. Mark as pre-release to trigger Google Play upload" >> $GITHUB_STEP_SUMMARY
