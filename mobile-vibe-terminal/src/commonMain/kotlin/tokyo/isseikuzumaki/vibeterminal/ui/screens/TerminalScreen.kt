@@ -30,6 +30,7 @@ import tokyo.isseikuzumaki.vibeterminal.ui.components.FileExplorerSheet
 import tokyo.isseikuzumaki.vibeterminal.ui.components.CodeViewerSheet
 import tokyo.isseikuzumaki.vibeterminal.ui.components.TerminalCanvas
 import tokyo.isseikuzumaki.vibeterminal.ui.components.macro.MacroInputPanel
+import tokyo.isseikuzumaki.vibeterminal.ui.components.selection.SelectableTerminalContainer
 
 import io.github.isseikz.kmpinput.TerminalInputContainer
 import io.github.isseikz.kmpinput.rememberTerminalInputContainerState
@@ -423,20 +424,25 @@ data class TerminalScreen(
                                 }
                             }
 
-                            if (state.isAlternateScreen) {
-                                TerminalCanvas(
-                                    buffer = state.screenBuffer,
-                                    cursorRow = state.cursorRow,
-                                    cursorCol = state.cursorCol,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            } else {
-                                TerminalBufferView(
-                                    screenBuffer = state.screenBuffer,
-                                    cursorRow = state.cursorRow,
-                                    cursorCol = state.cursorCol,
-                                    bufferUpdateCounter = state.bufferUpdateCounter
-                                )
+                            SelectableTerminalContainer(
+                                buffer = state.screenBuffer,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                if (state.isAlternateScreen) {
+                                    TerminalCanvas(
+                                        buffer = state.screenBuffer,
+                                        cursorRow = state.cursorRow,
+                                        cursorCol = state.cursorCol,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                } else {
+                                    TerminalBufferView(
+                                        screenBuffer = state.screenBuffer,
+                                        cursorRow = state.cursorRow,
+                                        cursorCol = state.cursorCol,
+                                        bufferUpdateCounter = state.bufferUpdateCounter
+                                    )
+                                }
                             }
                         }
                     }
