@@ -96,6 +96,14 @@ kotlin {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
         }
+
+        val androidUnitTest by getting {
+            dependencies {
+                implementation(libs.kotlin.test)
+                implementation("io.mockk:mockk:1.13.13")
+                implementation("org.robolectric:robolectric:4.14.1")
+            }
+        }
     }
 }
 
