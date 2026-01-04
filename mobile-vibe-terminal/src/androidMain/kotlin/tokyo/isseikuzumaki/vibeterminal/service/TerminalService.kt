@@ -25,6 +25,26 @@ import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalStateProvider
 import tokyo.isseikuzumaki.vibeterminal.util.Logger
 
 /**
+ * Extension function to determine if a Display is a valid secondary display for app UI.
+ *
+ * This filters out virtual displays created for screen recording (MediaProjection API)
+ * or mirroring, which do not have FLAG_PRESENTATION set.
+ *
+ * @return true if the display is suitable for showing app UI as a secondary display
+ */
+fun Display.isValidSecondaryDisplay(): Boolean {
+    // 1. Exclude the default (built-in) display
+    if (displayId == Display.DEFAULT_DISPLAY) return false
+
+    // 2. Check for presentation flag (core logic to exclude screen recording displays)
+    // FLAG_PRESENTATION is set on displays intended for external output (HDMI, Miracast, etc.)
+    // Virtual displays for screen recording typically have FLAG_PRIVATE instead
+    val isPresentation = (flags and Display.FLAG_PRESENTATION) != 0
+
+    return isPresentation
+}
+
+/**
  * Foreground Service for maintaining secondary display presentation.
  *
  * This service:
@@ -51,22 +71,36 @@ class TerminalService : Service() {
     private val displayListener = object : DisplayManager.DisplayListener {
         override fun onDisplayAdded(displayId: Int) {
             Logger.d("Display added: $displayId")
-            // Update display connection state in TerminalDisplayManager
-            // Presentation is controlled by terminalDisplayTarget observer
-            TerminalDisplayManager.setDisplayConnected(true)
+            // Re-evaluate all displays to determine if a valid secondary display exists
+            updateConnectionState()
         }
 
         override fun onDisplayRemoved(displayId: Int) {
             Logger.d("Display removed: $displayId")
-            // Update display connection state in TerminalDisplayManager
-            // Presentation dismissal is controlled by terminalDisplayTarget observer
-            TerminalDisplayManager.setDisplayConnected(false)
-            TerminalStateProvider.clearSecondaryDisplayMetrics()
+            // Re-evaluate all displays to determine if a valid secondary display still exists
+            updateConnectionState()
         }
 
         override fun onDisplayChanged(displayId: Int) {
             Logger.d("Display changed: $displayId")
-            // Optionally handle display configuration changes
+            // Re-evaluate in case display flags changed
+            updateConnectionState()
+        }
+    }
+
+    /**
+     * Re-evaluate all connected displays and update the connection state.
+     *
+     * This method checks if any valid secondary display (with FLAG_PRESENTATION) exists,
+     * filtering out virtual displays created for screen recording.
+     */
+    private fun updateConnectionState() {
+        val hasValidSecondary = displayManager.displays.any { it.isValidSecondaryDisplay() }
+        Logger.d("updateConnectionState: hasValidSecondary=$hasValidSecondary")
+        TerminalDisplayManager.setDisplayConnected(hasValidSecondary)
+
+        if (!hasValidSecondary) {
+            TerminalStateProvider.clearSecondaryDisplayMetrics()
         }
     }
 
@@ -81,10 +115,10 @@ class TerminalService : Service() {
             // Register display listener
             displayManager.registerDisplayListener(displayListener, null)
 
-            // Check for existing secondary displays and update connection state
-            val hasSecondaryDisplay = displayManager.displays.any { it.displayId != Display.DEFAULT_DISPLAY }
-            TerminalDisplayManager.setDisplayConnected(hasSecondaryDisplay)
-            Logger.d("TerminalService onCreate: hasSecondaryDisplay=$hasSecondaryDisplay")
+            // Check for existing valid secondary displays (excludes screen recording virtual displays)
+            val hasValidSecondary = displayManager.displays.any { it.isValidSecondaryDisplay() }
+            TerminalDisplayManager.setDisplayConnected(hasValidSecondary)
+            Logger.d("TerminalService onCreate: hasValidSecondary=$hasValidSecondary")
 
             // Observe terminalDisplayTarget to control presentation
             serviceScope.launch {
@@ -173,18 +207,18 @@ class TerminalService : Service() {
                 return
             }
 
-            // Find secondary displays
+            // Find valid secondary displays (with FLAG_PRESENTATION, excludes screen recording)
             val displays = displayManager.displays
             Logger.d("Found ${displays.size} displays")
 
-            // Look for a secondary display (not the default display)
-            val secondaryDisplay = displays.firstOrNull { it.displayId != Display.DEFAULT_DISPLAY }
+            // Look for a valid secondary display (has FLAG_PRESENTATION)
+            val secondaryDisplay = displays.firstOrNull { it.isValidSecondaryDisplay() }
 
             if (secondaryDisplay != null) {
-                Logger.d("Found secondary display: ${secondaryDisplay.displayId}")
+                Logger.d("Found valid secondary display: ${secondaryDisplay.displayId}, flags=${secondaryDisplay.flags}")
                 showPresentation(secondaryDisplay)
             } else {
-                Logger.w("No secondary display found")
+                Logger.w("No valid secondary display found (all displays may be virtual/screen recording)")
             }
         } catch (e: Exception) {
             Logger.e(e, "Exception in updatePresentation")
