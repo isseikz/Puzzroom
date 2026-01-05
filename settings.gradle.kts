@@ -12,6 +12,7 @@ pluginManagement {
 
 dependencyResolutionManagement {
     repositories {
+        mavenLocal() // For local SNAPSHOT versions
         google()
         mavenCentral()
         maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
