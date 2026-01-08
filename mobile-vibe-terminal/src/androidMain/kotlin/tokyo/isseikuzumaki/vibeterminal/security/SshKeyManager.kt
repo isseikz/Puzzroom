@@ -41,7 +41,7 @@ data class SshKeyInfo(
  * - Export public keys in OpenSSH authorized_keys format
  * - Retrieve key pairs for SSH authentication
  */
-class SshKeyManager {
+class SshKeyManager : SshKeyProvider {
 
     private val keyStore: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply {
         load(null)
@@ -272,10 +272,10 @@ class SshKeyManager {
     /**
      * List all SSH key aliases stored in the KeyStore.
      *
-     * @return List of SshKeyInfo objects
+     * @return List of SshKeyInfoCommon objects (implements SshKeyProvider)
      */
-    fun listKeys(): List<SshKeyInfo> {
-        val keys = mutableListOf<SshKeyInfo>()
+    override fun listKeys(): List<SshKeyInfoCommon> {
+        val keys = mutableListOf<SshKeyInfoCommon>()
         val aliases = keyStore.aliases()
 
         while (aliases.hasMoreElements()) {
@@ -292,7 +292,7 @@ class SshKeyManager {
                     // Get creation date from certificate
                     val createdAt = keyStore.getCreationDate(alias)?.time ?: 0L
 
-                    keys.add(SshKeyInfo(
+                    keys.add(SshKeyInfoCommon(
                         alias = alias.removePrefix(KEY_PREFIX),
                         algorithm = algorithm,
                         createdAt = createdAt
@@ -334,7 +334,7 @@ class SshKeyManager {
      * @param alias The key alias (without prefix)
      * @return true if the key exists
      */
-    fun keyExists(alias: String): Boolean {
+    override fun keyExists(alias: String): Boolean {
         val fullAlias = "$KEY_PREFIX$alias"
         return keyStore.containsAlias(fullAlias)
     }

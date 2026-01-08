@@ -26,7 +26,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import org.koin.compose.koinInject
 import tokyo.isseikuzumaki.vibeterminal.security.KeyAlgorithm
-import tokyo.isseikuzumaki.vibeterminal.security.SshKeyInfo
+import tokyo.isseikuzumaki.vibeterminal.security.SshKeyInfoCommon
 import tokyo.isseikuzumaki.vibeterminal.security.SshKeyManager
 import java.text.SimpleDateFormat
 import java.util.*
@@ -45,7 +45,7 @@ private class KeyManagementScreenImpl : Screen {
         var keys by remember { mutableStateOf(sshKeyManager.listKeys()) }
         var showCreateDialog by remember { mutableStateOf(false) }
         var showPublicKeyDialog by remember { mutableStateOf<String?>(null) }
-        var showDeleteConfirm by remember { mutableStateOf<SshKeyInfo?>(null) }
+        var showDeleteConfirm by remember { mutableStateOf<SshKeyInfoCommon?>(null) }
 
         Scaffold(
             topBar = {
@@ -192,7 +192,7 @@ private class KeyManagementScreenImpl : Screen {
 
     @Composable
     private fun KeyCard(
-        keyInfo: SshKeyInfo,
+        keyInfo: SshKeyInfoCommon,
         onShowPublicKey: () -> Unit,
         onDelete: () -> Unit
     ) {

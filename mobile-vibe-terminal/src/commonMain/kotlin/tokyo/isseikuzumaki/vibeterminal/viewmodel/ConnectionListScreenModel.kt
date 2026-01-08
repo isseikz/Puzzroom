@@ -10,16 +10,20 @@ import kotlinx.coroutines.launch
 import tokyo.isseikuzumaki.vibeterminal.domain.model.ConnectionConfig
 import tokyo.isseikuzumaki.vibeterminal.domain.model.SavedConnection
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.ConnectionRepository
+import tokyo.isseikuzumaki.vibeterminal.security.SshKeyInfoCommon
+import tokyo.isseikuzumaki.vibeterminal.security.SshKeyProvider
 
 data class ConnectionListState(
     val connections: List<SavedConnection> = emptyList(),
     val showAddDialog: Boolean = false,
     val editingConnection: SavedConnection? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val availableKeys: List<SshKeyInfoCommon> = emptyList()
 )
 
 class ConnectionListScreenModel(
-    private val connectionRepository: ConnectionRepository
+    private val connectionRepository: ConnectionRepository,
+    private val sshKeyProvider: SshKeyProvider? = null
 ) : ScreenModel {
 
     private val _state = MutableStateFlow(ConnectionListState())
@@ -38,6 +42,7 @@ class ConnectionListScreenModel(
     }
 
     fun showAddDialog() {
+        refreshAvailableKeys()
         _state.update { it.copy(showAddDialog = true, editingConnection = null) }
     }
 
@@ -46,7 +51,13 @@ class ConnectionListScreenModel(
     }
 
     fun showEditDialog(connection: SavedConnection) {
+        refreshAvailableKeys()
         _state.update { it.copy(editingConnection = connection, showAddDialog = true) }
+    }
+
+    fun refreshAvailableKeys() {
+        val keys = sshKeyProvider?.listKeys() ?: emptyList()
+        _state.update { it.copy(availableKeys = keys) }
     }
 
     fun saveConnection(connection: SavedConnection) {

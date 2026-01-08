@@ -1,12 +1,13 @@
 package tokyo.isseikuzumaki.vibeterminal.di
 
 import org.koin.dsl.module
+import tokyo.isseikuzumaki.vibeterminal.security.SshKeyProvider
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.ConnectionListScreenModel
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.FileExplorerScreenModel
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.TerminalScreenModel
 
 val appModule = module {
-    factory { ConnectionListScreenModel(connectionRepository = get()) }
+    factory { ConnectionListScreenModel(connectionRepository = get(), sshKeyProvider = getOrNull<SshKeyProvider>()) }
 
     factory { params ->
         TerminalScreenModel(

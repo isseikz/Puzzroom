@@ -29,6 +29,7 @@ import org.koin.compose.koinInject
 import tokyo.isseikuzumaki.vibeterminal.data.datastore.PreferencesHelper
 import tokyo.isseikuzumaki.vibeterminal.domain.model.ConnectionConfig
 import tokyo.isseikuzumaki.vibeterminal.domain.model.SavedConnection
+import tokyo.isseikuzumaki.vibeterminal.security.SshKeyInfoCommon
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.ConnectionListScreenModel
 import tokyo.isseikuzumaki.vibeterminal.ui.components.StartUpCommandInput
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalDisplayManager
@@ -251,6 +252,7 @@ class ConnectionListScreen : Screen {
         if (state.showAddDialog) {
             ConnectionDialog(
                 connection = state.editingConnection,
+                availableKeys = state.availableKeys,
                 onDismiss = { screenModel.hideDialog() },
                 onSave = { screenModel.saveConnection(it) }
             )
@@ -363,9 +365,11 @@ class ConnectionListScreen : Screen {
         }
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     private fun ConnectionDialog(
         connection: SavedConnection?,
+        availableKeys: List<SshKeyInfoCommon>,
         onDismiss: () -> Unit,
         onSave: (SavedConnection) -> Unit
     ) {
@@ -379,6 +383,7 @@ class ConnectionListScreen : Screen {
         var deployPattern by remember { mutableStateOf(connection?.deployPattern ?: ">> VIBE_DEPLOY: (.*)") }
         var monitorFilePath by remember { mutableStateOf(connection?.monitorFilePath ?: "") }
         var isAutoReconnect by remember { mutableStateOf(connection?.isAutoReconnect ?: false) }
+        var keyDropdownExpanded by remember { mutableStateOf(false) }
 
         AlertDialog(
             onDismissRequest = onDismiss,
@@ -442,20 +447,59 @@ class ConnectionListScreen : Screen {
 
                     // Key Selection (shown when authType is "key")
                     if (authType == "key") {
-                        OutlinedTextField(
-                            value = keyAlias,
-                            onValueChange = { keyAlias = it },
-                            label = { Text("Key Name") },
-                            placeholder = { Text("e.g., my-server-key") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            supportingText = {
-                                Text(
-                                    "Create keys in Android Settings before connecting",
-                                    style = MaterialTheme.typography.bodySmall
+                        if (availableKeys.isEmpty()) {
+                            // No keys available
+                            Text(
+                                text = "No SSH keys available. Create keys in Settings > SSH Keys.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.Red,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        } else {
+                            // Key dropdown
+                            ExposedDropdownMenuBox(
+                                expanded = keyDropdownExpanded,
+                                onExpandedChange = { keyDropdownExpanded = it }
+                            ) {
+                                OutlinedTextField(
+                                    value = if (keyAlias.isNotBlank()) {
+                                        val keyInfo = availableKeys.find { it.alias == keyAlias }
+                                        if (keyInfo != null) "${keyInfo.alias} (${keyInfo.algorithm})" else keyAlias
+                                    } else "",
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("SSH Key") },
+                                    placeholder = { Text("Select a key") },
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = keyDropdownExpanded) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                                 )
+                                ExposedDropdownMenu(
+                                    expanded = keyDropdownExpanded,
+                                    onDismissRequest = { keyDropdownExpanded = false }
+                                ) {
+                                    availableKeys.forEach { key ->
+                                        DropdownMenuItem(
+                                            text = {
+                                                Column {
+                                                    Text(key.alias)
+                                                    Text(
+                                                        text = key.algorithm,
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = Color.Gray
+                                                    )
+                                                }
+                                            },
+                                            onClick = {
+                                                keyAlias = key.alias
+                                                keyDropdownExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
                             }
-                        )
+                        }
                     }
 
                     // Startup Command Input

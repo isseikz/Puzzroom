@@ -22,7 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import tokyo.isseikuzumaki.vibeterminal.security.KeyAlgorithm
-import tokyo.isseikuzumaki.vibeterminal.security.SshKeyInfo
+import tokyo.isseikuzumaki.vibeterminal.security.SshKeyInfoCommon
 import tokyo.isseikuzumaki.vibeterminal.security.SshKeyManager
 import java.text.SimpleDateFormat
 import java.util.*
@@ -133,7 +133,7 @@ fun KeySelectionDialog(
 
 @Composable
 private fun KeyItem(
-    keyInfo: SshKeyInfo,
+    keyInfo: SshKeyInfoCommon,
     isSelected: Boolean,
     onSelect: () -> Unit,
     onShowPublicKey: () -> Unit,

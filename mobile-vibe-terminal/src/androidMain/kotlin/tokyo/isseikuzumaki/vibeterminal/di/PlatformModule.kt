@@ -16,6 +16,7 @@ import tokyo.isseikuzumaki.vibeterminal.installer.AndroidApkInstaller
 import tokyo.isseikuzumaki.vibeterminal.installer.TriggerEventHandler
 import tokyo.isseikuzumaki.vibeterminal.security.PasswordEncryptionHelper
 import tokyo.isseikuzumaki.vibeterminal.security.SshKeyManager
+import tokyo.isseikuzumaki.vibeterminal.security.SshKeyProvider
 import tokyo.isseikuzumaki.vibeterminal.ssh.MinaSshdRepository
 
 actual fun platformModule() = module {
@@ -32,6 +33,8 @@ actual fun platformModule() = module {
     single { PasswordEncryptionHelper() }
 
     single { SshKeyManager() }
+
+    single<SshKeyProvider> { get<SshKeyManager>() }
 
     single { PreferencesHelper(get()) }
 
