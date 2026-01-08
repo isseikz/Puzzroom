@@ -12,6 +12,7 @@ data class ServerConnection(
     val port: Int = 22,
     val username: String,
     val authType: String, // "password" or "key"
+    val keyAlias: String? = null, // Key alias in Android KeyStore (for public key auth)
     val createdAt: Long,
     val lastUsedAt: Long? = null,
     val deployPattern: String? = ">> VIBE_DEPLOY: (.*)", // Default regex pattern for deploy detection

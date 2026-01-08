@@ -31,8 +31,11 @@ import java.io.PipedOutputStream
 import java.io.PrintWriter
 import java.util.EnumMap
 import java.util.concurrent.TimeUnit
+import tokyo.isseikuzumaki.vibeterminal.security.SshKeyManager
 
-class MinaSshdRepository : SshRepository {
+class MinaSshdRepository(
+    private val sshKeyManager: SshKeyManager? = null
+) : SshRepository {
     private var client: SshClient? = null
     private var session: ClientSession? = null
     private var channel: ChannelShell? = null
@@ -49,6 +52,7 @@ class MinaSshdRepository : SshRepository {
     private var connectionPort: Int? = null
     private var connectionUsername: String? = null
     private var connectionPassword: String? = null
+    private var connectionKeyAlias: String? = null  // For public key authentication
 
     // Remote port forwarding for trigger channel
     private var triggerForwardingEnabled = false
@@ -290,6 +294,226 @@ class MinaSshdRepository : SshRepository {
         }
     }
 
+    override suspend fun connectWithKey(
+        host: String,
+        port: Int,
+        username: String,
+        keyAlias: String,
+        initialCols: Int,
+        initialRows: Int,
+        initialWidthPx: Int,
+        initialHeightPx: Int,
+        startupCommand: String?
+    ): Result<Unit> {
+        return try {
+            Timber.d("=== MinaSshdRepository.connectWithKey ===")
+            Timber.d("Host: $host, Port: $port, Username: $username, KeyAlias: $keyAlias")
+            Timber.d("Initial terminal size: ${initialCols}x${initialRows} (${initialWidthPx}x${initialHeightPx}px)")
+
+            // Verify SshKeyManager is available
+            val keyManager = sshKeyManager
+                ?: return Result.failure(IllegalStateException("SshKeyManager not available"))
+
+            // Get key pair from KeyStore
+            val keyPair = keyManager.getKeyPair(keyAlias)
+                ?: return Result.failure(IllegalStateException("Key not found: $keyAlias"))
+
+            Timber.d("0. Got key pair for alias: $keyAlias")
+
+            // Recreate rxChannel to ensure it's fresh
+            Timber.d("1. Recreating rxChannel for new connection...")
+            try {
+                rxChannel.close()
+            } catch (e: Exception) {
+                Timber.d("Old rxChannel already closed or not initialized: ${e.message}")
+            }
+            rxChannel = kotlinx.coroutines.channels.Channel(
+                capacity = kotlinx.coroutines.channels.Channel.UNLIMITED
+            )
+            Timber.d("1. rxChannel recreated successfully")
+
+            // Store credentials for SFTP sessions
+            connectionHost = host
+            connectionPort = port
+            connectionUsername = username
+            connectionPassword = null
+            connectionKeyAlias = keyAlias
+
+            // 2. Create and start SSH client
+            Timber.d("2. Creating SSH client...")
+            val sshClient = SshClient.setUpDefaultClient()
+
+            // Register TriggerForwardingChannel factory
+            Timber.d("2a. Registering TriggerForwardingChannel factory...")
+            val factories = sshClient.channelFactories.toMutableList()
+            factories.removeIf { it.name == "forwarded-tcpip" }
+            factories.add(object : org.apache.sshd.common.channel.ChannelFactory {
+                override fun createChannel(session: Session): org.apache.sshd.common.channel.Channel = TriggerForwardingChannel()
+                override fun getName(): String = "forwarded-tcpip"
+            })
+            sshClient.channelFactories = factories
+
+            // Add session listener for debug events
+            Timber.d("2b. Adding session listener...")
+            sshClient.addSessionListener(object : SessionListener {
+                override fun sessionCreated(session: Session) {
+                    val msg = "Session created: ${session.javaClass.simpleName}"
+                    Timber.d(msg)
+                    triggerScope.launch { TriggerChannel.getInstance().sendDebugMessage(msg) }
+                }
+
+                override fun sessionEvent(session: Session, event: SessionListener.Event) {
+                    val msg = "Session event: $event"
+                    Timber.d(msg)
+                    triggerScope.launch { TriggerChannel.getInstance().sendDebugMessage(msg) }
+                }
+
+                override fun sessionException(session: Session, t: Throwable) {
+                    val msg = "Session exception: ${t.javaClass.simpleName}: ${t.message}"
+                    Timber.e(t, msg)
+                    t.printStackTrace()
+                    triggerScope.launch { TriggerChannel.getInstance().sendDebugMessage(msg) }
+                }
+
+                override fun sessionDisconnect(
+                    session: Session,
+                    reason: Int,
+                    msg: String,
+                    language: String,
+                    initiator: Boolean
+                ) {
+                    val debugMsg = "Session disconnect: reason=$reason, msg=$msg, initiator=$initiator"
+                    Timber.d(debugMsg)
+                    triggerScope.launch { TriggerChannel.getInstance().sendDebugMessage(debugMsg) }
+                }
+
+                override fun sessionClosed(session: Session) {
+                    val msg = "Session closed"
+                    Timber.d(msg)
+                    triggerScope.launch { TriggerChannel.getInstance().sendDebugMessage(msg) }
+                }
+            })
+
+            // Add channel listener for debug events
+            Timber.d("2c. Adding channel listener...")
+            sshClient.addChannelListener(object : ChannelListener {
+                override fun channelInitialized(channel: Channel) {
+                    val msg = "Channel initialized: ${channel.javaClass.simpleName} (id=${channel.channelId})"
+                    Timber.d(msg)
+                    triggerScope.launch { TriggerChannel.getInstance().sendDebugMessage(msg) }
+                }
+
+                override fun channelOpenSuccess(channel: Channel) {
+                    val msg = "Channel open success: ${channel.javaClass.simpleName} (id=${channel.channelId})"
+                    Timber.d(msg)
+                    triggerScope.launch { TriggerChannel.getInstance().sendDebugMessage(msg) }
+                }
+
+                override fun channelOpenFailure(channel: Channel, reason: Throwable) {
+                    val msg = "Channel open failure: ${channel.javaClass.simpleName} - ${reason.message}"
+                    Timber.e(reason, msg)
+                    triggerScope.launch { TriggerChannel.getInstance().sendDebugMessage(msg) }
+                }
+
+                override fun channelStateChanged(channel: Channel, hint: String?) {
+                    val msg = "Channel state changed: ${channel.javaClass.simpleName} - hint=$hint"
+                    Timber.d(msg)
+                    triggerScope.launch { TriggerChannel.getInstance().sendDebugMessage(msg) }
+                }
+
+                override fun channelClosed(channel: Channel, reason: Throwable?) {
+                    val msg = "Channel closed: ${channel.javaClass.simpleName} (id=${channel.channelId}), reason=${reason?.message}"
+                    Timber.d(msg)
+                    triggerScope.launch { TriggerChannel.getInstance().sendDebugMessage(msg) }
+                }
+            })
+
+            Timber.d("3. Starting SSH client...")
+            sshClient.start()
+            client = sshClient
+            Timber.d("4. SSH client started")
+
+            // 3. Connect to server with timeout
+            Timber.d("5. Connecting to server...")
+            val futureSession = sshClient.connect(username, host, port)
+            Timber.d("6. Verifying connection...")
+            val clientSession = futureSession.verify(10, TimeUnit.SECONDS).session
+            session = clientSession
+            Timber.d("7. Connection verified")
+
+            // 4. Authenticate with public key
+            Timber.d("8. Adding public key identity...")
+            clientSession.addPublicKeyIdentity(keyPair)
+            Timber.d("9. Authenticating with public key...")
+            clientSession.auth().verify(10, TimeUnit.SECONDS)
+            Timber.d("10. Public key authentication successful")
+
+            // 5. Open shell channel with PTY configuration
+            Timber.d("11. Creating shell channel...")
+            val shellChannel = clientSession.createShellChannel()
+
+            // 5a. Configure PTY for proper terminal emulation
+            Timber.d("11a. Configuring PTY settings...")
+            shellChannel.ptyType = "xterm-256color"
+            shellChannel.setEnv("TERM", "xterm-256color")
+            shellChannel.setEnv("LANG", "en_US.UTF-8")
+
+            val ptyModes = EnumMap<PtyMode, Int>(PtyMode::class.java)
+            ptyModes[PtyMode.ECHO] = 1
+            ptyModes[PtyMode.ICANON] = 1
+            ptyModes[PtyMode.ISIG] = 1
+            shellChannel.ptyModes = ptyModes
+
+            shellChannel.ptyColumns = initialCols
+            shellChannel.ptyLines = initialRows
+            shellChannel.ptyWidth = initialWidthPx
+            shellChannel.ptyHeight = initialHeightPx
+
+            Timber.d("11b. PTY configured: xterm-256color, ${initialCols}x${initialRows}")
+            Timber.d("11c. Channel window info - Local: ${shellChannel.localWindow}, Remote: ${shellChannel.remoteWindow}")
+
+            // 6. Set up Channel-based output (non-blocking)
+            Timber.d("12. Setting up Channel stream for output...")
+            val channelStream = ChannelOutputStream()
+            shellChannel.out = channelStream
+            shellChannel.err = channelStream
+
+            // 7. Set up input stream for sending commands
+            Timber.d("13. Setting up piped streams for input...")
+            val inputPipedOut = PipedOutputStream()
+            val inputPipedIn = PipedInputStream(inputPipedOut)
+            shellChannel.`in` = inputPipedIn
+            outputWriter = PrintWriter(inputPipedOut, true)
+
+            // 8. Open the channel
+            Timber.d("14. Opening shell channel...")
+            shellChannel.open().verify(5, TimeUnit.SECONDS)
+            channel = shellChannel
+            Timber.d("15. Shell channel opened successfully")
+
+            // 9. Execute startup command if provided
+            if (!startupCommand.isNullOrBlank()) {
+                Timber.d("16. Executing startup command: $startupCommand")
+                kotlinx.coroutines.delay(100)
+                outputWriter?.println(startupCommand)
+                outputWriter?.flush()
+                Timber.d("17. Startup command sent")
+            }
+
+            Timber.d("=== SSH Public Key Connection Complete ===")
+
+            // 10. Start remote port forwarding for trigger channel
+            startTriggerPortForwarding()
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Timber.e(e, "=== SSH Public Key Connection Failed ===")
+            Timber.e("Error: ${e.message}")
+            disconnect()
+            Result.failure(e)
+        }
+    }
+
     /**
      * リモートポートフォワーディングを開始してトリガーチャネルを設定する
      *
@@ -351,6 +575,7 @@ class MinaSshdRepository : SshRepository {
             connectionPort = null
             connectionUsername = null
             connectionPassword = null
+            connectionKeyAlias = null
             triggerForwardingEnabled = false
         }
     }
@@ -364,12 +589,19 @@ class MinaSshdRepository : SshRepository {
      * Creates a separate SSH session for SFTP operations.
      * This prevents SFTP operations from interfering with the shell channel.
      * Runs on IO dispatcher to avoid network on main thread exceptions.
+     * Supports both password and public key authentication.
      */
     private suspend fun <T> withSftpSession(block: suspend (SftpClient) -> T): T = withContext(Dispatchers.IO) {
         val host = connectionHost ?: throw IllegalStateException("Not connected")
         val port = connectionPort ?: throw IllegalStateException("Not connected")
         val username = connectionUsername ?: throw IllegalStateException("Not connected")
-        val password = connectionPassword ?: throw IllegalStateException("Not connected")
+        val password = connectionPassword
+        val keyAlias = connectionKeyAlias
+
+        // Either password or keyAlias must be available
+        if (password == null && keyAlias == null) {
+            throw IllegalStateException("No authentication credentials available")
+        }
 
         val sftpSshClient = SshClient.setUpDefaultClient()
         sftpSshClient.start()
@@ -379,7 +611,14 @@ class MinaSshdRepository : SshRepository {
             val sftpSession = futureSession.verify(10, TimeUnit.SECONDS).session
 
             try {
-                sftpSession.addPasswordIdentity(password)
+                // Authenticate using available credentials
+                if (keyAlias != null && sshKeyManager != null) {
+                    val keyPair = sshKeyManager.getKeyPair(keyAlias)
+                        ?: throw IllegalStateException("Key not found: $keyAlias")
+                    sftpSession.addPublicKeyIdentity(keyPair)
+                } else if (password != null) {
+                    sftpSession.addPasswordIdentity(password)
+                }
                 sftpSession.auth().verify(10, TimeUnit.SECONDS)
 
                 val sftpClient = SftpClientFactory.instance().createSftpClient(sftpSession)

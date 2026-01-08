@@ -7,7 +7,7 @@ import tokyo.isseikuzumaki.vibeterminal.data.database.entity.ServerConnection
 
 @Database(
     entities = [ServerConnection::class],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
