@@ -58,15 +58,16 @@ class SshKeyManager : SshKeyProvider {
      * @param alias User-friendly name for the key
      * @param algorithm The key algorithm to use (RSA_4096 or ECDSA_P256)
      * @return The generated key pair
+     * @throws IllegalArgumentException if a key with the same alias already exists
      * @throws Exception if key generation fails
      */
     fun generateKeyPair(alias: String, algorithm: KeyAlgorithm): KeyPair {
         val fullAlias = "$KEY_PREFIX$alias"
         Timber.d("$TAG: Generating ${algorithm.displayName} key pair with alias: $fullAlias")
 
-        // Delete existing key if present
+        // Prevent overwriting existing keys
         if (keyStore.containsAlias(fullAlias)) {
-            keyStore.deleteEntry(fullAlias)
+            throw IllegalArgumentException("Key already exists: $alias")
         }
 
         return when (algorithm) {

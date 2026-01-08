@@ -6,6 +6,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -180,16 +181,22 @@ class SshKeyManagerInstrumentedTest {
     }
 
     @Test
-    fun regeneratingKey_withSameAliasOverwritesExistingKey() {
+    fun generateKeyPair_throwsExceptionForExistingAlias() {
+        // 最初に鍵を生成
         sshKeyManager.generateKeyPair(testKeyAlias, KeyAlgorithm.RSA_4096)
-        val firstPublicKey = sshKeyManager.getPublicKeyOpenSSH(testKeyAlias)
+        val originalPublicKey = sshKeyManager.getPublicKeyOpenSSH(testKeyAlias)
 
-        sshKeyManager.generateKeyPair(testKeyAlias, KeyAlgorithm.ECDSA_P256)
-        val secondPublicKey = sshKeyManager.getPublicKeyOpenSSH(testKeyAlias)
+        // 同じエイリアスで再度生成しようとすると例外が発生することを確認
+        assertFailsWith<IllegalArgumentException> {
+            sshKeyManager.generateKeyPair(testKeyAlias, KeyAlgorithm.ECDSA_P256)
+        }
 
-        assertNotNull(firstPublicKey)
-        assertNotNull(secondPublicKey)
-        assertTrue(firstPublicKey.startsWith("ssh-rsa"))
-        assertTrue(secondPublicKey.startsWith("ecdsa-sha2-nistp256"))
+        // 元の鍵が保持されていることを確認
+        assertTrue(sshKeyManager.keyExists(testKeyAlias))
+        assertEquals(KeyAlgorithm.RSA_4096, sshKeyManager.getKeyAlgorithm(testKeyAlias))
+
+        // 公開鍵が変更されていないことを確認
+        val currentPublicKey = sshKeyManager.getPublicKeyOpenSSH(testKeyAlias)
+        assertEquals(originalPublicKey, currentPublicKey)
     }
 }
