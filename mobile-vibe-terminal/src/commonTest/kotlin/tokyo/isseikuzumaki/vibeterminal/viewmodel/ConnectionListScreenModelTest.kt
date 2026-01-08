@@ -15,18 +15,35 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * Unit tests for ConnectionListScreenModel.
- * Tests authentication method validation logic.
+ * SSH公開鍵認証における認証方式のバリデーションロジックをテストするクラス。
+ *
+ * ## テスト対象
+ * - [SavedConnection] の認証方式（authType）と鍵エイリアス（keyAlias）の整合性
+ * - 1つの接続設定に対して認証方式が排他的に設定されることの検証
+ *
+ * ## 設計意図
+ * SSH接続では、パスワード認証と公開鍵認証は排他的な関係にある。
+ * このテストクラスでは、データモデルレベルでこの制約が守られることを保証する。
+ *
+ * @see SavedConnection
+ * @see ConnectionConfig
  */
 class ConnectionListScreenModelTest {
 
     /**
-     * Test: When authType is "key", keyAlias should be set and password is not stored with connection.
-     * Verifies that only one authentication method is registered per connection.
+     * 公開鍵認証を選択した場合、keyAliasが設定されることを検証する。
+     *
+     * ## 検証内容
+     * - authType が "key" の場合、keyAlias に有効な値が設定される
+     * - パスワードは [SavedConnection] には保存されない（セキュリティ上の理由で別管理）
+     *
+     * ## 背景
+     * 公開鍵認証では、Android KeyStore に保存された鍵ペアを使用するため、
+     * 鍵のエイリアス（識別子）が必須となる。
      */
     @Test
     fun `saving connection with key auth should have keyAlias set and no password in connection`() {
-        // Given
+        // Given: 公開鍵認証の接続設定を作成
         val connection = SavedConnection(
             id = 0L,
             name = "Test Server",
@@ -38,19 +55,26 @@ class ConnectionListScreenModelTest {
             createdAt = System.currentTimeMillis()
         )
 
-        // Then: Connection should have key auth properties
+        // Then: 公開鍵認証の設定が正しく保持されている
         assertEquals("key", connection.authType)
         assertEquals("my-ssh-key", connection.keyAlias)
-        // Note: Password is not stored in SavedConnection for security; it's stored separately
+        // Note: パスワードはセキュリティ上の理由でSavedConnectionには保存されず、別途管理される
     }
 
     /**
-     * Test: When authType is "password", keyAlias should be null.
-     * Verifies that password auth connections don't have key references.
+     * パスワード認証を選択した場合、keyAliasがnullであることを検証する。
+     *
+     * ## 検証内容
+     * - authType が "password" の場合、keyAlias は null である
+     * - パスワード認証時に不要な鍵参照が残らない
+     *
+     * ## 背景
+     * パスワード認証では鍵ペアを使用しないため、keyAlias は設定されるべきではない。
+     * これにより、認証方式の混在を防ぐ。
      */
     @Test
     fun `saving connection with password auth should have null keyAlias`() {
-        // Given
+        // Given: パスワード認証の接続設定を作成
         val connection = SavedConnection(
             id = 0L,
             name = "Test Server",
@@ -62,18 +86,25 @@ class ConnectionListScreenModelTest {
             createdAt = System.currentTimeMillis()
         )
 
-        // Then: Connection should have password auth properties
+        // Then: パスワード認証の設定では keyAlias が null
         assertEquals("password", connection.authType)
         assertNull(connection.keyAlias)
     }
 
     /**
-     * Test: A connection cannot have both key auth with password auth configured.
-     * When authType is "key", even if keyAlias is somehow null, it should be treated as invalid.
+     * 公開鍵認証を選択した場合、keyAliasが必須であることを検証する。
+     *
+     * ## 検証内容
+     * - authType が "key" かつ keyAlias が null の場合、無効な状態と判定される
+     * - バリデーションロジックが不正な状態を検出できる
+     *
+     * ## 背景
+     * 公開鍵認証を選択しているにもかかわらず鍵が指定されていない場合、
+     * SSH接続は必ず失敗する。UIレベルでこの状態を防ぐ必要がある。
      */
     @Test
     fun `connection with key auth requires non-null keyAlias`() {
-        // Given: A malformed connection with key auth but no keyAlias
+        // Given: 不正な状態 - 公開鍵認証だが keyAlias が null
         val connection = SavedConnection(
             id = 0L,
             name = "Test Server",
@@ -81,22 +112,32 @@ class ConnectionListScreenModelTest {
             port = 22,
             username = "testuser",
             authType = "key",
-            keyAlias = null, // Invalid state
+            keyAlias = null, // 無効な状態
             createdAt = System.currentTimeMillis()
         )
 
-        // Then: This should be considered invalid for key authentication
+        // When: 公開鍵認証として有効かどうかを判定
         val isValidKeyAuth = connection.authType == "key" && connection.keyAlias != null
+
+        // Then: 無効な公開鍵認証設定として判定される
         assertEquals(false, isValidKeyAuth)
     }
 
     /**
-     * Test: authType determines authentication method exclusively.
-     * A connection can only have one auth method at a time.
+     * 認証方式（authType）は排他的に決定されることを検証する。
+     *
+     * ## 検証内容
+     * - 各接続設定は "key" または "password" のいずれか一方のみを持つ
+     * - 公開鍵認証の接続には keyAlias が設定される
+     * - パスワード認証の接続には keyAlias が設定されない
+     *
+     * ## 背景
+     * SSHプロトコルでは複数の認証方式を順番に試すことができるが、
+     * UIの簡潔さのため、本アプリでは1つの接続設定に対して1つの認証方式のみを許可する。
      */
     @Test
     fun `authType determines single authentication method`() {
-        // Given: Two connections with different auth types
+        // Given: 異なる認証方式の2つの接続設定
         val keyAuthConnection = SavedConnection(
             id = 1L,
             name = "Key Auth Server",
@@ -119,31 +160,51 @@ class ConnectionListScreenModelTest {
             createdAt = System.currentTimeMillis()
         )
 
-        // Then: Each connection has exactly one auth method
+        // Then: 各接続は有効な認証方式のいずれかを持つ
         assertTrue(keyAuthConnection.authType == "key" || keyAuthConnection.authType == "password")
         assertTrue(passwordAuthConnection.authType == "key" || passwordAuthConnection.authType == "password")
 
-        // Key auth connection uses key
+        // Then: 公開鍵認証の接続は keyAlias を持つ
         assertEquals("key", keyAuthConnection.authType)
         assertTrue(keyAuthConnection.keyAlias != null)
 
-        // Password auth connection uses password
+        // Then: パスワード認証の接続は keyAlias を持たない
         assertEquals("password", passwordAuthConnection.authType)
         assertNull(passwordAuthConnection.keyAlias)
     }
 }
 
 /**
- * Tests for connection behavior when referenced SSH key is deleted.
+ * SSH鍵が削除された場合の接続設定の動作をテストするクラス。
+ *
+ * ## テスト対象
+ * - 参照している鍵が削除された場合の接続設定の保持
+ * - 鍵削除後の接続試行の失敗検証
+ * - 鍵削除後のリカバリ手順（別の鍵への切り替え、認証方式の変更）
+ *
+ * ## 設計意図
+ * ユーザーがSSH鍵を削除した場合でも、接続設定自体は削除されるべきではない。
+ * 代わりに、接続試行時にエラーとして検出され、ユーザーに適切な対処を促す。
+ *
+ * @see SshKeyProvider
+ * @see SavedConnection
  */
 class ConnectionKeyDeletionTest {
 
     /**
-     * Test: When a key is deleted, the connection entry should be preserved.
+     * 参照している鍵が削除されても、接続設定エントリは保持されることを検証する。
+     *
+     * ## 検証内容
+     * - 鍵を削除しても、その鍵を参照する接続設定は残る
+     * - 接続設定の keyAlias フィールドは変更されない
+     *
+     * ## 背景
+     * 接続設定には接続先ホスト、ポート、ユーザー名などの情報が含まれる。
+     * 鍵が削除されても、これらの情報は有効であり、別の鍵に切り替えて再利用できる。
      */
     @Test
     fun `connection entry is preserved when referenced key is deleted`() {
-        // Given: A connection that references a key
+        // Given: 特定の鍵を参照する接続設定
         val connections = mutableListOf(
             SavedConnection(
                 id = 1L,
@@ -157,24 +218,31 @@ class ConnectionKeyDeletionTest {
             )
         )
 
-        // When: The key is deleted (simulated by removing from available keys)
-        val availableKeys = emptyList<SshKeyInfoCommon>() // Key was deleted
+        // When: 鍵が削除される（利用可能な鍵リストから消える）
+        val availableKeys = emptyList<SshKeyInfoCommon>()
 
-        // Then: Connection still exists
+        // Then: 接続設定は依然として存在する
         assertEquals(1, connections.size)
         assertEquals("deleted-key", connections[0].keyAlias)
 
-        // But the referenced key is no longer in available keys
+        // Then: ただし、参照している鍵は利用不可
         assertTrue(availableKeys.none { it.alias == "deleted-key" })
     }
 
     /**
-     * Test: Connection with deleted key should fail authentication.
-     * The keyAlias reference becomes invalid when the key is removed from KeyStore.
+     * 削除された鍵を参照する接続設定では、接続が失敗することを検証する。
+     *
+     * ## 検証内容
+     * - SshKeyProvider.keyExists() が false を返す
+     * - この状態で接続を試みると失敗する（実際の接続テストは別クラスで実施）
+     *
+     * ## 背景
+     * Android KeyStore から鍵が削除されると、その鍵を使用した認証は不可能になる。
+     * 接続試行前にこの状態を検出し、ユーザーに通知する必要がある。
      */
     @Test
     fun `connection with deleted key fails validation`() {
-        // Given: A connection referencing a key
+        // Given: 削除された鍵を参照する接続設定
         val connection = SavedConnection(
             id = 1L,
             name = "My Server",
@@ -186,22 +254,30 @@ class ConnectionKeyDeletionTest {
             createdAt = System.currentTimeMillis()
         )
 
-        // And: A key provider that doesn't have the key (it was deleted)
+        // And: 鍵が存在しないことを返す SshKeyProvider
         val keyProvider = FakeSshKeyProvider(keys = emptyList())
 
-        // When: We check if the connection's key exists
+        // When: 接続設定が参照する鍵の存在を確認
         val keyExists = keyProvider.keyExists(connection.keyAlias!!)
 
-        // Then: Key doesn't exist, connection would fail to authenticate
+        // Then: 鍵が存在しないため、接続は失敗する
         assertEquals(false, keyExists)
     }
 
     /**
-     * Test: Connection can be updated to use a different key after original is deleted.
+     * 鍵削除後、接続設定を別の鍵に更新できることを検証する。
+     *
+     * ## 検証内容
+     * - 接続設定の keyAlias を新しい鍵に変更できる
+     * - 変更後の keyAlias が利用可能な鍵リストに存在する
+     *
+     * ## 背景
+     * ユーザーが誤って鍵を削除した場合でも、新しい鍵を作成して
+     * 既存の接続設定に割り当てることで、接続情報を再入力せずに復旧できる。
      */
     @Test
     fun `connection can be updated to use different key after deletion`() {
-        // Given: A connection with a deleted key reference
+        // Given: 削除された鍵を参照する接続設定
         val connection = SavedConnection(
             id = 1L,
             name = "My Server",
@@ -213,25 +289,33 @@ class ConnectionKeyDeletionTest {
             createdAt = System.currentTimeMillis()
         )
 
-        // And: A new key is available
+        // And: 新しい鍵が利用可能
         val availableKeys = listOf(
             SshKeyInfoCommon("new-key", "RSA", System.currentTimeMillis())
         )
 
-        // When: Connection is updated with new key
+        // When: 接続設定を新しい鍵に更新
         val updatedConnection = connection.copy(keyAlias = "new-key")
 
-        // Then: Connection now references the new key
+        // Then: 接続設定が新しい鍵を参照している
         assertEquals("new-key", updatedConnection.keyAlias)
         assertTrue(availableKeys.any { it.alias == updatedConnection.keyAlias })
     }
 
     /**
-     * Test: Connection can be changed from key auth to password auth if key is deleted.
+     * 公開鍵認証からパスワード認証への切り替えが可能であることを検証する。
+     *
+     * ## 検証内容
+     * - authType を "password" に変更できる
+     * - 変更後、keyAlias が null になる
+     *
+     * ## 背景
+     * 鍵の復旧が困難な場合、ユーザーはパスワード認証に切り替えることで
+     * 接続を継続できる。この操作により、不要な鍵参照がクリアされる。
      */
     @Test
     fun `connection can switch from key to password auth`() {
-        // Given: A connection with key auth
+        // Given: 公開鍵認証の接続設定
         val connection = SavedConnection(
             id = 1L,
             name = "My Server",
@@ -243,30 +327,49 @@ class ConnectionKeyDeletionTest {
             createdAt = System.currentTimeMillis()
         )
 
-        // When: User changes to password auth
+        // When: パスワード認証に切り替え
         val updatedConnection = connection.copy(
             authType = "password",
             keyAlias = null
         )
 
-        // Then: Connection now uses password auth
+        // Then: パスワード認証に変更され、keyAlias がクリアされている
         assertEquals("password", updatedConnection.authType)
         assertNull(updatedConnection.keyAlias)
     }
 }
 
 /**
- * Tests for ConnectionConfig creation logic.
- * Verifies that ConnectionConfig is correctly created based on auth type.
+ * [ConnectionConfig] の生成ロジックをテストするクラス。
+ *
+ * ## テスト対象
+ * - [SavedConnection] から [ConnectionConfig] への変換
+ * - 認証方式に応じた適切なフィールド設定
+ *
+ * ## 設計意図
+ * [ConnectionConfig] は実際のSSH接続に使用される設定オブジェクト。
+ * [SavedConnection] からの変換時に、認証方式に応じて適切な値が設定されることを保証する。
+ *
+ * @see ConnectionConfig
+ * @see SavedConnection
  */
 class ConnectionConfigCreationTest {
 
     /**
-     * Test: ConnectionConfig for key auth should have keyAlias and null password.
+     * 公開鍵認証用の [ConnectionConfig] が正しく生成されることを検証する。
+     *
+     * ## 検証内容
+     * - keyAlias が設定されている
+     * - password が null である
+     * - 接続先情報（host, port, username）が正しくコピーされる
+     *
+     * ## 背景
+     * 公開鍵認証では、パスワードの代わりに KeyStore 内の秘密鍵を使用する。
+     * そのため、password フィールドは null となる。
      */
     @Test
     fun `ConnectionConfig for key auth has keyAlias and null password`() {
-        // Given: A saved connection with key auth
+        // Given: 公開鍵認証の保存済み接続設定
         val savedConnection = SavedConnection(
             id = 1L,
             name = "Key Server",
@@ -278,7 +381,7 @@ class ConnectionConfigCreationTest {
             createdAt = System.currentTimeMillis()
         )
 
-        // When: Creating ConnectionConfig for key auth
+        // When: ConnectionConfig を生成
         val config = ConnectionConfig(
             host = savedConnection.host,
             port = savedConnection.port,
@@ -288,18 +391,26 @@ class ConnectionConfigCreationTest {
             connectionId = savedConnection.id
         )
 
-        // Then: Config should have keyAlias and null password
+        // Then: 公開鍵認証用の設定が正しく生成される
         assertEquals("my-key", config.keyAlias)
         assertNull(config.password)
         assertEquals("example.com", config.host)
     }
 
     /**
-     * Test: ConnectionConfig for password auth should have password and null keyAlias.
+     * パスワード認証用の [ConnectionConfig] が正しく生成されることを検証する。
+     *
+     * ## 検証内容
+     * - password が設定されている
+     * - keyAlias が null である
+     *
+     * ## 背景
+     * パスワード認証では、鍵ペアは使用しないため keyAlias は不要。
+     * ユーザーが入力したパスワードが password フィールドに設定される。
      */
     @Test
     fun `ConnectionConfig for password auth has password and null keyAlias`() {
-        // Given: A saved connection with password auth
+        // Given: パスワード認証の保存済み接続設定
         val savedConnection = SavedConnection(
             id = 1L,
             name = "Password Server",
@@ -311,7 +422,7 @@ class ConnectionConfigCreationTest {
             createdAt = System.currentTimeMillis()
         )
 
-        // When: Creating ConnectionConfig for password auth
+        // When: ConnectionConfig を生成（パスワードはユーザー入力から取得）
         val config = ConnectionConfig(
             host = savedConnection.host,
             port = savedConnection.port,
@@ -321,17 +432,25 @@ class ConnectionConfigCreationTest {
             connectionId = savedConnection.id
         )
 
-        // Then: Config should have password and null keyAlias
+        // Then: パスワード認証用の設定が正しく生成される
         assertEquals("secret123", config.password)
         assertNull(config.keyAlias)
     }
 
     /**
-     * Test: ConnectionConfig correctly determines auth method from keyAlias presence.
+     * [ConnectionConfig] の認証方式が keyAlias の有無で判定できることを検証する。
+     *
+     * ## 検証内容
+     * - keyAlias が非null の場合、公開鍵認証
+     * - keyAlias が null かつ password が非null の場合、パスワード認証
+     *
+     * ## 背景
+     * 実行時に認証方式を判定する際、keyAlias の有無が判定基準となる。
+     * この規約により、接続処理のコードが簡潔になる。
      */
     @Test
     fun `ConnectionConfig auth method determined by keyAlias presence`() {
-        // Key auth config
+        // Given: 公開鍵認証の設定
         val keyConfig = ConnectionConfig(
             host = "example.com",
             port = 22,
@@ -340,7 +459,7 @@ class ConnectionConfigCreationTest {
             keyAlias = "my-key"
         )
 
-        // Password auth config
+        // Given: パスワード認証の設定
         val passwordConfig = ConnectionConfig(
             host = "example.com",
             port = 22,
@@ -349,23 +468,40 @@ class ConnectionConfigCreationTest {
             keyAlias = null
         )
 
-        // Verify: Key config uses key auth
+        // Then: keyAlias の有無で認証方式を判定できる
         assertTrue(keyConfig.keyAlias != null)
         assertNull(keyConfig.password)
 
-        // Verify: Password config uses password auth
         assertNull(passwordConfig.keyAlias)
         assertTrue(passwordConfig.password != null)
     }
 }
 
 /**
- * Tests for SavedConnection edge cases and validation.
+ * [SavedConnection] のエッジケースとバリデーションをテストするクラス。
+ *
+ * ## テスト対象
+ * - 境界値・特殊文字の取り扱い
+ * - デフォルト値の検証
+ * - オプションフィールドの保持
+ * - 認証方式切り替え時のデータクリア
+ *
+ * ## 設計意図
+ * 様々な入力パターンに対してデータモデルが正しく動作することを保証する。
+ *
+ * @see SavedConnection
  */
 class SavedConnectionEdgeCaseTest {
 
     /**
-     * Test: Key alias with special characters is preserved.
+     * 鍵エイリアスに許可された特殊文字が保持されることを検証する。
+     *
+     * ## 検証内容
+     * - ハイフン（-）とアンダースコア（_）を含む keyAlias が正しく保存される
+     *
+     * ## 背景
+     * 鍵エイリアスには英数字の他、ハイフンとアンダースコアを許可している。
+     * これにより、"my-server_key-2024" のような識別しやすい名前を付けられる。
      */
     @Test
     fun `key alias with allowed special characters is preserved`() {
@@ -384,7 +520,14 @@ class SavedConnectionEdgeCaseTest {
     }
 
     /**
-     * Test: Empty key alias is treated as null for validation purposes.
+     * 空文字の鍵エイリアスが無効として扱われることを検証する。
+     *
+     * ## 検証内容
+     * - keyAlias が空文字の場合、公開鍵認証として無効と判定される
+     *
+     * ## 背景
+     * UIで入力フィールドを空のまま保存しようとした場合を想定。
+     * 空文字は実質的に鍵が指定されていない状態であり、接続は失敗する。
      */
     @Test
     fun `empty key alias should be treated as invalid for key auth`() {
@@ -399,15 +542,24 @@ class SavedConnectionEdgeCaseTest {
             createdAt = System.currentTimeMillis()
         )
 
-        // Empty keyAlias should be considered invalid for key auth
+        // When: 公開鍵認証として有効かどうかを判定
         val isValidKeyAuth = connection.authType == "key" &&
                             connection.keyAlias != null &&
                             connection.keyAlias!!.isNotBlank()
+
+        // Then: 空文字は無効
         assertFalse(isValidKeyAuth)
     }
 
     /**
-     * Test: Default port is 22.
+     * SSHのデフォルトポート（22）が正しく設定されることを検証する。
+     *
+     * ## 検証内容
+     * - port を指定しない場合、デフォルト値 22 が使用される
+     *
+     * ## 背景
+     * SSH のウェルノウンポートは 22。ほとんどのサーバーがこのポートを使用するため、
+     * ユーザーの入力の手間を省く。
      */
     @Test
     fun `default port is 22`() {
@@ -424,7 +576,14 @@ class SavedConnectionEdgeCaseTest {
     }
 
     /**
-     * Test: Connection preserves all optional fields correctly.
+     * 全てのオプションフィールドが正しく保持されることを検証する。
+     *
+     * ## 検証内容
+     * - lastUsedAt, deployPattern, startupCommand, isAutoReconnect, monitorFilePath が保持される
+     *
+     * ## 背景
+     * 接続設定にはSSH接続以外の付加機能（自動再接続、デプロイパターン検出等）の
+     * 設定も含まれる。これらが正しく保存・復元されることを保証する。
      */
     @Test
     fun `connection preserves optional fields`() {
@@ -455,11 +614,18 @@ class SavedConnectionEdgeCaseTest {
     }
 
     /**
-     * Test: Changing auth type clears the other auth method's data.
+     * 認証方式を切り替えた際、前の認証方式のデータがクリアされることを検証する。
+     *
+     * ## 検証内容
+     * - 公開鍵認証からパスワード認証に切り替えると、keyAlias が null になる
+     *
+     * ## 背景
+     * 認証方式の切り替え時に古い認証情報が残っていると、
+     * 意図しない認証試行が発生する可能性がある。
      */
     @Test
     fun `switching auth type should clear previous auth data`() {
-        // Start with key auth
+        // Given: 公開鍵認証の接続設定
         val keyAuthConnection = SavedConnection(
             id = 1L,
             name = "Test",
@@ -471,24 +637,45 @@ class SavedConnectionEdgeCaseTest {
             createdAt = System.currentTimeMillis()
         )
 
-        // Switch to password auth - keyAlias should be cleared
+        // When: パスワード認証に切り替え（keyAlias をクリア）
         val passwordAuthConnection = keyAuthConnection.copy(
             authType = "password",
             keyAlias = null
         )
 
+        // Then: 認証方式が変更され、keyAlias がクリアされている
         assertEquals("password", passwordAuthConnection.authType)
         assertNull(passwordAuthConnection.keyAlias)
     }
 }
 
 /**
- * Tests for SshKeyProvider behavior.
+ * [SshKeyProvider] インターフェースの動作をテストするクラス。
+ *
+ * ## テスト対象
+ * - 鍵リストの取得
+ * - 鍵の存在確認
+ * - [SshKeyInfoCommon] のデータ保持
+ *
+ * ## 設計意図
+ * [SshKeyProvider] は commonMain で定義されたインターフェースであり、
+ * プラットフォーム固有の実装（Android KeyStore）を抽象化する。
+ * このテストでは、インターフェースの契約が正しく実装されることを検証する。
+ *
+ * @see SshKeyProvider
+ * @see SshKeyInfoCommon
  */
 class SshKeyProviderTest {
 
     /**
-     * Test: listKeys returns empty list when no keys exist.
+     * 鍵が存在しない場合、空のリストが返されることを検証する。
+     *
+     * ## 検証内容
+     * - listKeys() が空のリストを返す
+     *
+     * ## 背景
+     * 初回起動時やすべての鍵を削除した後など、鍵が1つも存在しない状態がありえる。
+     * この場合、UIは「鍵がありません」というメッセージを表示する。
      */
     @Test
     fun `listKeys returns empty list when no keys`() {
@@ -500,7 +687,15 @@ class SshKeyProviderTest {
     }
 
     /**
-     * Test: listKeys returns all available keys.
+     * 登録済みの全ての鍵が返されることを検証する。
+     *
+     * ## 検証内容
+     * - listKeys() が全ての鍵を含むリストを返す
+     * - 各鍵のエイリアスが正しく取得できる
+     *
+     * ## 背景
+     * 接続設定ダイアログでは、利用可能な鍵をドロップダウンで表示する。
+     * この機能のために、全ての鍵を列挙できる必要がある。
      */
     @Test
     fun `listKeys returns all available keys`() {
@@ -518,7 +713,15 @@ class SshKeyProviderTest {
     }
 
     /**
-     * Test: keyExists returns correct result.
+     * 鍵の存在確認が正しく動作することを検証する。
+     *
+     * ## 検証内容
+     * - 存在する鍵に対して keyExists() が true を返す
+     * - 存在しない鍵に対して keyExists() が false を返す
+     *
+     * ## 背景
+     * 接続試行前に、参照している鍵が実際に存在するかを確認する。
+     * 鍵が削除されていた場合、接続を試みる前にエラーを表示できる。
      */
     @Test
     fun `keyExists returns correct result for existing and non-existing keys`() {
@@ -531,7 +734,15 @@ class SshKeyProviderTest {
     }
 
     /**
-     * Test: SshKeyInfoCommon preserves algorithm information.
+     * [SshKeyInfoCommon] がアルゴリズム情報を正しく保持することを検証する。
+     *
+     * ## 検証内容
+     * - RSA鍵のアルゴリズムが "RSA" として保持される
+     * - ECDSA鍵のアルゴリズムが "ECDSA" として保持される
+     *
+     * ## 背景
+     * UIでは鍵のアルゴリズムを表示し、ユーザーが鍵を識別しやすくする。
+     * 例: "my-key (RSA)" と表示される。
      */
     @Test
     fun `SshKeyInfoCommon preserves algorithm information`() {
@@ -544,7 +755,12 @@ class SshKeyProviderTest {
 }
 
 /**
- * Fake implementation of SshKeyProvider for testing.
+ * テスト用の [SshKeyProvider] フェイク実装。
+ *
+ * コンストラクタで渡された鍵リストを返すシンプルな実装。
+ * 実際の Android KeyStore を使用せずにテストを実行できる。
+ *
+ * @param keys テストで使用する鍵のリスト
  */
 private class FakeSshKeyProvider(
     private val keys: List<SshKeyInfoCommon>
@@ -554,7 +770,10 @@ private class FakeSshKeyProvider(
 }
 
 /**
- * Fake implementation of ConnectionRepository for testing.
+ * テスト用の [ConnectionRepository] フェイク実装。
+ *
+ * インメモリで接続設定を管理するシンプルな実装。
+ * データベースを使用せずにリポジトリの動作をテストできる。
  */
 private class FakeConnectionRepository : ConnectionRepository {
     private val connections = mutableListOf<SavedConnection>()
