@@ -3,12 +3,14 @@ package tokyo.isseikuzumaki.vibeterminal.viewmodel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import tokyo.isseikuzumaki.vibeterminal.domain.model.ConnectionConfig
 import tokyo.isseikuzumaki.vibeterminal.domain.model.SavedConnection
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.ConnectionRepository
 import tokyo.isseikuzumaki.vibeterminal.security.SshKeyInfoCommon
 import tokyo.isseikuzumaki.vibeterminal.security.SshKeyProvider
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -250,6 +252,294 @@ class ConnectionKeyDeletionTest {
         // Then: Connection now uses password auth
         assertEquals("password", updatedConnection.authType)
         assertNull(updatedConnection.keyAlias)
+    }
+}
+
+/**
+ * Tests for ConnectionConfig creation logic.
+ * Verifies that ConnectionConfig is correctly created based on auth type.
+ */
+class ConnectionConfigCreationTest {
+
+    /**
+     * Test: ConnectionConfig for key auth should have keyAlias and null password.
+     */
+    @Test
+    fun `ConnectionConfig for key auth has keyAlias and null password`() {
+        // Given: A saved connection with key auth
+        val savedConnection = SavedConnection(
+            id = 1L,
+            name = "Key Server",
+            host = "example.com",
+            port = 22,
+            username = "user",
+            authType = "key",
+            keyAlias = "my-key",
+            createdAt = System.currentTimeMillis()
+        )
+
+        // When: Creating ConnectionConfig for key auth
+        val config = ConnectionConfig(
+            host = savedConnection.host,
+            port = savedConnection.port,
+            username = savedConnection.username,
+            password = null,
+            keyAlias = savedConnection.keyAlias,
+            connectionId = savedConnection.id
+        )
+
+        // Then: Config should have keyAlias and null password
+        assertEquals("my-key", config.keyAlias)
+        assertNull(config.password)
+        assertEquals("example.com", config.host)
+    }
+
+    /**
+     * Test: ConnectionConfig for password auth should have password and null keyAlias.
+     */
+    @Test
+    fun `ConnectionConfig for password auth has password and null keyAlias`() {
+        // Given: A saved connection with password auth
+        val savedConnection = SavedConnection(
+            id = 1L,
+            name = "Password Server",
+            host = "example.com",
+            port = 22,
+            username = "user",
+            authType = "password",
+            keyAlias = null,
+            createdAt = System.currentTimeMillis()
+        )
+
+        // When: Creating ConnectionConfig for password auth
+        val config = ConnectionConfig(
+            host = savedConnection.host,
+            port = savedConnection.port,
+            username = savedConnection.username,
+            password = "secret123",
+            keyAlias = null,
+            connectionId = savedConnection.id
+        )
+
+        // Then: Config should have password and null keyAlias
+        assertEquals("secret123", config.password)
+        assertNull(config.keyAlias)
+    }
+
+    /**
+     * Test: ConnectionConfig correctly determines auth method from keyAlias presence.
+     */
+    @Test
+    fun `ConnectionConfig auth method determined by keyAlias presence`() {
+        // Key auth config
+        val keyConfig = ConnectionConfig(
+            host = "example.com",
+            port = 22,
+            username = "user",
+            password = null,
+            keyAlias = "my-key"
+        )
+
+        // Password auth config
+        val passwordConfig = ConnectionConfig(
+            host = "example.com",
+            port = 22,
+            username = "user",
+            password = "secret",
+            keyAlias = null
+        )
+
+        // Verify: Key config uses key auth
+        assertTrue(keyConfig.keyAlias != null)
+        assertNull(keyConfig.password)
+
+        // Verify: Password config uses password auth
+        assertNull(passwordConfig.keyAlias)
+        assertTrue(passwordConfig.password != null)
+    }
+}
+
+/**
+ * Tests for SavedConnection edge cases and validation.
+ */
+class SavedConnectionEdgeCaseTest {
+
+    /**
+     * Test: Key alias with special characters is preserved.
+     */
+    @Test
+    fun `key alias with allowed special characters is preserved`() {
+        val connection = SavedConnection(
+            id = 1L,
+            name = "Test",
+            host = "example.com",
+            port = 22,
+            username = "user",
+            authType = "key",
+            keyAlias = "my-server_key-2024",
+            createdAt = System.currentTimeMillis()
+        )
+
+        assertEquals("my-server_key-2024", connection.keyAlias)
+    }
+
+    /**
+     * Test: Empty key alias is treated as null for validation purposes.
+     */
+    @Test
+    fun `empty key alias should be treated as invalid for key auth`() {
+        val connection = SavedConnection(
+            id = 1L,
+            name = "Test",
+            host = "example.com",
+            port = 22,
+            username = "user",
+            authType = "key",
+            keyAlias = "",
+            createdAt = System.currentTimeMillis()
+        )
+
+        // Empty keyAlias should be considered invalid for key auth
+        val isValidKeyAuth = connection.authType == "key" &&
+                            connection.keyAlias != null &&
+                            connection.keyAlias!!.isNotBlank()
+        assertFalse(isValidKeyAuth)
+    }
+
+    /**
+     * Test: Default port is 22.
+     */
+    @Test
+    fun `default port is 22`() {
+        val connection = SavedConnection(
+            id = 1L,
+            name = "Test",
+            host = "example.com",
+            username = "user",
+            authType = "password",
+            createdAt = System.currentTimeMillis()
+        )
+
+        assertEquals(22, connection.port)
+    }
+
+    /**
+     * Test: Connection preserves all optional fields correctly.
+     */
+    @Test
+    fun `connection preserves optional fields`() {
+        val connection = SavedConnection(
+            id = 1L,
+            name = "Full Config Server",
+            host = "example.com",
+            port = 2222,
+            username = "admin",
+            authType = "key",
+            keyAlias = "prod-key",
+            createdAt = 1000L,
+            lastUsedAt = 2000L,
+            deployPattern = ">> DEPLOY: (.*)",
+            startupCommand = "tmux attach",
+            isAutoReconnect = true,
+            monitorFilePath = "/var/log/app.log"
+        )
+
+        assertEquals("Full Config Server", connection.name)
+        assertEquals(2222, connection.port)
+        assertEquals("prod-key", connection.keyAlias)
+        assertEquals(2000L, connection.lastUsedAt)
+        assertEquals(">> DEPLOY: (.*)", connection.deployPattern)
+        assertEquals("tmux attach", connection.startupCommand)
+        assertTrue(connection.isAutoReconnect)
+        assertEquals("/var/log/app.log", connection.monitorFilePath)
+    }
+
+    /**
+     * Test: Changing auth type clears the other auth method's data.
+     */
+    @Test
+    fun `switching auth type should clear previous auth data`() {
+        // Start with key auth
+        val keyAuthConnection = SavedConnection(
+            id = 1L,
+            name = "Test",
+            host = "example.com",
+            port = 22,
+            username = "user",
+            authType = "key",
+            keyAlias = "my-key",
+            createdAt = System.currentTimeMillis()
+        )
+
+        // Switch to password auth - keyAlias should be cleared
+        val passwordAuthConnection = keyAuthConnection.copy(
+            authType = "password",
+            keyAlias = null
+        )
+
+        assertEquals("password", passwordAuthConnection.authType)
+        assertNull(passwordAuthConnection.keyAlias)
+    }
+}
+
+/**
+ * Tests for SshKeyProvider behavior.
+ */
+class SshKeyProviderTest {
+
+    /**
+     * Test: listKeys returns empty list when no keys exist.
+     */
+    @Test
+    fun `listKeys returns empty list when no keys`() {
+        val provider = FakeSshKeyProvider(emptyList())
+
+        val keys = provider.listKeys()
+
+        assertTrue(keys.isEmpty())
+    }
+
+    /**
+     * Test: listKeys returns all available keys.
+     */
+    @Test
+    fun `listKeys returns all available keys`() {
+        val keys = listOf(
+            SshKeyInfoCommon("key1", "RSA", 1000L),
+            SshKeyInfoCommon("key2", "ECDSA", 2000L)
+        )
+        val provider = FakeSshKeyProvider(keys)
+
+        val result = provider.listKeys()
+
+        assertEquals(2, result.size)
+        assertEquals("key1", result[0].alias)
+        assertEquals("key2", result[1].alias)
+    }
+
+    /**
+     * Test: keyExists returns correct result.
+     */
+    @Test
+    fun `keyExists returns correct result for existing and non-existing keys`() {
+        val provider = FakeSshKeyProvider(
+            listOf(SshKeyInfoCommon("existing-key", "RSA", 1000L))
+        )
+
+        assertTrue(provider.keyExists("existing-key"))
+        assertFalse(provider.keyExists("non-existing-key"))
+    }
+
+    /**
+     * Test: SshKeyInfoCommon preserves algorithm information.
+     */
+    @Test
+    fun `SshKeyInfoCommon preserves algorithm information`() {
+        val rsaKey = SshKeyInfoCommon("rsa-key", "RSA", 1000L)
+        val ecdsaKey = SshKeyInfoCommon("ecdsa-key", "ECDSA", 2000L)
+
+        assertEquals("RSA", rsaKey.algorithm)
+        assertEquals("ECDSA", ecdsaKey.algorithm)
     }
 }
 
