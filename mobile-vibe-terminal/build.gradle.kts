@@ -104,6 +104,15 @@ kotlin {
                 implementation("org.robolectric:robolectric:4.14.1")
             }
         }
+
+        val androidInstrumentedTest by getting {
+            dependencies {
+                implementation(libs.kotlin.test)
+                implementation("androidx.test.ext:junit:1.2.1")
+                implementation("androidx.test:runner:1.6.2")
+                implementation("androidx.test:rules:1.6.1")
+            }
+        }
     }
 }
 
@@ -128,6 +137,7 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 10000
         versionName = "1.0.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
