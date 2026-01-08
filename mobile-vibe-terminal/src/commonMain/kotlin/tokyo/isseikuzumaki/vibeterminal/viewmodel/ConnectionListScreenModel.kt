@@ -10,16 +10,20 @@ import kotlinx.coroutines.launch
 import tokyo.isseikuzumaki.vibeterminal.domain.model.ConnectionConfig
 import tokyo.isseikuzumaki.vibeterminal.domain.model.SavedConnection
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.ConnectionRepository
+import tokyo.isseikuzumaki.vibeterminal.security.SshKeyInfoCommon
+import tokyo.isseikuzumaki.vibeterminal.security.SshKeyProvider
 
 data class ConnectionListState(
     val connections: List<SavedConnection> = emptyList(),
     val showAddDialog: Boolean = false,
     val editingConnection: SavedConnection? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val availableKeys: List<SshKeyInfoCommon> = emptyList()
 )
 
 class ConnectionListScreenModel(
-    private val connectionRepository: ConnectionRepository
+    private val connectionRepository: ConnectionRepository,
+    private val sshKeyProvider: SshKeyProvider? = null
 ) : ScreenModel {
 
     private val _state = MutableStateFlow(ConnectionListState())
@@ -38,6 +42,7 @@ class ConnectionListScreenModel(
     }
 
     fun showAddDialog() {
+        refreshAvailableKeys()
         _state.update { it.copy(showAddDialog = true, editingConnection = null) }
     }
 
@@ -46,7 +51,13 @@ class ConnectionListScreenModel(
     }
 
     fun showEditDialog(connection: SavedConnection) {
+        refreshAvailableKeys()
         _state.update { it.copy(editingConnection = connection, showAddDialog = true) }
+    }
+
+    fun refreshAvailableKeys() {
+        val keys = sshKeyProvider?.listKeys() ?: emptyList()
+        _state.update { it.copy(availableKeys = keys) }
     }
 
     fun saveConnection(connection: SavedConnection) {
@@ -130,27 +141,44 @@ class ConnectionListScreenModel(
                     return@launch
                 }
 
-                // Get saved password
-                val password = connectionRepository.getPassword(lastConnectionId)
-                if (password == null) {
-                    // No saved password, cannot auto-restore
-                    onResult(null)
-                    return@launch
+                // Check authentication method
+                if (connection.authType == "key" && connection.keyAlias != null) {
+                    // Public key auth: can auto-restore without password
+                    val config = ConnectionConfig(
+                        host = connection.host,
+                        port = connection.port,
+                        username = connection.username,
+                        password = null,
+                        keyAlias = connection.keyAlias,
+                        connectionId = connection.id,
+                        startupCommand = connection.startupCommand,
+                        deployPattern = connection.deployPattern,
+                        monitorFilePath = connection.monitorFilePath
+                    )
+                    onResult(config)
+                } else {
+                    // Password auth: need saved password
+                    val password = connectionRepository.getPassword(lastConnectionId)
+                    if (password == null) {
+                        // No saved password, cannot auto-restore
+                        onResult(null)
+                        return@launch
+                    }
+
+                    // Create ConnectionConfig for auto-restore
+                    val config = ConnectionConfig(
+                        host = connection.host,
+                        port = connection.port,
+                        username = connection.username,
+                        password = password,
+                        keyAlias = null,
+                        connectionId = connection.id,
+                        startupCommand = connection.startupCommand,
+                        deployPattern = connection.deployPattern,
+                        monitorFilePath = connection.monitorFilePath
+                    )
+                    onResult(config)
                 }
-
-                // Create ConnectionConfig for auto-restore
-                val config = ConnectionConfig(
-                    host = connection.host,
-                    port = connection.port,
-                    username = connection.username,
-                    password = password,
-                    connectionId = connection.id,
-                    startupCommand = connection.startupCommand,
-                    deployPattern = connection.deployPattern,
-                    monitorFilePath = connection.monitorFilePath
-                )
-
-                onResult(config)
             } catch (e: Exception) {
                 // If anything fails, just show connection list
                 onResult(null)

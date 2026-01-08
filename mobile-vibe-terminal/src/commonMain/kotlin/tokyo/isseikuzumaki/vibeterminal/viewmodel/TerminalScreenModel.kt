@@ -157,17 +157,34 @@ class TerminalScreenModel(
 
                 Logger.d("Calling sshRepository.connect with terminal size...")
                 val result = withContext(Dispatchers.IO) {
-                    sshRepository.connect(
-                        host = config.host,
-                        port = config.port,
-                        username = config.username,
-                        password = config.password,
-                        initialCols = cols,
-                        initialRows = rows,
-                        initialWidthPx = widthPx,
-                        initialHeightPx = heightPx,
-                        startupCommand = config.startupCommand
-                    )
+                    // Use public key auth if keyAlias is set, otherwise use password
+                    if (config.keyAlias != null) {
+                        Logger.d("Using public key authentication with keyAlias: ${config.keyAlias}")
+                        sshRepository.connectWithKey(
+                            host = config.host,
+                            port = config.port,
+                            username = config.username,
+                            keyAlias = config.keyAlias!!,
+                            initialCols = cols,
+                            initialRows = rows,
+                            initialWidthPx = widthPx,
+                            initialHeightPx = heightPx,
+                            startupCommand = config.startupCommand
+                        )
+                    } else {
+                        Logger.d("Using password authentication")
+                        sshRepository.connect(
+                            host = config.host,
+                            port = config.port,
+                            username = config.username,
+                            password = config.password ?: "",
+                            initialCols = cols,
+                            initialRows = rows,
+                            initialWidthPx = widthPx,
+                            initialHeightPx = heightPx,
+                            startupCommand = config.startupCommand
+                        )
+                    }
                 }
                 Logger.d("Connection result: $result")
 
@@ -611,17 +628,34 @@ class TerminalScreenModel(
                 // Attempt to reconnect
                 Logger.d("Reconnecting with terminal size ${currentState.lastTerminalCols}x${currentState.lastTerminalRows}...")
                 val result = withContext(Dispatchers.IO) {
-                    sshRepository.connect(
-                        host = config.host,
-                        port = config.port,
-                        username = config.username,
-                        password = config.password,
-                        initialCols = currentState.lastTerminalCols,
-                        initialRows = currentState.lastTerminalRows,
-                        initialWidthPx = currentState.lastTerminalWidthPx,
-                        initialHeightPx = currentState.lastTerminalHeightPx,
-                        startupCommand = config.startupCommand
-                    )
+                    // Use public key auth if keyAlias is set, otherwise use password
+                    if (config.keyAlias != null) {
+                        Logger.d("Reconnecting with public key authentication")
+                        sshRepository.connectWithKey(
+                            host = config.host,
+                            port = config.port,
+                            username = config.username,
+                            keyAlias = config.keyAlias!!,
+                            initialCols = currentState.lastTerminalCols,
+                            initialRows = currentState.lastTerminalRows,
+                            initialWidthPx = currentState.lastTerminalWidthPx,
+                            initialHeightPx = currentState.lastTerminalHeightPx,
+                            startupCommand = config.startupCommand
+                        )
+                    } else {
+                        Logger.d("Reconnecting with password authentication")
+                        sshRepository.connect(
+                            host = config.host,
+                            port = config.port,
+                            username = config.username,
+                            password = config.password ?: "",
+                            initialCols = currentState.lastTerminalCols,
+                            initialRows = currentState.lastTerminalRows,
+                            initialWidthPx = currentState.lastTerminalWidthPx,
+                            initialHeightPx = currentState.lastTerminalHeightPx,
+                            startupCommand = config.startupCommand
+                        )
+                    }
                 }
 
                 result.fold(

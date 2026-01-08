@@ -29,6 +29,7 @@ import org.koin.compose.koinInject
 import tokyo.isseikuzumaki.vibeterminal.data.datastore.PreferencesHelper
 import tokyo.isseikuzumaki.vibeterminal.domain.model.ConnectionConfig
 import tokyo.isseikuzumaki.vibeterminal.domain.model.SavedConnection
+import tokyo.isseikuzumaki.vibeterminal.security.SshKeyInfoCommon
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.ConnectionListScreenModel
 import tokyo.isseikuzumaki.vibeterminal.ui.components.StartUpCommandInput
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalDisplayManager
@@ -99,6 +100,35 @@ class ConnectionListScreen : Screen {
                                 expanded = showSettingsMenu,
                                 onDismissRequest = { showSettingsMenu = false }
                             ) {
+                                // SSH Keys management
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Settings,
+                                                contentDescription = null,
+                                                tint = Color(0xFF00FF00),
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                            Spacer(Modifier.width(12.dp))
+                                            Column {
+                                                Text("SSH Keys")
+                                                Text(
+                                                    "Manage public key authentication",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = Color.Gray
+                                                )
+                                            }
+                                        }
+                                    },
+                                    onClick = {
+                                        showSettingsMenu = false
+                                        navigator.push(KeyManagementScreen())
+                                    }
+                                )
+                                HorizontalDivider()
                                 DropdownMenuItem(
                                     text = {
                                         Row(
@@ -182,11 +212,31 @@ class ConnectionListScreen : Screen {
                                 connection = connection,
                                 onConnect = {
                                     selectedConnection = connection
-                                    // Try to load saved password
-                                    screenModel.loadPassword(connection.id) { savedPwd ->
-                                        password = savedPwd ?: ""
-                                        savePassword = savedPwd != null
-                                        showPasswordDialog = true
+                                    if (connection.authType == "key" && connection.keyAlias != null) {
+                                        // Public key auth: connect directly without password dialog
+                                        screenModel.updateLastUsed(connection.id)
+                                        navigator.push(
+                                            TerminalScreen(
+                                                ConnectionConfig(
+                                                    host = connection.host,
+                                                    port = connection.port,
+                                                    username = connection.username,
+                                                    password = null,
+                                                    keyAlias = connection.keyAlias,
+                                                    connectionId = connection.id,
+                                                    startupCommand = connection.startupCommand,
+                                                    deployPattern = connection.deployPattern,
+                                                    monitorFilePath = connection.monitorFilePath
+                                                )
+                                            )
+                                        )
+                                    } else {
+                                        // Password auth: show password dialog
+                                        screenModel.loadPassword(connection.id) { savedPwd ->
+                                            password = savedPwd ?: ""
+                                            savePassword = savedPwd != null
+                                            showPasswordDialog = true
+                                        }
                                     }
                                 },
                                 onEdit = { screenModel.showEditDialog(connection) },
@@ -202,6 +252,7 @@ class ConnectionListScreen : Screen {
         if (state.showAddDialog) {
             ConnectionDialog(
                 connection = state.editingConnection,
+                availableKeys = state.availableKeys,
                 onDismiss = { screenModel.hideDialog() },
                 onSave = { screenModel.saveConnection(it) }
             )
@@ -314,9 +365,11 @@ class ConnectionListScreen : Screen {
         }
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     private fun ConnectionDialog(
         connection: SavedConnection?,
+        availableKeys: List<SshKeyInfoCommon>,
         onDismiss: () -> Unit,
         onSave: (SavedConnection) -> Unit
     ) {
@@ -324,10 +377,13 @@ class ConnectionListScreen : Screen {
         var host by remember { mutableStateOf(connection?.host ?: "") }
         var port by remember { mutableStateOf(connection?.port?.toString() ?: "22") }
         var username by remember { mutableStateOf(connection?.username ?: "") }
+        var authType by remember { mutableStateOf(connection?.authType ?: "password") }
+        var keyAlias by remember { mutableStateOf(connection?.keyAlias ?: "") }
         var startupCommand by remember { mutableStateOf(connection?.startupCommand ?: "") }
         var deployPattern by remember { mutableStateOf(connection?.deployPattern ?: ">> VIBE_DEPLOY: (.*)") }
         var monitorFilePath by remember { mutableStateOf(connection?.monitorFilePath ?: "") }
         var isAutoReconnect by remember { mutableStateOf(connection?.isAutoReconnect ?: false) }
+        var keyDropdownExpanded by remember { mutableStateOf(false) }
 
         AlertDialog(
             onDismissRequest = onDismiss,
@@ -366,6 +422,85 @@ class ConnectionListScreen : Screen {
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
+
+                    // Authentication Type Selection
+                    Text(
+                        text = "Authentication",
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            selected = authType == "password",
+                            onClick = { authType = "password" },
+                            label = { Text("Password") }
+                        )
+                        FilterChip(
+                            selected = authType == "key",
+                            onClick = { authType = "key" },
+                            label = { Text("Public Key") }
+                        )
+                    }
+
+                    // Key Selection (shown when authType is "key")
+                    if (authType == "key") {
+                        if (availableKeys.isEmpty()) {
+                            // No keys available
+                            Text(
+                                text = "No SSH keys available. Create keys in Settings > SSH Keys.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.Red,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        } else {
+                            // Key dropdown
+                            ExposedDropdownMenuBox(
+                                expanded = keyDropdownExpanded,
+                                onExpandedChange = { keyDropdownExpanded = it }
+                            ) {
+                                OutlinedTextField(
+                                    value = if (keyAlias.isNotBlank()) {
+                                        val keyInfo = availableKeys.find { it.alias == keyAlias }
+                                        if (keyInfo != null) "${keyInfo.alias} (${keyInfo.algorithm})" else keyAlias
+                                    } else "",
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("SSH Key") },
+                                    placeholder = { Text("Select a key") },
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = keyDropdownExpanded) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = keyDropdownExpanded,
+                                    onDismissRequest = { keyDropdownExpanded = false }
+                                ) {
+                                    availableKeys.forEach { key ->
+                                        DropdownMenuItem(
+                                            text = {
+                                                Column {
+                                                    Text(key.alias)
+                                                    Text(
+                                                        text = key.algorithm,
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = Color.Gray
+                                                    )
+                                                }
+                                            },
+                                            onClick = {
+                                                keyAlias = key.alias
+                                                keyDropdownExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     // Startup Command Input
                     StartUpCommandInput(
@@ -431,7 +566,8 @@ class ConnectionListScreen : Screen {
                             host = host,
                             port = port.toIntOrNull() ?: 22,
                             username = username,
-                            authType = "password",
+                            authType = authType,
+                            keyAlias = if (authType == "key" && keyAlias.isNotBlank()) keyAlias else null,
                             createdAt = connection?.createdAt ?: System.currentTimeMillis(),
                             lastUsedAt = connection?.lastUsedAt,
                             deployPattern = deployPattern.ifBlank { null },
@@ -441,7 +577,8 @@ class ConnectionListScreen : Screen {
                         )
                         onSave(savedConnection)
                     },
-                    enabled = name.isNotBlank() && host.isNotBlank() && username.isNotBlank()
+                    enabled = name.isNotBlank() && host.isNotBlank() && username.isNotBlank() &&
+                              (authType == "password" || (authType == "key" && keyAlias.isNotBlank()))
                 ) {
                     Text(stringResource(Res.string.action_save))
                 }

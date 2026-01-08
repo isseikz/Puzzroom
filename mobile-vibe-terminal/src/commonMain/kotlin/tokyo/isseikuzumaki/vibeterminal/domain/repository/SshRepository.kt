@@ -16,6 +16,31 @@ interface SshRepository {
         initialHeightPx: Int = 384,
         startupCommand: String? = null
     ): Result<Unit>
+
+    /**
+     * Connect to SSH server using public key authentication.
+     * @param host SSH server hostname
+     * @param port SSH server port
+     * @param username SSH username
+     * @param keyAlias Android KeyStore key alias for the SSH key pair
+     * @param initialCols Initial terminal width in columns
+     * @param initialRows Initial terminal height in rows
+     * @param initialWidthPx Initial terminal width in pixels
+     * @param initialHeightPx Initial terminal height in pixels
+     * @param startupCommand Command to execute on shell startup
+     * @return Result indicating success or failure
+     */
+    suspend fun connectWithKey(
+        host: String,
+        port: Int,
+        username: String,
+        keyAlias: String,
+        initialCols: Int = 80,
+        initialRows: Int = 24,
+        initialWidthPx: Int = 640,
+        initialHeightPx: Int = 384,
+        startupCommand: String? = null
+    ): Result<Unit>
     suspend fun disconnect()
     fun isConnected(): Boolean
     suspend fun executeCommand(command: String): Result<String>
