@@ -115,6 +115,18 @@
     <string name="macro_nav_page_up">Página arriba</string>
     <string name="macro_nav_page_down">Página abajo</string>
 
+    <!-- Settings -->
+    <string name="settings_auto_install">Instalación automática de APK</string>
+    <string name="settings_auto_install_description">Instalar APK automáticamente cuando se recibe desde un activador remoto</string>
+
+    <!-- Install Confirmation Dialog -->
+    <string name="install_dialog_title">Instalar APK</string>
+    <string name="install_dialog_message">Se ha descargado un nuevo archivo APK. ¿Desea instalarlo?</string>
+    <string name="install_dialog_source">Origen de descarga:</string>
+    <string name="install_dialog_file">Archivo:</string>
+    <string name="install_dialog_size">Tamaño:</string>
+    <string name="install_dialog_confirm">Instalar</string>
+
     <!-- Vim Macro Keys -->
     <string name="macro_vim_insert">Modo insertar</string>
     <string name="macro_vim_append">Añadir</string>
