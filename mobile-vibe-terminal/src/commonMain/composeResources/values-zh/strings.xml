@@ -115,6 +115,18 @@
     <string name="macro_nav_page_up">上翻页</string>
     <string name="macro_nav_page_down">下翻页</string>
 
+    <!-- Settings -->
+    <string name="settings_auto_install">自动安装APK</string>
+    <string name="settings_auto_install_description">从远程触发器收到APK时自动安装</string>
+
+    <!-- Install Confirmation Dialog -->
+    <string name="install_dialog_title">安装APK</string>
+    <string name="install_dialog_message">已下载新的APK文件。是否安装？</string>
+    <string name="install_dialog_source">下载来源：</string>
+    <string name="install_dialog_file">文件：</string>
+    <string name="install_dialog_size">大小：</string>
+    <string name="install_dialog_confirm">安装</string>
+
     <!-- Vim Macro Keys -->
     <string name="macro_vim_insert">插入模式</string>
     <string name="macro_vim_append">追加</string>
