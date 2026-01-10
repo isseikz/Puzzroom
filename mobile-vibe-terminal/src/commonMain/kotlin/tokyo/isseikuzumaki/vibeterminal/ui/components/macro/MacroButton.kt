@@ -3,13 +3,14 @@ package tokyo.isseikuzumaki.vibeterminal.ui.components.macro
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.Button
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusProperties
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -21,23 +22,29 @@ fun MacroButton(
     isEmphasis: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    Button(
+    OutlinedButton(
         onClick = onClick,
-        colors = ButtonDefaults.buttonColors(
+        shape = RoundedCornerShape(50),
+        colors = ButtonDefaults.outlinedButtonColors(
             containerColor = if (isEmphasis) {
-                Color(0xFF39D353).copy(alpha = 0.2f)
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
             } else {
-                Color(0xFF2A2A2A)
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             },
             contentColor = if (isEmphasis) {
-                Color(0xFF39D353)
+                MaterialTheme.colorScheme.primary
             } else {
-                Color(0xFF00FF00)
+                MaterialTheme.colorScheme.onSurfaceVariant
             }
         ),
-        border = if (isEmphasis) {
-            BorderStroke(1.dp, Color(0xFF39D353))
-        } else null,
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (isEmphasis) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+            }
+        ),
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
         modifier = modifier.height(36.dp).focusProperties { canFocus = false }
     ) {
