@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
@@ -18,6 +19,7 @@ import tokyo.isseikuzumaki.nlt.ui.viewmodel.NLTViewModel
 import tokyo.isseikuzumaki.nolotracker.data.model.NotificationRecord
 import tokyo.isseikuzumaki.shared.ui.atoms.AppCard
 import tokyo.isseikuzumaki.shared.ui.atoms.AppText
+import tokyo.isseikuzumaki.shared.ui.atoms.AppIconButton
 
 /**
  * Notifications list page showing all captured notification records
@@ -92,7 +94,7 @@ fun NotificationsListPage(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             AppText(
-                                text = "対象アプリから通知が届くと、ここに表示されます",
+                                text = "アプリから通知が届くと、ここに表示されます",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -107,7 +109,14 @@ fun NotificationsListPage(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(state.notifications) { notification ->
-                            NotificationRecordCard(notification)
+                            NotificationRecordCard(
+                                notification = notification,
+                                onAddToFilter = { packageName ->
+                                    scope.launch {
+                                        viewModel.addPackageToFilter(packageName)
+                                    }
+                                }
+                            )
                         }
                     }
                 }
@@ -142,6 +151,7 @@ fun NotificationsListPage(
 @Composable
 private fun NotificationRecordCard(
     notification: NotificationRecord,
+    onAddToFilter: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     AppCard(
@@ -152,14 +162,53 @@ private fun NotificationRecordCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // App name
-            AppText(
-                text = notification.packageName,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
+            // Header row with app info and add button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    // App icon placeholder (using first letter of package name)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(40.dp),
+                            shape = MaterialTheme.shapes.small,
+                            color = MaterialTheme.colorScheme.secondaryContainer
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center
+                            ) {
+                                AppText(
+                                    text = notification.packageName.firstOrNull()?.uppercase() ?: "?",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                        }
+                        
+                        // App name (package name)
+                        AppText(
+                            text = notification.packageName,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                
+                // Plus button to add to filter
+                AppIconButton(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "フィルターに追加",
+                    onClick = { onAddToFilter(notification.packageName) },
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
             
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             
             // Title
             notification.title?.let { title ->
