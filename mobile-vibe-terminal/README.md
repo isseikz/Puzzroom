@@ -1,4 +1,4 @@
-# Mobile Vibe Terminal
+# Vibe Terminal
 
 **Version:** 2.5.0  
 **Platform:** Android, Desktop (JVM), iOS (Future)  
@@ -6,7 +6,7 @@
 
 ## 概要 (Overview)
 
-Mobile Vibe Terminal は、AI時代のSSHクライアントです。スマートフォンでの開発体験を最適化し、Claude Code等のAgentic AIをバックエンドで動かすことを前提に設計されています。
+Vibe Terminal は、AI時代のSSHクライアントです。スマートフォンでの開発体験を最適化し、Claude Code等のAgentic AIをバックエンドで動かすことを前提に設計されています。
 
 ## 主な機能 (Key Features)
 
@@ -69,7 +69,7 @@ Magic Deployは、リモートサーバーでビルドされたアプリ（APK�
 ### 1. リモートトリガーモード (Recommended)
 
 SSHのリモートポートフォワーディングを利用した、高速かつ確実なデプロイ方法です。
-Mobile Vibe Terminalは接続時にサーバー側のポート `58080` をリッスンします。
+Vibe Terminalは接続時にサーバー側のポート `58080` をリッスンします。
 
 **使用方法:**
 サーバー側でAPKのパスをポート `58080` に送信するだけでトリガーされます。
