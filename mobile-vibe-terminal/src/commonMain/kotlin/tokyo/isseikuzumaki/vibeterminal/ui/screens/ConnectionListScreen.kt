@@ -91,6 +91,15 @@ class ConnectionListScreen : Screen {
                             )
                         }
 
+                        // Add connection button
+                        IconButton(onClick = { screenModel.showAddDialog() }) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = stringResource(Res.string.connection_list_add),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
                         // Settings menu
                         Box {
                             IconButton(onClick = { showSettingsMenu = true }) {
@@ -167,15 +176,6 @@ class ConnectionListScreen : Screen {
                         }
                     }
                 )
-            },
-            floatingActionButton = {
-                FloatingActionButton(
-                    onClick = { screenModel.showAddDialog() },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ) {
-                    Icon(Icons.Default.Add, stringResource(Res.string.connection_list_add))
-                }
             }
         ) { padding ->
             Column(
