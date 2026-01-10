@@ -32,6 +32,7 @@ import tokyo.isseikuzumaki.vibeterminal.domain.model.SavedConnection
 import tokyo.isseikuzumaki.vibeterminal.security.SshKeyInfoCommon
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.ConnectionListScreenModel
 import tokyo.isseikuzumaki.vibeterminal.ui.components.StartUpCommandInput
+import tokyo.isseikuzumaki.vibeterminal.ui.components.PlatformAdBanner
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalDisplayManager
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.stringResource
@@ -84,6 +85,15 @@ class ConnectionListScreen : Screen {
                                 fontSize = 12.sp,
                                 color = Color(0xFF00FF00),
                                 modifier = Modifier.padding(end = 16.dp)
+                            )
+                        }
+
+                        // Add connection button
+                        IconButton(onClick = { screenModel.showAddDialog() }) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = stringResource(Res.string.connection_list_add),
+                                tint = Color(0xFF00FF00)
                             )
                         }
 
@@ -164,14 +174,8 @@ class ConnectionListScreen : Screen {
                     }
                 )
             },
-            floatingActionButton = {
-                FloatingActionButton(
-                    onClick = { screenModel.showAddDialog() },
-                    containerColor = Color(0xFF00FF00),
-                    contentColor = Color.Black
-                ) {
-                    Icon(Icons.Default.Add, stringResource(Res.string.connection_list_add))
-                }
+            bottomBar = {
+                PlatformAdBanner()
             }
         ) { padding ->
             Column(
@@ -180,22 +184,16 @@ class ConnectionListScreen : Screen {
                     .padding(padding)
             ) {
                 if (state.connections.isEmpty()) {
-                    // Empty state
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                    // Empty state - show add new connection card
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 300.dp),
+                        contentPadding = PaddingValues(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                stringResource(Res.string.connection_list_empty_title),
-                                style = MaterialTheme.typography.headlineSmall,
-                                color = Color.Gray
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                stringResource(Res.string.connection_list_empty_message),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color.Gray
+                        item {
+                            AddConnectionCard(
+                                onAdd = { screenModel.showAddDialog() }
                             )
                         }
                     }
@@ -360,6 +358,56 @@ class ConnectionListScreen : Screen {
                     IconButton(onClick = onDelete) {
                         Icon(Icons.Default.Delete, stringResource(Res.string.action_delete), tint = Color.Red)
                     }
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun AddConnectionCard(
+        onAdd: () -> Unit
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFF2A2A2A)
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = null,
+                    tint = Color(0xFF00FF00),
+                    modifier = Modifier.size(48.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(Res.string.connection_list_empty_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF00FF00)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(Res.string.connection_list_empty_message),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = onAdd,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF00FF00),
+                        contentColor = Color.Black
+                    )
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(Res.string.connection_list_add))
                 }
             }
         }

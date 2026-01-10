@@ -81,6 +81,8 @@ kotlin {
             implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.4")
             implementation("androidx.lifecycle:lifecycle-process:2.9.4")
             implementation("androidx.savedstate:savedstate:1.2.1")
+            // Google Mobile Ads SDK
+            implementation("com.google.android.gms:play-services-ads:23.6.0")
         }
 
         val desktopMain by getting {
