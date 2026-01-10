@@ -101,6 +101,10 @@ jobs:
         echo "Updated build.gradle.kts:"
         grep -n "versionCode\|versionName" mobile-vibe-terminal/build.gradle.kts
 
+    - name: Decode debug keystore
+      run: |
+        echo "${{ secrets.DEBUG_KEYSTORE }}" | base64 -d > debug.keystore
+
     - name: Verify build
       run: ./gradlew :mobile-vibe-terminal:assembleDebug --no-daemon
 
