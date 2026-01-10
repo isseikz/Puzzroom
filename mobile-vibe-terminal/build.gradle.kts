@@ -129,6 +129,10 @@ dependencies {
     add("kspIosSimulatorArm64", libs.room.compiler)
 }
 
+// AdMob IDs from environment variables (fallback to test IDs)
+val admobAppId: String = System.getenv("ADMOB_APP_ID") ?: "ca-app-pub-3940256099942544~3347511713"
+val admobBannerAdUnitId: String = System.getenv("ADMOB_BANNER_AD_UNIT_ID") ?: "ca-app-pub-3940256099942544/6300978111"
+
 android {
     namespace = "tokyo.isseikuzumaki.vibeterminal"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -140,6 +144,14 @@ android {
         versionCode = 10000
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // AdMob configuration via manifest placeholders
+        manifestPlaceholders["ADMOB_APP_ID"] = admobAppId
+        buildConfigField("String", "ADMOB_BANNER_AD_UNIT_ID", "\"$admobBannerAdUnitId\"")
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     signingConfigs {

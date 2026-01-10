@@ -14,6 +14,7 @@ import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.LoadAdError
+import tokyo.isseikuzumaki.vibeterminal.BuildConfig
 
 /**
  * バナー広告を表示するComposable
@@ -22,12 +23,12 @@ import com.google.android.gms.ads.LoadAdError
  * 広告の読み込みに失敗した場合は何も表示しない。
  *
  * @param modifier Modifier
- * @param adUnitId 広告ユニットID（デフォルトはテスト用ID）
+ * @param adUnitId 広告ユニットID（BuildConfigから取得、環境変数で上書き可能）
  */
 @Composable
 fun AdBanner(
     modifier: Modifier = Modifier,
-    adUnitId: String = "ca-app-pub-3940256099942544/6300978111" // Test Banner ID
+    adUnitId: String = BuildConfig.ADMOB_BANNER_AD_UNIT_ID
 ) {
     var isAdLoaded by remember { mutableStateOf(false) }
     var adView by remember { mutableStateOf<AdView?>(null) }
