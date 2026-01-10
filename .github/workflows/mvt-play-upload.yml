@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: read
+      contents: write
 
     steps:
     - name: Checkout code
@@ -69,6 +69,12 @@ jobs:
     - name: Verify AAB signature
       run: |
         jarsigner -verify ./mobile-vibe-terminal/build/outputs/bundle/release/mobile-vibe-terminal-release.aab
+
+    - name: Upload AAB to Release
+      run: |
+        gh release upload ${{ github.event.release.tag_name }} ./mobile-vibe-terminal/build/outputs/bundle/release/mobile-vibe-terminal-release.aab --clobber
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Upload AAB to Google Play (Internal Testing)
       uses: r0adkll/upload-google-play@v1
