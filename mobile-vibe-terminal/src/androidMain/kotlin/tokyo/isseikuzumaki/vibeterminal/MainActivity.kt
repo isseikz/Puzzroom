@@ -17,6 +17,7 @@ import tokyo.isseikuzumaki.vibeterminal.platform.launchSecondaryDisplay
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalStateProvider
 import tokyo.isseikuzumaki.vibeterminal.ui.components.TriggerEventHost
 import tokyo.isseikuzumaki.vibeterminal.ui.screens.ConnectionListScreen
+import tokyo.isseikuzumaki.vibeterminal.ui.theme.VibeTerminalTheme
 import tokyo.isseikuzumaki.vibeterminal.util.Logger
 
 class MainActivity : ComponentActivity() {
@@ -47,8 +48,10 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            TriggerEventHost {
-                Navigator(ConnectionListScreen())
+            VibeTerminalTheme {
+                TriggerEventHost {
+                    Navigator(ConnectionListScreen())
+                }
             }
         }
     }

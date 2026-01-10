@@ -1,20 +1,24 @@
 package tokyo.isseikuzumaki.vibeterminal.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -73,8 +77,8 @@ class ConnectionListScreen : Screen {
                 TopAppBar(
                     title = { Text(stringResource(Res.string.connection_list_title)) },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color(0xFF1A1A1A),
-                        titleContentColor = Color(0xFF00FF00)
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.primary
                     ),
                     actions = {
                         // Display connection indicator (informational only)
@@ -82,7 +86,7 @@ class ConnectionListScreen : Screen {
                             Text(
                                 text = stringResource(Res.string.connection_list_test_display),
                                 fontSize = 12.sp,
-                                color = Color(0xFF00FF00),
+                                color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.padding(end = 16.dp)
                             )
                         }
@@ -93,7 +97,7 @@ class ConnectionListScreen : Screen {
                                 Icon(
                                     Icons.Default.Settings,
                                     contentDescription = "Settings",
-                                    tint = Color(0xFF00FF00)
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                             }
                             DropdownMenu(
@@ -109,7 +113,7 @@ class ConnectionListScreen : Screen {
                                             Icon(
                                                 Icons.Default.Settings,
                                                 contentDescription = null,
-                                                tint = Color(0xFF00FF00),
+                                                tint = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.size(20.dp)
                                             )
                                             Spacer(Modifier.width(12.dp))
@@ -118,7 +122,7 @@ class ConnectionListScreen : Screen {
                                                 Text(
                                                     "Manage public key authentication",
                                                     style = MaterialTheme.typography.bodySmall,
-                                                    color = Color.Gray
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             }
                                         }
@@ -140,7 +144,7 @@ class ConnectionListScreen : Screen {
                                                 Text(
                                                     stringResource(Res.string.settings_auto_install_description),
                                                     style = MaterialTheme.typography.bodySmall,
-                                                    color = Color.Gray
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             }
                                             Switch(
@@ -167,8 +171,8 @@ class ConnectionListScreen : Screen {
             floatingActionButton = {
                 FloatingActionButton(
                     onClick = { screenModel.showAddDialog() },
-                    containerColor = Color(0xFF00FF00),
-                    contentColor = Color.Black
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 ) {
                     Icon(Icons.Default.Add, stringResource(Res.string.connection_list_add))
                 }
@@ -189,13 +193,13 @@ class ConnectionListScreen : Screen {
                             Text(
                                 stringResource(Res.string.connection_list_empty_title),
                                 style = MaterialTheme.typography.headlineSmall,
-                                color = Color.Gray
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 stringResource(Res.string.connection_list_empty_message),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color.Gray
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -319,46 +323,75 @@ class ConnectionListScreen : Screen {
         onDelete: () -> Unit
     ) {
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onConnect),
+            shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color(0xFF2A2A2A)
+                containerColor = MaterialTheme.colorScheme.surface
             )
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
-                Text(
-                    text = connection.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF00FF00)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "${connection.username}@${connection.host}:${connection.port}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                // Left side: Host info
+                Column(
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Button(
-                        onClick = onConnect,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF00FF00),
-                            contentColor = Color.Black
-                        )
-                    ) {
-                        Text(stringResource(Res.string.action_connect))
-                    }
-                    IconButton(onClick = onEdit) {
-                        Icon(Icons.Default.Edit, stringResource(Res.string.action_edit), tint = Color(0xFF00FF00))
-                    }
-                    IconButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, stringResource(Res.string.action_delete), tint = Color.Red)
+                    Text(
+                        text = connection.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "${connection.username}@${connection.host}:${connection.port}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                // Right side: Actions
+                Column(
+                    horizontalAlignment = Alignment.End
+                ) {
+                    // Connect indicator
+                    Icon(
+                        Icons.Default.PlayArrow,
+                        contentDescription = stringResource(Res.string.action_connect),
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    // Edit and Delete icons
+                    Row {
+                        IconButton(
+                            onClick = onEdit,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Edit,
+                                stringResource(Res.string.action_edit),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = onDelete,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                stringResource(Res.string.action_delete),
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -387,11 +420,21 @@ class ConnectionListScreen : Screen {
 
         AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text(stringResource(if (connection == null) Res.string.connection_dialog_add_title else Res.string.connection_dialog_edit_title)) },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = {
+                Text(
+                    text = stringResource(if (connection == null) Res.string.connection_dialog_add_title else Res.string.connection_dialog_edit_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
             text = {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     OutlinedTextField(
                         value = name,
@@ -424,25 +467,39 @@ class ConnectionListScreen : Screen {
                     )
 
                     // Authentication Type Selection
-                    Text(
-                        text = "Authentication",
-                        style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        FilterChip(
-                            selected = authType == "password",
-                            onClick = { authType = "password" },
-                            label = { Text("Password") }
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "Authentication",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
-                        FilterChip(
-                            selected = authType == "key",
-                            onClick = { authType = "key" },
-                            label = { Text("Public Key") }
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = authType == "password",
+                                onClick = { authType = "password" },
+                                label = { Text("Password") },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            )
+                            FilterChip(
+                                selected = authType == "key",
+                                onClick = { authType = "key" },
+                                label = { Text("Public Key") },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            )
+                        }
                     }
 
                     // Key Selection (shown when authType is "key")
@@ -452,7 +509,7 @@ class ConnectionListScreen : Screen {
                             Text(
                                 text = "No SSH keys available. Create keys in Settings > SSH Keys.",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color.Red,
+                                color = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.padding(vertical = 8.dp)
                             )
                         } else {
@@ -487,7 +544,7 @@ class ConnectionListScreen : Screen {
                                                     Text(
                                                         text = key.algorithm,
                                                         style = MaterialTheme.typography.bodySmall,
-                                                        color = Color.Gray
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
                                                 }
                                             },
@@ -578,13 +635,22 @@ class ConnectionListScreen : Screen {
                         onSave(savedConnection)
                     },
                     enabled = name.isNotBlank() && host.isNotBlank() && username.isNotBlank() &&
-                              (authType == "password" || (authType == "key" && keyAlias.isNotBlank()))
+                              (authType == "password" || (authType == "key" && keyAlias.isNotBlank())),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 ) {
                     Text(stringResource(Res.string.action_save))
                 }
             },
             dismissButton = {
-                TextButton(onClick = onDismiss) {
+                TextButton(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                ) {
                     Text(stringResource(Res.string.action_cancel))
                 }
             }
@@ -603,14 +669,24 @@ class ConnectionListScreen : Screen {
     ) {
         AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text(stringResource(Res.string.password_dialog_title)) },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = {
+                Text(
+                    text = stringResource(Res.string.password_dialog_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
             text = {
-                Column {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
                     Text(
                         text = stringResource(Res.string.password_dialog_connecting_to, connection.name),
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = password,
                         onValueChange = onPasswordChange,
@@ -620,19 +696,23 @@ class ConnectionListScreen : Screen {
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Checkbox(
                             checked = savePassword,
-                            onCheckedChange = onSavePasswordChange
+                            onCheckedChange = onSavePasswordChange,
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = MaterialTheme.colorScheme.primary,
+                                checkmarkColor = MaterialTheme.colorScheme.onPrimary
+                            )
                         )
                         Text(
                             text = stringResource(Res.string.password_dialog_remember),
                             modifier = Modifier.padding(start = 8.dp),
-                            style = MaterialTheme.typography.bodySmall
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -640,13 +720,22 @@ class ConnectionListScreen : Screen {
             confirmButton = {
                 Button(
                     onClick = onConnect,
-                    enabled = password.isNotBlank()
+                    enabled = password.isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 ) {
                     Text(stringResource(Res.string.action_connect))
                 }
             },
             dismissButton = {
-                TextButton(onClick = onDismiss) {
+                TextButton(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                ) {
                     Text(stringResource(Res.string.action_cancel))
                 }
             }

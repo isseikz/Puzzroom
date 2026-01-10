@@ -1,18 +1,12 @@
 package tokyo.isseikuzumaki.vibeterminal.ui.components.macro
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.material.icons.Icons
@@ -38,12 +32,12 @@ fun MacroInputPanel(
     onToggleCtrl: () -> Unit,
     onToggleAlt: () -> Unit,
     modifier: Modifier = Modifier,
-    terminalInputState: TerminalInputContainerState? = null // Added for wrapping the keyboard toggle button
+    terminalInputState: TerminalInputContainerState? = null
 ) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color(0xFF1A1A1A))
+            .background(MaterialTheme.colorScheme.surface)
     ) {
         // Tab Row
         MacroTabRow(
@@ -53,7 +47,7 @@ fun MacroInputPanel(
         )
 
         HorizontalDivider(
-            color = Color(0xFF00FF00).copy(alpha = 0.3f),
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
             thickness = 1.dp
         )
 
@@ -65,13 +59,12 @@ fun MacroInputPanel(
                 onDirectSend(sequence)
             },
             onBufferInsert = { text ->
-                // Directly send text macros instead of buffering
                 onDirectSend(text)
             }
         )
 
         HorizontalDivider(
-            color = Color(0xFF00FF00).copy(alpha = 0.3f),
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
             thickness = 1.dp
         )
 
@@ -83,31 +76,27 @@ fun MacroInputPanel(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // IME Mode Toggle (DIRECT / IME)
+            // IME Mode Toggle (TEXT MODE is special - uses primary color outline)
             FilterChip(
                 selected = state.isImeEnabled,
                 onClick = onToggleImeMode,
-                // Using existing string resources:
-                // macro_cmd_mode -> "CMD MODE" -> DIRECT
-                // macro_text_mode -> "TEXT MODE" -> IME
                 label = { Text(if (state.isImeEnabled) stringResource(Res.string.macro_text_mode) else stringResource(Res.string.macro_cmd_mode)) },
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Color(0xFF00FF00),
-                    selectedLabelColor = Color.Black,
-                    containerColor = Color.DarkGray,
-                    labelColor = Color.White
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
                 border = FilterChipDefaults.filterChipBorder(
                     enabled = true,
                     selected = state.isImeEnabled,
-                    borderColor = Color(0xFF00FF00).copy(alpha = 0.5f),
-                    selectedBorderColor = Color(0xFF00FF00)
+                    borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                    selectedBorderColor = MaterialTheme.colorScheme.primary
                 ),
                 modifier = Modifier.focusProperties { canFocus = false }
             )
 
             // Keyboard Visibility Toggle
-            // Wrapped in TerminalInputContainer if state is provided
             if (terminalInputState != null) {
                 TerminalInputContainer(
                     state = terminalInputState,
@@ -116,7 +105,7 @@ fun MacroInputPanel(
                     IconButton(
                         onClick = onToggleSoftKeyboard,
                         colors = IconButtonDefaults.iconButtonColors(
-                            contentColor = if (state.isSoftKeyboardVisible) Color(0xFF00FF00) else Color.Gray
+                            contentColor = if (state.isSoftKeyboardVisible) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     ) {
                         Icon(
@@ -129,7 +118,7 @@ fun MacroInputPanel(
                 IconButton(
                     onClick = onToggleSoftKeyboard,
                     colors = IconButtonDefaults.iconButtonColors(
-                        contentColor = if (state.isSoftKeyboardVisible) Color(0xFF00FF00) else Color.Gray
+                        contentColor = if (state.isSoftKeyboardVisible) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 ) {
                     Icon(
@@ -147,16 +136,16 @@ fun MacroInputPanel(
                 onClick = onToggleCtrl,
                 label = { Text(stringResource(Res.string.macro_ctrl)) },
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Color(0xFF00FF00),
-                    selectedLabelColor = Color.Black,
-                    containerColor = Color.DarkGray,
-                    labelColor = Color.White
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
                 border = FilterChipDefaults.filterChipBorder(
                     enabled = true,
                     selected = state.isCtrlActive,
-                    borderColor = Color(0xFF00FF00).copy(alpha = 0.5f),
-                    selectedBorderColor = Color(0xFF00FF00)
+                    borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                    selectedBorderColor = MaterialTheme.colorScheme.primary
                 ),
                 modifier = Modifier.focusProperties { canFocus = false }
             )
@@ -167,16 +156,16 @@ fun MacroInputPanel(
                 onClick = onToggleAlt,
                 label = { Text(stringResource(Res.string.macro_alt)) },
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Color(0xFF00FF00),
-                    selectedLabelColor = Color.Black,
-                    containerColor = Color.DarkGray,
-                    labelColor = Color.White
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
                 border = FilterChipDefaults.filterChipBorder(
                     enabled = true,
                     selected = state.isAltActive,
-                    borderColor = Color(0xFF00FF00).copy(alpha = 0.5f),
-                    selectedBorderColor = Color(0xFF00FF00)
+                    borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                    selectedBorderColor = MaterialTheme.colorScheme.primary
                 ),
                 modifier = Modifier.focusProperties { canFocus = false }
             )

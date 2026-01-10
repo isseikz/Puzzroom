@@ -206,22 +206,22 @@ data class TerminalScreen(
                             if (isLoadingInitialPath) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(24.dp),
-                                    color = Color(0xFF00FF00),
+                                    color = MaterialTheme.colorScheme.primary,
                                     strokeWidth = 2.dp
                                 )
                             } else {
                                 Icon(
                                     Icons.Default.FolderOpen,
                                     stringResource(Res.string.terminal_file_explorer),
-                                    tint = if (state.isConnected) Color(0xFF00FF00) else Color.Gray
+                                    tint = if (state.isConnected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color(0xFF1A1A1A),
-                        titleContentColor = Color(0xFF00FF00),
-                        navigationIconContentColor = Color(0xFF00FF00)
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.primary,
+                        navigationIconContentColor = MaterialTheme.colorScheme.primary
                     )
                 )
             }
@@ -250,7 +250,7 @@ data class TerminalScreen(
                 if (state.isConnecting) {
                     LinearProgressIndicator(
                         modifier = Modifier.fillMaxWidth(),
-                        color = Color(0xFF00FF00)
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
 
@@ -259,19 +259,19 @@ data class TerminalScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color(0xFF2D2D00))
+                            .background(MaterialTheme.colorScheme.tertiaryContainer)
                             .padding(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(16.dp),
-                            color = Color(0xFFFFAA00),
+                            color = MaterialTheme.colorScheme.tertiary,
                             strokeWidth = 2.dp
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = stringResource(Res.string.terminal_reconnecting),
-                            color = Color(0xFFFFAA00),
+                            color = MaterialTheme.colorScheme.tertiary,
                             fontSize = 12.sp
                         )
                     }
@@ -281,7 +281,7 @@ data class TerminalScreen(
                 state.errorMessage?.let { error ->
                     Text(
                         text = error,
-                        color = Color.Red,
+                        color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(8.dp),
                         fontSize = 12.sp
                     )
@@ -522,7 +522,7 @@ data class TerminalScreen(
                 if (screenBuffer.isEmpty()) {
                     Text(
                         text = stringResource(Res.string.terminal_initializing),
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontFamily = TerminalFontConfig.fontFamily,
                         fontSize = TerminalFontConfig.fontSize
                     )
