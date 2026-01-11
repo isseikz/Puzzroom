@@ -313,15 +313,15 @@ class TerminalScreenModel(
     fun sendInput(text: String, appendNewline: Boolean = false) {
         if (text.isEmpty()) return
 
-        screenModelScope.launch {
+        screenModelScope.launch(Dispatchers.IO) {
             var toSend = if (appendNewline) text + "\n" else text
-            
+
             val currentState = _state.value
             var modified = false
-            
+
             if (toSend.length == 1) {
                 var char = toSend[0]
-                
+
                 if (currentState.isCtrlActive) {
                     if (char in 'a'..'z' || char in 'A'..'Z') {
                         // Convert to control character (A=1, B=2, ...)
@@ -330,17 +330,17 @@ class TerminalScreenModel(
                         modified = true
                     }
                 }
-                
+
                 if (currentState.isAltActive) {
                     toSend = "\u001B" + toSend
                     modified = true
                 }
             }
-            
+
             if (modified) {
                 _state.update { it.copy(isCtrlActive = false, isAltActive = false) }
             }
-            
+
             Logger.d("SSH_TX: $toSend")
             sshRepository.sendInput(toSend)
         }
@@ -440,9 +440,9 @@ class TerminalScreenModel(
      * Start background file monitoring on the server
      */
     private fun startFileMonitoring(path: String) {
-        screenModelScope.launch {
+        screenModelScope.launch(Dispatchers.IO) {
             Logger.d("Starting file monitoring for: $path")
-            
+
             // This command works on both macOS (stat -f %m) and Linux (stat -c %Y)
             // It runs in the background (&) and won't block the shell
             val monitorCmd = """
@@ -462,7 +462,7 @@ class TerminalScreenModel(
                 done
                 ) > /dev/null 2>&1 &
             """.trimIndent().replace("\n", " ")
-            
+
             sshRepository.sendInput("$monitorCmd\n")
         }
     }
@@ -499,7 +499,9 @@ class TerminalScreenModel(
         updateScreenState()
 
         screenModelScope.launch {
-            sshRepository.resizeTerminal(cols, rows, widthPx, heightPx)
+            withContext(Dispatchers.IO) {
+                sshRepository.resizeTerminal(cols, rows, widthPx, heightPx)
+            }
 
             // Check output listener status after resize
             Logger.d("After resize - checking output listener status...")
@@ -556,7 +558,9 @@ class TerminalScreenModel(
             Logger.d("=== Disconnecting ===")
             outputListenerJob?.cancel()
             outputListenerJob = null
-            sshRepository.disconnect()
+            withContext(Dispatchers.IO) {
+                sshRepository.disconnect()
+            }
             _state.update { it.copy(isConnected = false) }
             try {
                 TerminalStateProvider.clear()
@@ -796,13 +800,17 @@ class TerminalScreenModel(
             Logger.d("=== Disconnecting and clearing session ===")
 
             // First, clear the last active connection ID
-            connectionRepository.setLastActiveConnectionId(null)
+            withContext(Dispatchers.IO) {
+                connectionRepository.setLastActiveConnectionId(null)
+            }
             Logger.d("Cleared last active connection ID")
 
             // Then disconnect SSH
             outputListenerJob?.cancel()
             outputListenerJob = null
-            sshRepository.disconnect()
+            withContext(Dispatchers.IO) {
+                sshRepository.disconnect()
+            }
             _state.update { it.copy(isConnected = false) }
             try {
                 TerminalStateProvider.clear()
@@ -895,7 +903,7 @@ class TerminalScreenModel(
 
     override fun onDispose() {
         super.onDispose()
-        screenModelScope.launch {
+        screenModelScope.launch(Dispatchers.IO) {
             sshRepository.disconnect()
         }
     }
