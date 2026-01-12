@@ -1,4 +1,6 @@
+import org.gradle.process.ExecOperations
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import javax.inject.Inject
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -187,17 +189,21 @@ dependencies {
 }
 
 abstract class NotifyApkPathTask : DefaultTask() {
-    @get:javax.inject.Inject
-    abstract val execOperations: org.gradle.process.ExecOperations
-    
-    @get:InputDirectory
+    @get:Inject
+    abstract val execOperations: ExecOperations
+
+    @get:Internal
     abstract val apkDirectory: DirectoryProperty
 
     @TaskAction
     fun notifyPath() {
         val dir = apkDirectory.get().asFile
+        if (!dir.exists()) {
+            println("APK directory not found: $dir")
+            return
+        }
         val apkFile = dir.walkTopDown().find { it.name.endsWith(".apk") && !it.name.contains("unaligned") }
-        
+
         if (apkFile != null) {
             val absolutePath = apkFile.absolutePath
             println("Found APK at: $absolutePath")
