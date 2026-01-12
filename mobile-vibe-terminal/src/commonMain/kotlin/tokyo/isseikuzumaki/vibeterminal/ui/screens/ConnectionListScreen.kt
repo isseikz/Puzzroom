@@ -1,14 +1,14 @@
 package tokyo.isseikuzumaki.vibeterminal.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -27,19 +27,17 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.koin.koinScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
+import puzzroom.mobile_vibe_terminal.generated.resources.*
 import tokyo.isseikuzumaki.vibeterminal.data.datastore.PreferencesHelper
 import tokyo.isseikuzumaki.vibeterminal.domain.model.ConnectionConfig
 import tokyo.isseikuzumaki.vibeterminal.domain.model.SavedConnection
 import tokyo.isseikuzumaki.vibeterminal.security.SshKeyInfoCommon
-import tokyo.isseikuzumaki.vibeterminal.viewmodel.ConnectionListScreenModel
-import tokyo.isseikuzumaki.vibeterminal.ui.components.StartUpCommandInput
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalDisplayManager
-import androidx.compose.ui.unit.sp
-import org.jetbrains.compose.resources.stringResource
-import puzzroom.mobile_vibe_terminal.generated.resources.*
+import tokyo.isseikuzumaki.vibeterminal.ui.components.StartUpCommandInput
+import tokyo.isseikuzumaki.vibeterminal.viewmodel.ConnectionListScreenModel
 
 class ConnectionListScreen : Screen {
     @OptIn(ExperimentalMaterial3Api::class)
@@ -81,16 +79,6 @@ class ConnectionListScreen : Screen {
                         titleContentColor = MaterialTheme.colorScheme.primary
                     ),
                     actions = {
-                        // Display connection indicator (informational only)
-                        if (isDisplayConnected) {
-                            Text(
-                                text = stringResource(Res.string.connection_list_test_display),
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(end = 16.dp)
-                            )
-                        }
-
                         // Add connection button
                         IconButton(onClick = { screenModel.showAddDialog() }) {
                             Icon(
