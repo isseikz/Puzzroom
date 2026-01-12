@@ -2,9 +2,7 @@ package tokyo.isseikuzumaki.vibeterminal.platform
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
-import android.provider.Settings
 import androidx.core.content.ContextCompat
 import tokyo.isseikuzumaki.vibeterminal.service.TerminalService
 import tokyo.isseikuzumaki.vibeterminal.util.Logger
@@ -51,31 +49,7 @@ actual fun launchSecondaryDisplay(context: Any?) {
             return
         }
 
-        Logger.d("launchSecondaryDisplay: checking permission")
-
-        // Check if SYSTEM_ALERT_WINDOW permission is granted
-        if (!Settings.canDrawOverlays(context)) {
-            Logger.w("SYSTEM_ALERT_WINDOW permission not granted, requesting...")
-
-            // Open settings to request permission
-            val intent = Intent(
-                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                Uri.parse("package:${context.packageName}")
-            ).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            }
-
-            try {
-                context.startActivity(intent)
-                Logger.d("Opened overlay permission settings")
-            } catch (e: Exception) {
-                Logger.e(e, "Failed to open overlay permission settings")
-            }
-
-            return
-        }
-
-        Logger.d("Permission granted, starting TerminalService")
+        Logger.d("Starting TerminalService (permission check disabled for testing)")
 
         // Start TerminalService as foreground service
         try {
