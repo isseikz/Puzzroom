@@ -1,24 +1,18 @@
 package tokyo.isseikuzumaki.vibeterminal.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.Keyboard
-import androidx.compose.material.icons.filled.KeyboardHide
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.runtime.remember
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
@@ -36,7 +30,6 @@ import io.github.isseikz.kmpinput.TerminalInputContainer
 import io.github.isseikz.kmpinput.rememberTerminalInputContainerState
 import io.github.isseikz.kmpinput.InputMode as KmpInputMode
 
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -291,10 +284,12 @@ data class TerminalScreen(
                     // Secondary Display Mode: Show Macro Panel Full Screen
                     // We pass terminalInputState to MacroInputPanel to wrap the Keyboard Toggle button
                     MacroInputPanel(
-                        state = state,
-                        inputText = TextFieldValue(""),
-                        onInputChange = { },
-                        onSendCommand = { },
+                        selectedMacroTab = state.selectedMacroTab,
+                        isAlternateScreen = state.isAlternateScreen,
+                        isImeEnabled = state.isImeEnabled,
+                        isSoftKeyboardVisible = state.isSoftKeyboardVisible,
+                        isCtrlActive = state.isCtrlActive,
+                        isAltActive = state.isAltActive,
                         onDirectSend = { sequence ->
                             screenModel.sendInput(sequence, appendNewline = false)
                         },
@@ -314,7 +309,7 @@ data class TerminalScreen(
                             screenModel.toggleAlt()
                         },
                         modifier = Modifier.fillMaxSize(),
-                        terminalInputState = terminalInputState  // Pass state here
+                        terminalInputState = terminalInputState
                     )
                 } else {
                     // Main Display Mode: Standard Layout
@@ -428,19 +423,14 @@ data class TerminalScreen(
                                 buffer = state.screenBuffer,
                                 modifier = Modifier.fillMaxSize()
                             ) {
-                                if (state.isAlternateScreen) {
+                                // key() forces recomposition when bufferUpdateCounter changes
+                                // This is needed because Array reference stays the same while contents change
+                                key(state.bufferUpdateCounter) {
                                     TerminalCanvas(
                                         buffer = state.screenBuffer,
                                         cursorRow = state.cursorRow,
                                         cursorCol = state.cursorCol,
                                         modifier = Modifier.fillMaxSize()
-                                    )
-                                } else {
-                                    TerminalBufferView(
-                                        screenBuffer = state.screenBuffer,
-                                        cursorRow = state.cursorRow,
-                                        cursorCol = state.cursorCol,
-                                        bufferUpdateCounter = state.bufferUpdateCounter
                                     )
                                 }
                             }
@@ -450,10 +440,12 @@ data class TerminalScreen(
                     // Buffered Input Deck with Macro Row (Main Display Mode Only)
                     if (state.isConnected) {
                         MacroInputPanel(
-                            state = state,
-                            inputText = TextFieldValue(""),
-                            onInputChange = { },
-                            onSendCommand = { },
+                            selectedMacroTab = state.selectedMacroTab,
+                            isAlternateScreen = state.isAlternateScreen,
+                            isImeEnabled = state.isImeEnabled,
+                            isSoftKeyboardVisible = state.isSoftKeyboardVisible,
+                            isCtrlActive = state.isCtrlActive,
+                            isAltActive = state.isAltActive,
                             onDirectSend = { sequence ->
                                 screenModel.sendInput(sequence, appendNewline = false)
                             },
@@ -507,73 +499,4 @@ data class TerminalScreen(
         }
     }
 
-    @Composable
-    private fun TerminalBufferView(
-        screenBuffer: Array<Array<tokyo.isseikuzumaki.vibeterminal.terminal.TerminalCell>>,
-        cursorRow: Int,
-        cursorCol: Int,
-        bufferUpdateCounter: Int
-    ) {
-        // Force recomposition when buffer updates
-        key(bufferUpdateCounter) {
-            Column(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                if (screenBuffer.isEmpty()) {
-                    Text(
-                        text = stringResource(Res.string.terminal_initializing),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontFamily = TerminalFontConfig.fontFamily,
-                        fontSize = TerminalFontConfig.fontSize
-                    )
-                } else {
-                    screenBuffer.forEachIndexed { rowIndex, row ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            row.forEachIndexed { colIndex, cell ->
-                                // Skip padding cells - wide chars already occupy 2 cell widths
-                                if (!cell.isWideCharPadding) {
-                                    TerminalCellView(
-                                        cell = cell,
-                                        isCursor = rowIndex == cursorRow && colIndex == cursorCol
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    @Composable
-    private fun TerminalCellView(
-        cell: tokyo.isseikuzumaki.vibeterminal.terminal.TerminalCell,
-        isCursor: Boolean
-    ) {
-        val backgroundColor = if (isCursor) {
-            Color(0xFF00FF00)
-        } else {
-            cell.backgroundColor
-        }
-
-        val foregroundColor = if (isCursor) {
-            Color.Black
-        } else {
-            cell.foregroundColor
-        }
-
-        Text(
-            text = cell.char.toString(),
-            color = foregroundColor,
-            fontFamily = TerminalFontConfig.fontFamily,
-            fontSize = TerminalFontConfig.fontSize,
-            modifier = Modifier.background(backgroundColor),
-            style = androidx.compose.ui.text.TextStyle(
-                fontWeight = if (cell.isBold) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal,
-                textDecoration = if (cell.isUnderline) androidx.compose.ui.text.style.TextDecoration.Underline else null
-            )
-        )
-    }
 }
