@@ -9,7 +9,7 @@
 
     <!-- Permissions for secondary display -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <application
         android:name=".VibeTerminalApp"
@@ -36,11 +36,8 @@
             android:name=".service.TerminalService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Secondary display for development" />
-        </service>
+            android:foregroundServiceType="dataSync" />
+
 
         <!-- FileProvider for sharing APK files -->
         <provider

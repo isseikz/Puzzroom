@@ -39,6 +39,7 @@ ksp = "2.2.20-2.0.4"
 mina-sshd = "2.16.0"
 datastore = "1.2.0"
 timber = "5.0.1"
+hyperion = "0.9.38"
 
 [libraries]
 androidx-icons-core = { module = "androidx.compose.material.icons:material-icons-core", version.ref = "icons" }
@@ -109,6 +110,10 @@ datastore-preferences = { module = "androidx.datastore:datastore-preferences", v
 
 # Timber Logging
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
+
+# Hyperion
+hyperion-core = { module = "com.willowtreeapps.hyperion:hyperion-core", version.ref = "hyperion" }
+hyperion-timber = { module = "com.willowtreeapps.hyperion:hyperion-timber", version.ref = "hyperion" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

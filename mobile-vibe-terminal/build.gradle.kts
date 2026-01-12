@@ -184,8 +184,8 @@ android {
 
 dependencies {
     debugImplementation(compose.uiTooling)
-    debugImplementation("com.willowtreeapps.hyperion:hyperion-core:0.9.38")
-    debugImplementation("com.willowtreeapps.hyperion:hyperion-timber:0.9.38")
+    debugImplementation(libs.hyperion.core)
+    debugImplementation(libs.hyperion.timber)
 }
 
 abstract class NotifyApkPathTask : DefaultTask() {
