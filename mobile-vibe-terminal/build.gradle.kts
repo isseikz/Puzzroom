@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    id("tokyo.isseikuzumaki.magic-deploy") version "1.0.4"
+    id("tokyo.isseikuzumaki.magic-deploy")
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
