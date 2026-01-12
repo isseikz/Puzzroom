@@ -25,6 +25,7 @@ fun MacroInputPanel(
     isSoftKeyboardVisible: Boolean,
     isCtrlActive: Boolean,
     isAltActive: Boolean,
+    isHardwareKeyboardConnected: Boolean,
     onDirectSend: (String) -> Unit,
     onTabSelected: (MacroTab) -> Unit,
     onToggleImeMode: () -> Unit,
@@ -77,21 +78,26 @@ fun MacroInputPanel(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // IME Mode Toggle (TEXT MODE is special - uses primary color outline)
+            // Disabled when hardware keyboard is connected (locked to CMD mode)
             FilterChip(
                 selected = isImeEnabled,
                 onClick = onToggleImeMode,
+                enabled = !isHardwareKeyboardConnected,
                 label = { Text(if (isImeEnabled) stringResource(Res.string.macro_text_mode) else stringResource(Res.string.macro_cmd_mode)) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.primary,
                     selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 ),
                 border = FilterChipDefaults.filterChipBorder(
-                    enabled = true,
+                    enabled = !isHardwareKeyboardConnected,
                     selected = isImeEnabled,
                     borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                    selectedBorderColor = MaterialTheme.colorScheme.primary
+                    selectedBorderColor = MaterialTheme.colorScheme.primary,
+                    disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                 ),
                 modifier = Modifier.focusProperties { canFocus = false }
             )
