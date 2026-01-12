@@ -9,13 +9,11 @@ import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
-import org.gradle.process.ExecOperations
-import javax.inject.Inject
 import java.io.File
+import java.io.PrintWriter
+import java.net.Socket
 
 abstract class NotifyApkPathTask : DefaultTask() {
-    @get:Inject
-    abstract val execOperations: ExecOperations
 
     @get:Internal
     abstract val apkDirectory: DirectoryProperty
@@ -28,7 +26,7 @@ abstract class NotifyApkPathTask : DefaultTask() {
     fun notifyPath() {
         val dir = apkDirectory.get().asFile
         if (!dir.exists()) {
-            println("APK directory not found: $dir")
+            println("Magic Deploy: APK directory not found: $dir")
             return
         }
         // Find .apk files, excluding "unaligned" ones
@@ -36,21 +34,21 @@ abstract class NotifyApkPathTask : DefaultTask() {
 
         if (apkFile != null) {
             val absolutePath = apkFile.absolutePath
-            println("Found APK at: $absolutePath")
+            println("Magic Deploy: Found APK at: $absolutePath")
             val targetPort = port.getOrElse(58080)
             
             try {
-                // Use 'sh -c' to pipe the path to nc
-                execOperations.exec {
-                    commandLine("sh", "-c", "echo \"$absolutePath\" | nc -w 1 localhost $targetPort")
-                    isIgnoreExitValue = true
+                Socket("localhost", targetPort).use { socket ->
+                    val writer = PrintWriter(socket.getOutputStream(), true)
+                    writer.println(absolutePath)
                 }
-                println("Sent APK path to localhost:$targetPort")
+                println("Magic Deploy: Sent APK path to localhost:$targetPort")
             } catch (e: Exception) {
-                println("Failed to send APK path: ${e.message}")
+                // Connection refused is expected if no listener is running
+                println("Magic Deploy: Failed to send APK path (Is the listener running?): ${e.message}")
             }
         } else {
-            println("APK file not found in $dir")
+            println("Magic Deploy: APK file not found in $dir")
         }
     }
 }
