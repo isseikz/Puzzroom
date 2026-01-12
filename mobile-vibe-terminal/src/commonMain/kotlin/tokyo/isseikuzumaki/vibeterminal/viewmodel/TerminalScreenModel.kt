@@ -39,6 +39,7 @@ data class TerminalState(
     val isSoftKeyboardVisible: Boolean = false,
     val isCtrlActive: Boolean = false,
     val isAltActive: Boolean = false,
+    val isHardwareKeyboardConnected: Boolean = false,  // Hardware keyboard connection state
     val lastFileExplorerPath: String? = null,  // Last opened path in File Explorer (loaded from database)
     val isReconnecting: Boolean = false,  // Whether attempting to reconnect after connection loss
     // Terminal dimensions for reconnection
@@ -63,6 +64,7 @@ data class TerminalState(
                 isSoftKeyboardVisible == other.isSoftKeyboardVisible &&
                 isCtrlActive == other.isCtrlActive &&
                 isAltActive == other.isAltActive &&
+                isHardwareKeyboardConnected == other.isHardwareKeyboardConnected &&
                 lastFileExplorerPath == other.lastFileExplorerPath &&
                 isReconnecting == other.isReconnecting
     }
@@ -73,6 +75,7 @@ data class TerminalState(
         result = 31 * result + isSoftKeyboardVisible.hashCode()
         result = 31 * result + isCtrlActive.hashCode()
         result = 31 * result + isAltActive.hashCode()
+        result = 31 * result + isHardwareKeyboardConnected.hashCode()
         result = 31 * result + lastFileExplorerPath.hashCode()
         result = 31 * result + isReconnecting.hashCode()
         return result
@@ -133,6 +136,19 @@ class TerminalScreenModel(
 
         // Initialize command mode state
         TerminalStateProvider.setCommandMode(!_state.value.isImeEnabled)
+
+        // Observe hardware keyboard connection state
+        screenModelScope.launch {
+            TerminalStateProvider.isHardwareKeyboardConnected.collect { isConnected ->
+                Logger.d("Hardware keyboard connection changed: $isConnected")
+                _state.update { it.copy(isHardwareKeyboardConnected = isConnected) }
+                if (isConnected) {
+                    // Force TEXT mode (IME) when hardware keyboard is connected
+                    _state.update { it.copy(isImeEnabled = true) }
+                    TerminalStateProvider.setCommandMode(false)
+                }
+            }
+        }
     }
 
     /**
@@ -352,6 +368,11 @@ class TerminalScreenModel(
     }
 
     fun toggleImeMode() {
+        // Don't allow toggling when hardware keyboard is connected
+        if (_state.value.isHardwareKeyboardConnected) {
+            Logger.d("Cannot toggle IME mode: hardware keyboard is connected")
+            return
+        }
         _state.update {
             val nextImeState = !it.isImeEnabled
             TerminalStateProvider.setCommandMode(!nextImeState)

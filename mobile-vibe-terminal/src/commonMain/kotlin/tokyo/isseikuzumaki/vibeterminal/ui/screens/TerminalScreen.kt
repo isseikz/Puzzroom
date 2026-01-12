@@ -290,6 +290,7 @@ data class TerminalScreen(
                         isSoftKeyboardVisible = state.isSoftKeyboardVisible,
                         isCtrlActive = state.isCtrlActive,
                         isAltActive = state.isAltActive,
+                        isHardwareKeyboardConnected = state.isHardwareKeyboardConnected,
                         onDirectSend = { sequence ->
                             screenModel.sendInput(sequence, appendNewline = false)
                         },
@@ -446,6 +447,7 @@ data class TerminalScreen(
                             isSoftKeyboardVisible = state.isSoftKeyboardVisible,
                             isCtrlActive = state.isCtrlActive,
                             isAltActive = state.isAltActive,
+                            isHardwareKeyboardConnected = state.isHardwareKeyboardConnected,
                             onDirectSend = { sequence ->
                                 screenModel.sendInput(sequence, appendNewline = false)
                             },

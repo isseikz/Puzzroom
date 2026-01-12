@@ -1,5 +1,6 @@
 package tokyo.isseikuzumaki.vibeterminal
 
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
@@ -46,6 +47,9 @@ class MainActivity : ComponentActivity() {
             Logger.e(e, "MainActivity: Failed to start TerminalService")
         }
 
+        // Check initial hardware keyboard state
+        updateHardwareKeyboardState(resources.configuration)
+
         enableEdgeToEdge()
         setContent {
             VibeTerminalTheme {
@@ -81,5 +85,16 @@ class MainActivity : ComponentActivity() {
         }
 
         return super.dispatchKeyEvent(event)
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        updateHardwareKeyboardState(newConfig)
+    }
+
+    private fun updateHardwareKeyboardState(config: Configuration) {
+        val hasHardwareKeyboard = config.keyboard != Configuration.KEYBOARD_NOKEYS
+        Logger.d("MainActivity: Hardware keyboard connected: $hasHardwareKeyboard (keyboard type: ${config.keyboard})")
+        TerminalStateProvider.setHardwareKeyboardConnected(hasHardwareKeyboard)
     }
 }

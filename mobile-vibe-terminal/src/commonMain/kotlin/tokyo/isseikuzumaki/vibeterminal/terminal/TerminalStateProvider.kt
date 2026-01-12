@@ -153,6 +153,20 @@ object TerminalStateProvider {
     // ========== Hardware Keyboard Input ==========
 
     /**
+     * Whether a hardware keyboard is connected.
+     * Updated by MainActivity when keyboard configuration changes.
+     */
+    private val _isHardwareKeyboardConnected = MutableStateFlow(false)
+    val isHardwareKeyboardConnected: StateFlow<Boolean> = _isHardwareKeyboardConnected.asStateFlow()
+
+    /**
+     * Update hardware keyboard connection state.
+     */
+    fun setHardwareKeyboardConnected(connected: Boolean) {
+        _isHardwareKeyboardConnected.value = connected
+    }
+
+    /**
      * Whether the terminal is in command mode (RAW mode).
      * Updated by TerminalScreenModel when input mode changes.
      */
