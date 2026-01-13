@@ -113,12 +113,21 @@ fun SelectableTerminalCanvas(
                     return@forEachIndexed
                 }
 
+                // Skip rendering for wide character padding cells
+                // The wide character is already drawn from the previous cell position
+                if (cell.isWideCharPadding) {
+                    return@forEachIndexed
+                }
+
+                // Calculate cell width (2x for wide characters)
+                val cellWidth = if (cell.isWideChar) charWidth * 2 else charWidth
+
                 // Draw cell background
                 if (cell.backgroundColor != Color.Black) {
                     drawRect(
                         color = cell.backgroundColor,
                         topLeft = Offset(x, y),
-                        size = Size(charWidth, charHeight)
+                        size = Size(cellWidth, charHeight)
                     )
                 }
 
@@ -127,7 +136,7 @@ fun SelectableTerminalCanvas(
                     drawRect(
                         color = SelectionHighlightColor,
                         topLeft = Offset(x, y),
-                        size = Size(charWidth, charHeight)
+                        size = Size(cellWidth, charHeight)
                     )
                 }
 
@@ -136,7 +145,7 @@ fun SelectableTerminalCanvas(
                     drawRect(
                         color = Color(0xFF00FF00), // Cursor color
                         topLeft = Offset(x, y),
-                        size = Size(charWidth, charHeight)
+                        size = Size(cellWidth, charHeight)
                     )
                 }
 
@@ -149,7 +158,7 @@ fun SelectableTerminalCanvas(
 
                 if (cell.char != ' ' && cell.char.code != 0) {
                     // Additional safety check before drawing text
-                    if (x + charWidth <= size.width && y + charHeight <= size.height) {
+                    if (x + cellWidth <= size.width && y + charHeight <= size.height) {
                         drawText(
                             textMeasurer = textMeasurer,
                             text = cell.char.toString(),

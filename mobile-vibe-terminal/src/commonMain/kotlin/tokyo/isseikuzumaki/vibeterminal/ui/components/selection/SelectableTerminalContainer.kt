@@ -124,14 +124,21 @@ fun SelectableTerminalContainer(
         if (selectionState.hasSelection) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 buffer.forEachIndexed { rowIndex, row ->
-                    row.forEachIndexed { colIndex, _ ->
+                    row.forEachIndexed { colIndex, cell ->
+                        // Skip padding cells - the highlight is drawn from the main cell
+                        if (cell.isWideCharPadding) {
+                            return@forEachIndexed
+                        }
+
                         if (selectionState.isCellSelected(rowIndex, colIndex)) {
                             val x = colIndex * charWidth
                             val y = rowIndex * charHeight
+                            // Use 2x width for wide characters
+                            val cellWidth = if (cell.isWideChar) charWidth * 2 else charWidth
                             drawRect(
                                 color = SelectionHighlightColor,
                                 topLeft = Offset(x, y),
-                                size = Size(charWidth, charHeight)
+                                size = Size(cellWidth, charHeight)
                             )
                         }
                     }
