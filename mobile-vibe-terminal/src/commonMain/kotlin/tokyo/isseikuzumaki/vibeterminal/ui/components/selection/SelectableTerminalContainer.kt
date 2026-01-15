@@ -147,11 +147,12 @@ fun SelectableTerminalContainer(
                             accumulatedScrollDelta += dragAmount
 
                             // Only send scroll event when threshold is crossed
+                            // Natural scrolling: swipe up (negative delta) = scroll down (see older content)
                             if (abs(accumulatedScrollDelta) >= SCROLL_THRESHOLD_PX) {
                                 val direction = if (accumulatedScrollDelta < 0) {
-                                    ScrollDirection.UP
+                                    ScrollDirection.DOWN  // Swipe up = scroll down (natural scrolling)
                                 } else {
-                                    ScrollDirection.DOWN
+                                    ScrollDirection.UP    // Swipe down = scroll up (natural scrolling)
                                 }
 
                                 // Calculate cell position (1-based for terminal)
