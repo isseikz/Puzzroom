@@ -4,7 +4,10 @@ package tokyo.isseikuzumaki.vibeterminal.terminal
  * Parses ANSI escape sequences and updates the terminal screen buffer.
  * Implements a subset of VT100/ANSI terminal control sequences.
  */
-class AnsiEscapeParser(private val screenBuffer: TerminalScreenBuffer) {
+class AnsiEscapeParser(
+    private val screenBuffer: TerminalScreenBuffer,
+    private val mouseInputHandler: MouseInputHandler? = null
+) {
 
     private enum class State {
         NORMAL,
@@ -288,36 +291,60 @@ class AnsiEscapeParser(private val screenBuffer: TerminalScreenBuffer) {
             }
             'h' -> {  // Set Mode (DECSET)
                  if (isPrivate) {
-                     when {
-                         params.contains(1049) -> {
-                             // Save cursor and switch to alternate screen buffer, clearing it
-                             screenBuffer.saveCursor()
-                             screenBuffer.useAlternateScreenBuffer()
-                         }
-                         params.contains(2004) -> {
-                             // Enable bracketed paste mode (ignore, we don't need to track this)
-                         }
-                         params.contains(25) -> {
-                             // Show Cursor (DECTCEM)
-                             screenBuffer.setCursorVisible(true)
+                     // Process each parameter - multiple modes can be set in one sequence
+                     for (param in params) {
+                         when (param) {
+                             25 -> {
+                                 // Show Cursor (DECTCEM)
+                                 screenBuffer.setCursorVisible(true)
+                             }
+                             1000, 1002, 1003 -> {
+                                 // Mouse tracking modes
+                                 mouseInputHandler?.enableTrackingMode(param)
+                             }
+                             1006 -> {
+                                 // SGR extended mouse encoding
+                                 mouseInputHandler?.enableSgrEncoding()
+                             }
+                             1049 -> {
+                                 // Save cursor and switch to alternate screen buffer, clearing it
+                                 screenBuffer.saveCursor()
+                                 screenBuffer.useAlternateScreenBuffer()
+                                 mouseInputHandler?.isAlternateScreen = true
+                             }
+                             2004 -> {
+                                 // Enable bracketed paste mode (ignore, we don't need to track this)
+                             }
                          }
                      }
                  }
             }
             'l' -> {  // Reset Mode (DECRST)
                  if (isPrivate) {
-                     when {
-                         params.contains(1049) -> {
-                             // Switch to primary screen buffer and restore cursor
-                             screenBuffer.usePrimaryScreenBuffer()
-                             screenBuffer.restoreCursor()
-                         }
-                         params.contains(2004) -> {
-                             // Disable bracketed paste mode (ignore)
-                         }
-                         params.contains(25) -> {
-                             // Hide Cursor (DECTCEM)
-                             screenBuffer.setCursorVisible(false)
+                     // Process each parameter - multiple modes can be reset in one sequence
+                     for (param in params) {
+                         when (param) {
+                             25 -> {
+                                 // Hide Cursor (DECTCEM)
+                                 screenBuffer.setCursorVisible(false)
+                             }
+                             1000, 1002, 1003 -> {
+                                 // Disable mouse tracking
+                                 mouseInputHandler?.disableTrackingMode(param)
+                             }
+                             1006 -> {
+                                 // Disable SGR extended mouse encoding
+                                 mouseInputHandler?.disableSgrEncoding()
+                             }
+                             1049 -> {
+                                 // Switch to primary screen buffer and restore cursor
+                                 screenBuffer.usePrimaryScreenBuffer()
+                                 screenBuffer.restoreCursor()
+                                 mouseInputHandler?.isAlternateScreen = false
+                             }
+                             2004 -> {
+                                 // Disable bracketed paste mode (ignore)
+                             }
                          }
                      }
                  }
