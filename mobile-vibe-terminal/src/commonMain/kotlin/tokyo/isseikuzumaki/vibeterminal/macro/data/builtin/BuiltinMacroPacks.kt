@@ -15,25 +15,28 @@ object BuiltinMacroPacks {
 
     /**
      * The default builtin pack containing basic terminal controls.
+     * Uses lazy initialization to ensure tab definitions are available.
      */
-    val defaultPack: MacroPack = MacroPack(
-        id = "builtin-default",
-        metadata = MacroPackMetadata(
-            name = "Default",
-            description = "Default terminal macro keys",
-            version = "1.0.0",
-            author = "Puzzroom"
-        ),
-        tabs = listOf(
-            basicTab,
-            navTab,
-            vimTab,
-            functionTab
-        ),
-        source = MacroPackSource.BUILTIN,
-        isActive = true,
-        displayOrder = 0
-    )
+    val defaultPack: MacroPack by lazy {
+        MacroPack(
+            id = "builtin-default",
+            metadata = MacroPackMetadata(
+                name = "Default",
+                description = "Default terminal macro keys",
+                version = "1.0.0",
+                author = "Puzzroom"
+            ),
+            tabs = listOf(
+                basicTab,
+                navTab,
+                vimTab,
+                functionTab
+            ),
+            source = MacroPackSource.BUILTIN,
+            isActive = true,
+            displayOrder = 0
+        )
+    }
 
     private val basicTab = MacroTabDefinition(
         id = "builtin-basic",
@@ -401,5 +404,5 @@ object BuiltinMacroPacks {
     /**
      * All builtin packs.
      */
-    val allPacks: List<MacroPack> = listOf(defaultPack)
+    val allPacks: List<MacroPack> by lazy { listOf(defaultPack) }
 }
