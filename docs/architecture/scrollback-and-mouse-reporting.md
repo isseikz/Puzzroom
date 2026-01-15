@@ -505,6 +505,64 @@ ESC[?1002h   # Enable button event tracking
 ESC[?1006h   # Use SGR encoding format
 ```
 
+### Communication Flow Between Server and Client
+
+Mouse mode negotiation is **command-based, not query-based**. The server application sends commands to enable modes, and the terminal silently complies (or ignores if unsupported).
+
+```
+┌─────────────────────┐                      ┌─────────────────────┐
+│    SSH Server       │                      │    SSH Client       │
+│   (byobu/tmux)      │                      │ (Terminal Emulator) │
+└──────────┬──────────┘                      └──────────┬──────────┘
+           │                                            │
+           │  1. Mode Enable Commands                   │
+           │  ─────────────────────────────────────────→│
+           │     ESC[?1002h  (Button Event Tracking)    │
+           │     ESC[?1006h  (SGR Encoding Mode)        │
+           │                                            │
+           │  (No response - terminal silently enables) │
+           │                                            │
+           │                                            │  2. User scrolls
+           │                                            │        ↓
+           │  3. Mouse Event (SGR format)               │
+           │  ←─────────────────────────────────────────│
+           │     ESC[<65;10;5M                          │
+           │     (scroll down at col=10, row=5)         │
+           │                                            │
+           │  4. Screen Update                          │
+           │  ─────────────────────────────────────────→│
+           │     (ANSI sequences to redraw screen)      │
+           │                                            │
+           │         ... (repeat 2-4) ...               │
+           │                                            │
+           │  5. Mode Disable Commands (on exit)        │
+           │  ─────────────────────────────────────────→│
+           │     ESC[?1006l  (SGR Mode OFF)             │
+           │     ESC[?1002l  (Button Event OFF)         │
+           │                                            │
+```
+
+**Key points:**
+
+| Aspect | Description |
+|--------|-------------|
+| Direction | Server → Client (commands), Client → Server (events) |
+| Nature | **Commands**, not queries - "enable this mode" |
+| Response | Terminal does **NOT** respond. It silently enables or ignores |
+| Negotiation | **None**. Server assumes support based on `TERM` env variable |
+| Detection | Server checks `TERM=xterm-256color` → assumes SGR support |
+
+**Implementation implication:**
+
+Your terminal emulator should:
+1. Receive `ESC[?1002h` → set `reportingMode = BUTTON_EVENT`
+2. Receive `ESC[?1006h` → set `encodingMode = SGR`
+3. On user scroll → send event in SGR format
+4. Receive `ESC[?1006l` → set `encodingMode = NORMAL`
+5. Receive `ESC[?1002l` → set `reportingMode = NONE`
+
+No acknowledgment or capability response is required.
+
 ### References
 
 - [Xterm Control Sequences](https://www.xfree86.org/current/ctlseqs.html) - Official xterm documentation
