@@ -368,6 +368,151 @@ class TerminalScreen(
 3. Modify `MouseInputHandler` to handle local scroll
 4. Add scroll position UI indicator
 
+## Background: Mouse Reporting Technology
+
+### History of Terminal Mouse Support
+
+Terminal mouse support originated with **X10** compatibility mode in xterm, dating back to the early days of X Window System. The protocol has evolved through several iterations to address limitations discovered over time.
+
+### Evolution of Mouse Protocols
+
+```
+1980s   X10 Mouse Protocol (Basic)
+  │     - Button press only, no release events
+  │     - Coordinates encoded as single bytes
+  │
+1990s   VT200/Normal Mode (1000)
+  │     - Added button release events
+  │     - Added modifier key support (Shift, Ctrl, Meta)
+  │
+2000s   Button Event (1002) / Any Event (1003)
+  │     - Added motion tracking
+  │     - Still limited by legacy encoding
+  │
+2010    UTF-8 Mode (1005) - Failed attempt
+  │     - Tried to use UTF-8 for coordinates
+  │     - Caused conflicts with actual UTF-8 text
+  │
+2010    urxvt Mode (1015) - Problematic
+  │     - Used decimal encoding
+  │     - Conflicted with CSI M (delete line)
+  │
+2012    SGR Extended Mode (1006) - Success ✓
+        - Clean, unambiguous format
+        - No coordinate limits
+        - Widely adopted (vim, emacs, tmux, etc.)
+```
+
+### Legacy Protocol Limitations
+
+The original X10/VT200 mouse protocol encodes coordinates as:
+```
+ESC [ M Cb Cx Cy
+
+Where Cx and Cy are: (coordinate + 32) as a single byte
+```
+
+**Critical problems:**
+
+1. **Coordinate limit of 223 columns/rows**
+   - Maximum value: 255 - 32 = 223
+   - Modern terminals often exceed this (e.g., 4K displays)
+
+2. **UTF-8 encoding conflicts**
+   - Coordinates above 127 create multi-byte UTF-8 sequences
+   - Terminal may misinterpret mouse data as text
+
+3. **Character set layer issues**
+   - Coordinates above 95 broken by charset converters (e.g., luit)
+   - Values may be transformed unexpectedly
+
+4. **Overflow behavior**
+   - Column 227 encodes to byte value 3 (ETX = Ctrl+C)
+   - Can trigger unintended terminal interrupts
+
+### Why SGR Mode (1006) Succeeded
+
+SGR Extended Mouse Mode solved all legacy issues:
+
+```
+Legacy:  ESC [ M Cb Cx Cy        (binary, limited)
+SGR:     ESC [ < Cb ; Cx ; Cy M  (decimal, unlimited)
+```
+
+**Key advantages:**
+
+| Feature | Legacy | SGR (1006) |
+|---------|--------|------------|
+| Coordinate range | 1-223 | Unlimited |
+| UTF-8 safe | No | Yes |
+| Button release info | Ambiguous | Explicit (M/m) |
+| Parsing | Complex | Simple CSI format |
+| Adoption | Universal | Modern apps |
+
+**Format details:**
+- `<` after CSI clearly distinguishes from other sequences
+- Semicolon-separated decimal values (no encoding tricks)
+- `M` for press, `m` for release (unambiguous)
+- Button codes don't add 32 (cleaner values)
+
+### Mouse Tracking Modes Explained
+
+| Mode | DECSET | Events Reported | Use Case |
+|------|--------|-----------------|----------|
+| X10 | 9 | Press only | Legacy compatibility |
+| Normal | 1000 | Press + Release | Click detection |
+| Button Event | 1002 | + Drag motion | Text selection |
+| Any Event | 1003 | + All motion | Mouse cursor apps |
+
+**Mode 1000 (Normal/VT200)**
+```
+Reports: Button press, button release, modifiers
+Does NOT report: Mouse movement
+Use case: Simple click handling
+```
+
+**Mode 1002 (Button Event)**
+```
+Reports: Everything in 1000 + motion while button held
+Does NOT report: Motion without button
+Use case: Drag-based text selection, drawing
+```
+
+**Mode 1003 (Any Event)**
+```
+Reports: All mouse events including hover
+Warning: Generates heavy traffic
+Use case: Mouse cursor rendering, debugging
+```
+
+### Encoding Mode Independence
+
+Encoding modes (how data is formatted) are **independent** of tracking modes (what events are reported):
+
+```
+Tracking Mode (WHAT)     Encoding Mode (HOW)
+┌─────────────────┐     ┌─────────────────┐
+│ 1000: Normal    │     │ Default: Binary │
+│ 1002: Button    │  ×  │ 1005: UTF-8     │
+│ 1003: Any       │     │ 1006: SGR       │
+└─────────────────┘     │ 1015: urxvt     │
+                        └─────────────────┘
+```
+
+Example: tmux typically enables `1002` (button event) + `1006` (SGR encoding):
+```
+ESC[?1002h   # Enable button event tracking
+ESC[?1006h   # Use SGR encoding format
+```
+
+### References
+
+- [Xterm Control Sequences](https://www.xfree86.org/current/ctlseqs.html) - Official xterm documentation
+- [xterm.js Issue #1962](https://github.com/xtermjs/xterm.js/issues/1962) - X10 protocol limitations
+- [mosh PR #461](https://github.com/mobile-shell/mosh/pull/461) - Mouse mode implementation discussion
+
+---
+
 ## Appendix: Mouse Reporting Escape Sequences
 
 ### Enable/Disable Modes
