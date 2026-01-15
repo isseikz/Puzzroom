@@ -27,6 +27,7 @@ class MouseInputHandler(
 
     /** Whether the terminal is in alternate screen mode */
     var isAlternateScreen: Boolean = false
+        internal set
 
     /**
      * Enable a mouse tracking mode.

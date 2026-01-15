@@ -155,9 +155,9 @@ fun SelectableTerminalContainer(
                                     ScrollDirection.UP    // Swipe down = scroll up (natural scrolling)
                                 }
 
-                                // Calculate cell position (1-based for terminal)
-                                val col = (change.position.x / charWidth).toInt() + 1
-                                val row = (change.position.y / charHeight).toInt() + 1
+                                // Calculate cell position (1-based for terminal) and clamp to bounds
+                                val col = ((change.position.x / charWidth).toInt() + 1).coerceIn(1, cols)
+                                val row = ((change.position.y / charHeight).toInt() + 1).coerceIn(1, rows)
 
                                 val handled = onScroll(direction, col, row)
                                 if (handled) {
