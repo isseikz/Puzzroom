@@ -20,6 +20,7 @@ import tokyo.isseikuzumaki.vibeterminal.terminal.MouseInputHandler
 import tokyo.isseikuzumaki.vibeterminal.terminal.MouseTrackingMode
 import tokyo.isseikuzumaki.vibeterminal.terminal.ScrollDirection
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalCell
+import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalCommandExecutor
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalScreenBuffer
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalStateProvider
 import tokyo.isseikuzumaki.vibeterminal.ui.components.macro.MacroTab
@@ -104,7 +105,8 @@ class TerminalScreenModel(
             sshRepository.sendInput(data)
         }
     }
-    private val escapeParser = AnsiEscapeParser(terminalBuffer, mouseInputHandler)
+    private val escapeParser = AnsiEscapeParser(defaultScrollBottom = 23)
+    private val commandExecutor = TerminalCommandExecutor(terminalBuffer, mouseInputHandler)
 
     // Regex pattern for detecting APK deployment marker
     private val deployPattern = try {
@@ -566,7 +568,8 @@ class TerminalScreenModel(
      * and update the screen buffer
      */
     private fun processOutput(text: String) {
-        escapeParser.processText(text)
+        val commands = escapeParser.parse(text)
+        commandExecutor.executeAll(commands)
         updateScreenState()
     }
 
