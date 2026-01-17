@@ -10,10 +10,25 @@ import kotlin.test.assertTrue
  */
 class XtermComplianceTest {
 
-    private fun createParser(): Pair<AnsiEscapeParser, TerminalScreenBuffer> {
+    /**
+     * Helper class that combines Parser + Executor for testing.
+     * Provides the same interface as the old AnsiEscapeParser for backward compatibility.
+     */
+    private class TerminalProcessor(
+        private val parser: AnsiEscapeParser,
+        private val executor: TerminalCommandExecutor
+    ) {
+        fun processText(text: String) {
+            val commands = parser.parse(text)
+            executor.executeAll(commands)
+        }
+    }
+
+    private fun createParser(): Pair<TerminalProcessor, TerminalScreenBuffer> {
         val buffer = TerminalScreenBuffer(cols = 80, rows = 24)
-        val parser = AnsiEscapeParser(buffer)
-        return Pair(parser, buffer)
+        val parser = AnsiEscapeParser(defaultScrollBottom = 23)
+        val executor = TerminalCommandExecutor(buffer)
+        return Pair(TerminalProcessor(parser, executor), buffer)
     }
 
     // ========== VT100 Compliance ==========

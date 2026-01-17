@@ -11,10 +11,25 @@ import androidx.compose.ui.graphics.Color
  */
 class AnsiEscapeParserTest {
 
-    private fun createParser(): Pair<AnsiEscapeParser, TerminalScreenBuffer> {
+    /**
+     * Helper class that combines Parser + Executor for testing.
+     * Provides the same interface as the old AnsiEscapeParser for backward compatibility.
+     */
+    private class TerminalProcessor(
+        private val parser: AnsiEscapeParser,
+        private val executor: TerminalCommandExecutor
+    ) {
+        fun processText(text: String) {
+            val commands = parser.parse(text)
+            executor.executeAll(commands)
+        }
+    }
+
+    private fun createParser(): Pair<TerminalProcessor, TerminalScreenBuffer> {
         val buffer = TerminalScreenBuffer(cols = 80, rows = 24)
-        val parser = AnsiEscapeParser(buffer)
-        return Pair(parser, buffer)
+        val parser = AnsiEscapeParser(defaultScrollBottom = 23)
+        val executor = TerminalCommandExecutor(buffer)
+        return Pair(TerminalProcessor(parser, executor), buffer)
     }
 
     // ========== CSI Cursor Movement Commands (VT100 Mode) ==========
@@ -620,7 +635,7 @@ class AnsiEscapeParserTest {
         // Test DECSTBM with a buffer that has different row count than 24
         // This tests that the default bottom value uses actual buffer rows, not hardcoded 24
         val buffer = TerminalScreenBuffer(cols = 80, rows = 40)
-        val parser = AnsiEscapeParser(buffer)
+        val parser = TerminalProcessor(AnsiEscapeParser(defaultScrollBottom = buffer.rows - 1), TerminalCommandExecutor(buffer))
 
         // Set only top margin, bottom should default to last row (40, not 24)
         parser.processText("\u001B[5r")  // CSI 5 r - Set top=5, bottom=default
@@ -635,7 +650,7 @@ class AnsiEscapeParserTest {
     fun testScrollRegion_DECSTBM_ResetWithNonStandardRows() {
         // Test that reset uses actual buffer rows
         val buffer = TerminalScreenBuffer(cols = 80, rows = 30)
-        val parser = AnsiEscapeParser(buffer)
+        val parser = TerminalProcessor(AnsiEscapeParser(defaultScrollBottom = buffer.rows - 1), TerminalCommandExecutor(buffer))
 
         parser.processText("\u001B[5;20r")  // Set custom scroll region
         parser.processText("\u001B[r")      // Reset scroll region
@@ -1148,7 +1163,7 @@ class AnsiEscapeParserTest {
     fun testWideChar_LineWrap() {
         // Create a narrow terminal
         val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
-        val parser = AnsiEscapeParser(buffer)
+        val parser = TerminalProcessor(AnsiEscapeParser(defaultScrollBottom = buffer.rows - 1), TerminalCommandExecutor(buffer))
 
         // Write wide chars that should wrap exactly
         parser.processText("あいうえお")  // 10 cells, should fit exactly
@@ -1187,7 +1202,7 @@ class AnsiEscapeParserTest {
     @Test
     fun testWideChar_AtLastColumn_Wraps() {
         val buffer = TerminalScreenBuffer(cols = 10, rows = 5)
-        val parser = AnsiEscapeParser(buffer)
+        val parser = TerminalProcessor(AnsiEscapeParser(defaultScrollBottom = buffer.rows - 1), TerminalCommandExecutor(buffer))
 
         // Fill 9 cells with narrow chars
         parser.processText("123456789")
@@ -1228,7 +1243,7 @@ class AnsiEscapeParserTest {
     fun testWideChar_ScrollRegion_StatusBar() {
         // Simulate byobu-like status bar behavior
         val buffer = TerminalScreenBuffer(cols = 20, rows = 10)
-        val parser = AnsiEscapeParser(buffer)
+        val parser = TerminalProcessor(AnsiEscapeParser(defaultScrollBottom = buffer.rows - 1), TerminalCommandExecutor(buffer))
 
         // Set scroll region to exclude last 2 lines (status bar area)
         parser.processText("\u001B[1;8r")  // Scroll region lines 1-8
@@ -1577,7 +1592,7 @@ class AnsiEscapeParserTest {
     @Test
     fun testLineFeed_AtScrollBottom_ShouldScroll() {
         val buffer = TerminalScreenBuffer(cols = 20, rows = 10)
-        val parser = AnsiEscapeParser(buffer)
+        val parser = TerminalProcessor(AnsiEscapeParser(defaultScrollBottom = buffer.rows - 1), TerminalCommandExecutor(buffer))
 
         // Set scroll region to rows 3-7 (1-indexed)
         parser.processText("\u001B[3;7r")
@@ -1632,7 +1647,7 @@ class AnsiEscapeParserTest {
     @Test
     fun testLineFeed_NotAtScrollBottom_ShouldOnlyMoveCursor() {
         val buffer = TerminalScreenBuffer(cols = 20, rows = 10)
-        val parser = AnsiEscapeParser(buffer)
+        val parser = TerminalProcessor(AnsiEscapeParser(defaultScrollBottom = buffer.rows - 1), TerminalCommandExecutor(buffer))
 
         // Set scroll region to rows 3-7
         parser.processText("\u001B[3;7r")
@@ -1677,7 +1692,7 @@ class AnsiEscapeParserTest {
     @Test
     fun testIndex_IND_AtScrollBottom_ShouldScroll() {
         val buffer = TerminalScreenBuffer(cols = 20, rows = 10)
-        val parser = AnsiEscapeParser(buffer)
+        val parser = TerminalProcessor(AnsiEscapeParser(defaultScrollBottom = buffer.rows - 1), TerminalCommandExecutor(buffer))
 
         // Set scroll region to rows 3-7
         parser.processText("\u001B[3;7r")
@@ -1716,7 +1731,7 @@ class AnsiEscapeParserTest {
     @Test
     fun testIndex_IND_NotAtScrollBottom_ShouldOnlyMoveCursor() {
         val buffer = TerminalScreenBuffer(cols = 20, rows = 10)
-        val parser = AnsiEscapeParser(buffer)
+        val parser = TerminalProcessor(AnsiEscapeParser(defaultScrollBottom = buffer.rows - 1), TerminalCommandExecutor(buffer))
 
         // Set scroll region to rows 3-7
         parser.processText("\u001B[3;7r")
@@ -1753,7 +1768,7 @@ class AnsiEscapeParserTest {
     @Test
     fun testNextLine_NEL_AtScrollBottom_ShouldScrollAndReturnToColumn0() {
         val buffer = TerminalScreenBuffer(cols = 20, rows = 10)
-        val parser = AnsiEscapeParser(buffer)
+        val parser = TerminalProcessor(AnsiEscapeParser(defaultScrollBottom = buffer.rows - 1), TerminalCommandExecutor(buffer))
 
         // Set scroll region to rows 3-7
         parser.processText("\u001B[3;7r")
@@ -1797,7 +1812,7 @@ class AnsiEscapeParserTest {
     @Test
     fun testNextLine_NEL_NotAtScrollBottom_ShouldMoveToNextLineColumn0() {
         val buffer = TerminalScreenBuffer(cols = 20, rows = 10)
-        val parser = AnsiEscapeParser(buffer)
+        val parser = TerminalProcessor(AnsiEscapeParser(defaultScrollBottom = buffer.rows - 1), TerminalCommandExecutor(buffer))
 
         // Set scroll region to rows 3-7
         parser.processText("\u001B[3;7r")
@@ -1838,7 +1853,7 @@ class AnsiEscapeParserTest {
     @Test
     fun testReverseIndex_RI_AtScrollTop_ShouldReverseScroll() {
         val buffer = TerminalScreenBuffer(cols = 20, rows = 10)
-        val parser = AnsiEscapeParser(buffer)
+        val parser = TerminalProcessor(AnsiEscapeParser(defaultScrollBottom = buffer.rows - 1), TerminalCommandExecutor(buffer))
 
         // Set scroll region to rows 3-7
         parser.processText("\u001B[3;7r")
@@ -1889,7 +1904,7 @@ class AnsiEscapeParserTest {
     @Test
     fun testReverseIndex_RI_NotAtScrollTop_ShouldOnlyMoveCursorUp() {
         val buffer = TerminalScreenBuffer(cols = 20, rows = 10)
-        val parser = AnsiEscapeParser(buffer)
+        val parser = TerminalProcessor(AnsiEscapeParser(defaultScrollBottom = buffer.rows - 1), TerminalCommandExecutor(buffer))
 
         // Set scroll region to rows 3-7
         parser.processText("\u001B[3;7r")
@@ -1938,7 +1953,7 @@ class AnsiEscapeParserTest {
     @Test
     fun testByobuScenario_LogcatWithStatusBar() {
         val buffer = TerminalScreenBuffer(cols = 40, rows = 10)
-        val parser = AnsiEscapeParser(buffer)
+        val parser = TerminalProcessor(AnsiEscapeParser(defaultScrollBottom = buffer.rows - 1), TerminalCommandExecutor(buffer))
 
         // byobu sets scroll region (rows 1-8, status bar at rows 9-10)
         parser.processText("\u001B[1;8r")
@@ -1993,7 +2008,7 @@ class AnsiEscapeParserTest {
     @Test
     fun testLineFeed_FullScreen_ShouldScrollEntireScreen() {
         val buffer = TerminalScreenBuffer(cols = 20, rows = 5)
-        val parser = AnsiEscapeParser(buffer)
+        val parser = TerminalProcessor(AnsiEscapeParser(defaultScrollBottom = buffer.rows - 1), TerminalCommandExecutor(buffer))
 
         // No scroll region set (full screen)
 
