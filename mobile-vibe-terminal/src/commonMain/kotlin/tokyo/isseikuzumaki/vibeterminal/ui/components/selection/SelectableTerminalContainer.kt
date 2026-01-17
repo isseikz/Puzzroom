@@ -3,6 +3,7 @@ package tokyo.isseikuzumaki.vibeterminal.ui.components.selection
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,27 +25,40 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import tokyo.isseikuzumaki.vibeterminal.terminal.ScrollDirection
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalCell
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalFontConfig
 import tokyo.isseikuzumaki.vibeterminal.util.ClipboardManager
 import tokyo.isseikuzumaki.vibeterminal.util.Logger
+import kotlin.math.abs
 
 /** 選択ハイライトの色（半透明の青） */
 private val SelectionHighlightColor = Color(0x4D2196F3)
+
+/** Minimum drag distance in pixels to trigger a scroll event */
+private const val SCROLL_THRESHOLD_PX = 30f
 
 /**
  * テキスト選択機能を持つターミナルコンテナ
  * 子コンポーネント（TerminalCanvas または TerminalBufferView）をラップし、
  * 選択のオーバーレイとジェスチャー検出を追加する
+ *
+ * @param buffer Terminal screen buffer
+ * @param modifier Modifier for the container
+ * @param onScroll Callback when user scrolls. Returns true if the scroll was handled.
+ *                 Parameters: direction, column (1-based), row (1-based)
+ * @param content Child composable content
  */
 @Composable
 fun SelectableTerminalContainer(
     buffer: Array<Array<TerminalCell>>,
     modifier: Modifier = Modifier,
+    onScroll: ((ScrollDirection, Int, Int) -> Boolean)? = null,
     content: @Composable BoxScope.() -> Unit
 ) {
     var selectionState by remember { mutableStateOf(TextSelectionState.Empty) }
     var showContextMenu by remember { mutableStateOf(false) }
+    var accumulatedScrollDelta by remember { mutableStateOf(0f) }
 
     val textMeasurer = rememberTextMeasurer()
     val textStyle = TextStyle(
@@ -115,6 +129,47 @@ fun SelectableTerminalContainer(
                         }
                     }
                 )
+            }
+            .pointerInput(onScroll, charWidth, charHeight) {
+                // Scroll gesture detection for mouse reporting
+                if (onScroll != null) {
+                    detectVerticalDragGestures(
+                        onDragStart = { offset ->
+                            accumulatedScrollDelta = 0f
+                        },
+                        onDragEnd = {
+                            accumulatedScrollDelta = 0f
+                        },
+                        onDragCancel = {
+                            accumulatedScrollDelta = 0f
+                        },
+                        onVerticalDrag = { change, dragAmount ->
+                            accumulatedScrollDelta += dragAmount
+
+                            // Only send scroll event when threshold is crossed
+                            // Natural scrolling: swipe up (negative delta) = scroll down (see older content)
+                            if (abs(accumulatedScrollDelta) >= SCROLL_THRESHOLD_PX) {
+                                val direction = if (accumulatedScrollDelta < 0) {
+                                    ScrollDirection.DOWN  // Swipe up = scroll down (natural scrolling)
+                                } else {
+                                    ScrollDirection.UP    // Swipe down = scroll up (natural scrolling)
+                                }
+
+                                // Calculate cell position (1-based for terminal) and clamp to bounds
+                                val col = ((change.position.x / charWidth).toInt() + 1).coerceIn(1, cols)
+                                val row = ((change.position.y / charHeight).toInt() + 1).coerceIn(1, rows)
+
+                                val handled = onScroll(direction, col, row)
+                                if (handled) {
+                                    change.consume()
+                                }
+
+                                // Reset accumulated delta after triggering
+                                accumulatedScrollDelta = 0f
+                            }
+                        }
+                    )
+                }
             }
     ) {
         // ターミナルコンテンツ

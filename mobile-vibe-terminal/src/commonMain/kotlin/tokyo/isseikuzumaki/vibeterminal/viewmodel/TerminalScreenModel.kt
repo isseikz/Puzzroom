@@ -16,7 +16,11 @@ import tokyo.isseikuzumaki.vibeterminal.domain.installer.ApkInstaller
 import tokyo.isseikuzumaki.vibeterminal.domain.model.ConnectionConfig
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
 import tokyo.isseikuzumaki.vibeterminal.terminal.AnsiEscapeParser
+import tokyo.isseikuzumaki.vibeterminal.terminal.MouseInputHandler
+import tokyo.isseikuzumaki.vibeterminal.terminal.MouseTrackingMode
+import tokyo.isseikuzumaki.vibeterminal.terminal.ScrollDirection
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalCell
+import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalCommandExecutor
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalScreenBuffer
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalStateProvider
 import tokyo.isseikuzumaki.vibeterminal.ui.components.macro.MacroTab
@@ -94,7 +98,15 @@ class TerminalScreenModel(
 
     // Terminal emulator components
     private val terminalBuffer = TerminalScreenBuffer(cols = 80, rows = 24)
-    private val escapeParser = AnsiEscapeParser(terminalBuffer)
+    private val mouseInputHandler = MouseInputHandler { data ->
+        // Send mouse event to remote server
+        screenModelScope.launch(Dispatchers.IO) {
+            Logger.d("SSH_TX (mouse): ${data.replace("\u001b", "ESC")}")
+            sshRepository.sendInput(data)
+        }
+    }
+    private val escapeParser = AnsiEscapeParser(defaultScrollBottom = 23)
+    private val commandExecutor = TerminalCommandExecutor(terminalBuffer, mouseInputHandler)
 
     // Regex pattern for detecting APK deployment marker
     private val deployPattern = try {
@@ -362,6 +374,27 @@ class TerminalScreenModel(
         }
     }
 
+    /**
+     * Handle scroll gesture from the terminal canvas.
+     * This is called when the user scrolls on the terminal.
+     *
+     * @param direction Scroll direction (UP or DOWN)
+     * @param col Column position (1-based)
+     * @param row Row position (1-based)
+     * @return true if the event was handled, false otherwise
+     */
+    fun onTerminalScroll(direction: ScrollDirection, col: Int, row: Int): Boolean {
+        return mouseInputHandler.onScroll(direction, col, row)
+    }
+
+    /**
+     * Check if mouse tracking is currently enabled.
+     * Used by UI to determine if scroll gestures should be sent to remote.
+     */
+    fun isMouseTrackingEnabled(): Boolean {
+        return mouseInputHandler.trackingMode != MouseTrackingMode.NONE
+    }
+
     fun setImeEnabled(enabled: Boolean) {
         _state.update { it.copy(isImeEnabled = enabled) }
         TerminalStateProvider.setCommandMode(!enabled)
@@ -535,7 +568,8 @@ class TerminalScreenModel(
      * and update the screen buffer
      */
     private fun processOutput(text: String) {
-        escapeParser.processText(text)
+        val commands = escapeParser.parse(text)
+        commandExecutor.executeAll(commands)
         updateScreenState()
     }
 

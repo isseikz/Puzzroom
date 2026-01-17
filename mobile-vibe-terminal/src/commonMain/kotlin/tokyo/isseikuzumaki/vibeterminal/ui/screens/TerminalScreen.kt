@@ -422,7 +422,10 @@ data class TerminalScreen(
 
                             SelectableTerminalContainer(
                                 buffer = state.screenBuffer,
-                                modifier = Modifier.fillMaxSize()
+                                modifier = Modifier.fillMaxSize(),
+                                onScroll = { direction, col, row ->
+                                    screenModel.onTerminalScroll(direction, col, row)
+                                }
                             ) {
                                 // key() forces recomposition when bufferUpdateCounter changes
                                 // This is needed because Array reference stays the same while contents change

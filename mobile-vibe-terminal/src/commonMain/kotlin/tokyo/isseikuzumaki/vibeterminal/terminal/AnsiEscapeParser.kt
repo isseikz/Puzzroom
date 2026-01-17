@@ -1,10 +1,18 @@
 package tokyo.isseikuzumaki.vibeterminal.terminal
 
 /**
- * Parses ANSI escape sequences and updates the terminal screen buffer.
+ * Parses ANSI escape sequences and produces terminal commands.
  * Implements a subset of VT100/ANSI terminal control sequences.
+ *
+ * This parser is a pure state machine that converts input text into
+ * a list of TerminalCommand objects. It does not directly modify
+ * terminal state - that responsibility belongs to TerminalCommandExecutor.
+ *
+ * @param defaultScrollBottom Default bottom row for scroll region reset (0-indexed rows - 1)
  */
-class AnsiEscapeParser(private val screenBuffer: TerminalScreenBuffer) {
+class AnsiEscapeParser(
+    private val defaultScrollBottom: Int = 23
+) {
 
     private enum class State {
         NORMAL,
@@ -21,16 +29,21 @@ class AnsiEscapeParser(private val screenBuffer: TerminalScreenBuffer) {
     private var scsChar = ' '  // Character set selector (e.g., '(' or ')')
 
     /**
-     * Process incoming text and update the screen buffer
+     * Process incoming text and return list of terminal commands.
+     *
+     * @param text The text to parse
+     * @return List of TerminalCommand to be executed
      */
-    fun processText(text: String) {
+    fun parse(text: String): List<TerminalCommand> {
+        val commands = mutableListOf<TerminalCommand>()
         for (char in text) {
-            processChar(char)
+            parseChar(char)?.let { commands.add(it) }
         }
+        return commands
     }
 
-    private fun processChar(char: Char) {
-        when (state) {
+    private fun parseChar(char: Char): TerminalCommand? {
+        return when (state) {
             State.NORMAL -> handleNormalChar(char)
             State.ESCAPE -> handleEscapeChar(char)
             State.CSI -> handleCsiChar(char)
@@ -39,129 +52,135 @@ class AnsiEscapeParser(private val screenBuffer: TerminalScreenBuffer) {
         }
     }
 
-    private fun handleNormalChar(char: Char) {
-        when (char) {
+    private fun handleNormalChar(char: Char): TerminalCommand? {
+        return when (char) {
             '\u001B' -> {  // ESC
                 state = State.ESCAPE
                 paramBuffer.clear()
+                null
             }
-            '\r' -> {  // Carriage return
-                screenBuffer.moveCursorToColumn(1)
-            }
-            '\n' -> {  // Line feed - スクロール領域を考慮
-                screenBuffer.lineFeed()
-            }
-            '\b' -> {  // Backspace
-                screenBuffer.moveCursorRelative(0, -1)
-            }
-            '\t' -> {  // Tab
-                val nextTab = ((screenBuffer.cursorCol / 8) + 1) * 8
-                screenBuffer.moveCursorToColumn(nextTab + 1)
-            }
-            '\u0007' -> {  // Bell (ignore)
-            }
+            '\r' -> TerminalCommand.CarriageReturn
+            '\n' -> TerminalCommand.LineFeed
+            '\b' -> TerminalCommand.MoveCursorRelative(0, -1)
+            '\t' -> TerminalCommand.Tab
+            '\u0007' -> TerminalCommand.Bell
             else -> {
                 if (char >= ' ') {  // Printable characters
-                    screenBuffer.writeChar(char)
+                    TerminalCommand.WriteChar(char)
+                } else {
+                    null
                 }
             }
         }
     }
 
-    private fun handleEscapeChar(char: Char) {
-        when (char) {
+    private fun handleEscapeChar(char: Char): TerminalCommand? {
+        return when (char) {
             '[' -> {  // CSI (Control Sequence Introducer)
                 state = State.CSI
                 paramBuffer.clear()
                 csiIntermediate = ' '
+                null
             }
             ']' -> {  // OSC (Operating System Command)
                 state = State.OSC
                 paramBuffer.clear()
+                null
             }
             '(' -> {  // SCS - Select character set into G0
                 scsChar = '('
                 state = State.SCS
+                null
             }
             ')' -> {  // SCS - Select character set into G1
                 scsChar = ')'
                 state = State.SCS
+                null
             }
-            'D' -> {  // Index (IND) - LFと同等、スクロール領域を考慮
-                screenBuffer.lineFeed()
+            'D' -> {  // Index (IND) - same as LF
                 state = State.NORMAL
+                TerminalCommand.LineFeed
             }
-            'E' -> {  // Next Line (NEL) - CR + LF と同等
-                screenBuffer.moveCursorToColumn(1)
-                screenBuffer.lineFeed()
+            'E' -> {  // Next Line (NEL) - CR + LF
                 state = State.NORMAL
+                TerminalCommand.NextLine
             }
-            'M' -> {  // Reverse Index (RI) - スクロール領域を考慮した上移動
-                screenBuffer.reverseIndex()
+            'M' -> {  // Reverse Index (RI)
                 state = State.NORMAL
+                TerminalCommand.ReverseIndex
             }
             '7' -> {  // Save cursor position
-                screenBuffer.saveCursor()
                 state = State.NORMAL
+                TerminalCommand.SaveCursor
             }
             '8' -> {  // Restore cursor position
-                screenBuffer.restoreCursor()
                 state = State.NORMAL
+                TerminalCommand.RestoreCursor
             }
             '=' -> {  // Application keypad mode (ignore)
                 state = State.NORMAL
+                TerminalCommand.Noop
             }
             '>' -> {  // Normal keypad mode (ignore)
                 state = State.NORMAL
+                TerminalCommand.Noop
             }
             else -> {
                 // Unknown escape sequence, return to normal
                 state = State.NORMAL
+                null
             }
         }
     }
 
-    private fun handleCsiChar(char: Char) {
-        when {
+    private fun handleCsiChar(char: Char): TerminalCommand? {
+        return when {
             char in '0'..'9' || char == ';' || char == '?' -> {
                 paramBuffer.append(char)
+                null
             }
             char == ' ' -> {
                 // Space is an intermediate byte (e.g., in "CSI Ps SP q" for DECSCUSR)
                 csiIntermediate = char
+                null
             }
             char in 'A'..'Z' || char in 'a'..'z' || char == '@' || char == '`' -> {
                 csiCommand = char
-                executeCsiCommand()
+                val command = buildCsiCommand()
                 state = State.NORMAL
+                command
             }
             else -> {
                 // Invalid CSI sequence
                 state = State.NORMAL
+                null
             }
         }
     }
 
-    private fun handleOscChar(char: Char) {
-        when (char) {
+    private fun handleOscChar(char: Char): TerminalCommand? {
+        return when (char) {
             '\u0007' -> {  // Bell terminates OSC
                 // Process OSC command if needed (title change, etc.)
                 state = State.NORMAL
+                TerminalCommand.Noop
             }
             '\u001B' -> {  // ESC might terminate OSC
                 state = State.ESCAPE
+                null
             }
             else -> {
                 paramBuffer.append(char)
+                null
             }
         }
     }
 
-    private fun handleScsChar(char: Char) {
+    private fun handleScsChar(char: Char): TerminalCommand? {
         val charset = when (char) {
-            '0' -> TerminalScreenBuffer.Charset.DEC_SPECIAL_GRAPHICS
-            'B' -> TerminalScreenBuffer.Charset.ASCII
-            else -> TerminalScreenBuffer.Charset.ASCII // Default/Fallback
+            '0' -> TerminalCharset.DEC_SPECIAL_GRAPHICS
+            'B' -> TerminalCharset.ASCII
+            else -> TerminalCharset.ASCII // Default/Fallback
         }
 
         val index = when (scsChar) {
@@ -170,11 +189,11 @@ class AnsiEscapeParser(private val screenBuffer: TerminalScreenBuffer) {
             else -> 0
         }
 
-        screenBuffer.setCharset(index, charset)
         state = State.NORMAL
+        return TerminalCommand.SetCharset(index, charset)
     }
 
-    private fun executeCsiCommand() {
+    private fun buildCsiCommand(): TerminalCommand {
         val paramsStr = paramBuffer.toString()
         val isPrivate = paramsStr.startsWith("?")
         // Strip '?' for parsing numbers
@@ -188,155 +207,121 @@ class AnsiEscapeParser(private val screenBuffer: TerminalScreenBuffer) {
 
         // Handle sequences with intermediate bytes (e.g., CSI Ps SP q for DECSCUSR)
         if (csiIntermediate == ' ' && csiCommand == 'q') {
-            // DECSCUSR - Set Cursor Style
-            // Ps values:
-            //   0, 1 = blinking block
-            //   2 = steady block
-            //   3 = blinking underline
-            //   4 = steady underline
-            //   5 = blinking bar
-            //   6 = steady bar
-            // For now, we just consume this command to prevent 'q' from appearing on screen
-            // TODO: In the future, we could update cursor appearance in the UI layer
-            return
+            // DECSCUSR - Set Cursor Style (ignored for now)
+            return TerminalCommand.Noop
         }
 
-        when (csiCommand) {
+        return when (csiCommand) {
             'A' -> {  // Cursor up
                 val n = params.getOrElse(0) { 1 }
-                screenBuffer.moveCursorRelative(-n, 0)
+                TerminalCommand.MoveCursorRelative(-n, 0)
             }
             'B' -> {  // Cursor down
                 val n = params.getOrElse(0) { 1 }
-                screenBuffer.moveCursorRelative(n, 0)
+                TerminalCommand.MoveCursorRelative(n, 0)
             }
             'C' -> {  // Cursor forward
                 val n = params.getOrElse(0) { 1 }
-                screenBuffer.moveCursorRelative(0, n)
+                TerminalCommand.MoveCursorRelative(0, n)
             }
             'D' -> {  // Cursor backward
                 val n = params.getOrElse(0) { 1 }
-                screenBuffer.moveCursorRelative(0, -n)
+                TerminalCommand.MoveCursorRelative(0, -n)
             }
             'H', 'f' -> {  // Cursor position
                 val row = params.getOrElse(0) { 1 }
                 val col = params.getOrElse(1) { 1 }
-                screenBuffer.moveCursor(row, col)
+                TerminalCommand.MoveCursor(row, col)
             }
             'J' -> {  // Erase in display
-                when (params.getOrElse(0) { 0 }) {
-                    0 -> screenBuffer.clearToEndOfScreen()
-                    1 -> screenBuffer.clearToStartOfScreen()
-                    2, 3 -> screenBuffer.clearScreen()
-                }
+                val mode = params.getOrElse(0) { 0 }
+                TerminalCommand.EraseInDisplay(mode)
             }
             'K' -> {  // Erase in line
-                when (params.getOrElse(0) { 0 }) {
-                    0 -> screenBuffer.clearToEndOfLine()
-                    1 -> screenBuffer.clearToStartOfLine()
-                    2 -> screenBuffer.clearLine()
-                }
+                val mode = params.getOrElse(0) { 0 }
+                TerminalCommand.EraseInLine(mode)
             }
             'L' -> {  // Insert lines
                 val n = params.getOrElse(0) { 1 }
-                screenBuffer.insertLines(n)
+                TerminalCommand.InsertLines(n)
             }
             'M' -> {  // Delete lines
                 val n = params.getOrElse(0) { 1 }
-                screenBuffer.deleteLines(n)
+                TerminalCommand.DeleteLines(n)
             }
             'P' -> {  // DCH - Delete character(s)
                 val n = params.getOrElse(0) { 1 }
-                screenBuffer.deleteCharacters(n)
+                TerminalCommand.DeleteCharacters(n)
             }
             '@' -> {  // ICH - Insert blank character(s)
                 val n = params.getOrElse(0) { 1 }
-                screenBuffer.insertCharacters(n)
+                TerminalCommand.InsertCharacters(n)
             }
             'S' -> {  // SU - Scroll up
                 val n = params.getOrElse(0) { 1 }
-                screenBuffer.scrollUpLines(n)
+                TerminalCommand.ScrollUp(n)
             }
             'T' -> {  // SD - Scroll down
                 val n = params.getOrElse(0) { 1 }
-                screenBuffer.scrollDownLines(n)
+                TerminalCommand.ScrollDown(n)
             }
             'X' -> {  // ECH - Erase character(s)
                 val n = params.getOrElse(0) { 1 }
-                screenBuffer.eraseCharacters(n)
+                TerminalCommand.EraseCharacters(n)
             }
             'G', '`' -> {  // Cursor horizontal absolute
                 val col = params.getOrElse(0) { 1 }
-                screenBuffer.moveCursorToColumn(col)
+                TerminalCommand.MoveCursorToColumn(col)
             }
-            'd' -> {  // Cursor vertical absolute
+            'd' -> {  // Cursor vertical absolute (VPA)
                 val row = params.getOrElse(0) { 1 }
-                screenBuffer.moveCursor(row, screenBuffer.cursorCol + 1)
+                TerminalCommand.MoveCursorToRow(row)
             }
             'm' -> {  // Select Graphic Rendition (colors, styles)
                 if (params.isEmpty()) {
-                    screenBuffer.setGraphicsMode(listOf(0))
+                    TerminalCommand.SetGraphicsMode(listOf(0))
                 } else {
-                    screenBuffer.setGraphicsMode(params)
+                    TerminalCommand.SetGraphicsMode(params)
                 }
             }
             's' -> {  // Save cursor position
-                screenBuffer.saveCursor()
+                TerminalCommand.SaveCursor
             }
             'u' -> {  // Restore cursor position
-                screenBuffer.restoreCursor()
+                TerminalCommand.RestoreCursor
             }
             'h' -> {  // Set Mode (DECSET)
-                 if (isPrivate) {
-                     when {
-                         params.contains(1049) -> {
-                             // Save cursor and switch to alternate screen buffer, clearing it
-                             screenBuffer.saveCursor()
-                             screenBuffer.useAlternateScreenBuffer()
-                         }
-                         params.contains(2004) -> {
-                             // Enable bracketed paste mode (ignore, we don't need to track this)
-                         }
-                         params.contains(25) -> {
-                             // Show Cursor (DECTCEM)
-                             screenBuffer.setCursorVisible(true)
-                         }
-                     }
-                 }
+                if (isPrivate && params.isNotEmpty()) {
+                    if (params.size == 1) {
+                        TerminalCommand.SetMode(params[0], enabled = true)
+                    } else {
+                        TerminalCommand.SetModes(params, enabled = true)
+                    }
+                } else {
+                    TerminalCommand.Noop
+                }
             }
             'l' -> {  // Reset Mode (DECRST)
-                 if (isPrivate) {
-                     when {
-                         params.contains(1049) -> {
-                             // Switch to primary screen buffer and restore cursor
-                             screenBuffer.usePrimaryScreenBuffer()
-                             screenBuffer.restoreCursor()
-                         }
-                         params.contains(2004) -> {
-                             // Disable bracketed paste mode (ignore)
-                         }
-                         params.contains(25) -> {
-                             // Hide Cursor (DECTCEM)
-                             screenBuffer.setCursorVisible(false)
-                         }
-                     }
-                 }
+                if (isPrivate && params.isNotEmpty()) {
+                    if (params.size == 1) {
+                        TerminalCommand.SetMode(params[0], enabled = false)
+                    } else {
+                        TerminalCommand.SetModes(params, enabled = false)
+                    }
+                } else {
+                    TerminalCommand.Noop
+                }
             }
             'r' -> {  // DECSTBM - Set scrolling region (top and bottom margins)
                 if (params.isEmpty()) {
-                    // No parameters means reset to full screen
-                    screenBuffer.resetScrollRegion()
+                    TerminalCommand.ResetScrollRegion
                 } else {
                     val top = params.getOrElse(0) { 1 }
-                    val bottom = params.getOrElse(1) { screenBuffer.rows }  // Default to actual buffer rows
-                    screenBuffer.setScrollRegion(top, bottom)
+                    val bottom = params.getOrElse(1) { defaultScrollBottom + 1 }
+                    TerminalCommand.SetScrollRegion(top, bottom)
                 }
             }
+            else -> TerminalCommand.Noop
         }
-    }
-
-    private fun parseParams(): List<Int> {
-        // logic moved to executeCsiCommand to handle '?'
-        return emptyList() 
     }
 }
