@@ -33,8 +33,11 @@ import tokyo.isseikuzumaki.vibeterminal.ui.components.TriggerEventHost
 import tokyo.isseikuzumaki.vibeterminal.ui.screens.ConnectionListScreen
 import tokyo.isseikuzumaki.vibeterminal.ui.theme.VibeTerminalTheme
 import tokyo.isseikuzumaki.vibeterminal.util.Logger
+import android.widget.Toast
 
 class MainActivity : ComponentActivity() {
+
+    private var wasHardwareKeyboardConnected = false
 
     private var presentation: TerminalPresentation? = null
     private lateinit var displayManager: DisplayManager
@@ -216,17 +219,27 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        // Only intercept in command mode when terminal is connected
-        val isCommandMode = TerminalStateProvider.isCommandMode.value
         val isConnected = TerminalStateProvider.state.value.isConnected
 
-        if (isCommandMode && isConnected) {
+        // Process key events when terminal is connected
+        if (isConnected) {
+            val isCommandMode = TerminalStateProvider.isCommandMode.value
             val result = HardwareKeyboardHandler.processKeyEvent(event, isCommandMode)
+
             when (result) {
-                is HardwareKeyboardHandler.KeyResult.Handled -> {
-                    Logger.d("MainActivity: Sending key sequence to terminal: '${result.sequence}'")
-                    TerminalStateProvider.sendHardwareKeyboardInput(result.sequence)
+                is HardwareKeyboardHandler.KeyResult.ToggleIme -> {
+                    Logger.d("MainActivity: Alt+i pressed, requesting IME toggle")
+                    TerminalStateProvider.requestToggleIme()
                     return true
+                }
+                is HardwareKeyboardHandler.KeyResult.Handled -> {
+                    if (isCommandMode) {
+                        Logger.d("MainActivity: Sending key sequence to terminal: '${result.sequence}'")
+                        TerminalStateProvider.sendHardwareKeyboardInput(result.sequence)
+                        return true
+                    }
+                    // In IME mode, only special keys are handled, regular chars pass through
+                    return super.dispatchKeyEvent(event)
                 }
                 is HardwareKeyboardHandler.KeyResult.Ignored -> {
                     // Modifier key only, let system handle
@@ -250,6 +263,13 @@ class MainActivity : ComponentActivity() {
     private fun updateHardwareKeyboardState(config: Configuration) {
         val hasHardwareKeyboard = config.keyboard != Configuration.KEYBOARD_NOKEYS
         Logger.d("MainActivity: Hardware keyboard connected: $hasHardwareKeyboard (keyboard type: ${config.keyboard})")
+
+        // Show Toast when keyboard is disconnected
+        if (wasHardwareKeyboardConnected && !hasHardwareKeyboard) {
+            Toast.makeText(this, "キーボードが切断されました", Toast.LENGTH_SHORT).show()
+        }
+
+        wasHardwareKeyboardConnected = hasHardwareKeyboard
         TerminalStateProvider.setHardwareKeyboardConnected(hasHardwareKeyboard)
     }
 }

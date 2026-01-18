@@ -20,6 +20,7 @@ import org.koin.compose.koinInject
 import tokyo.isseikuzumaki.vibeterminal.domain.model.ConnectionConfig
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.TerminalScreenModel
+import tokyo.isseikuzumaki.vibeterminal.ui.components.DisconnectConfirmDialog
 import tokyo.isseikuzumaki.vibeterminal.ui.components.FileExplorerSheet
 import tokyo.isseikuzumaki.vibeterminal.ui.components.CodeViewerSheet
 import tokyo.isseikuzumaki.vibeterminal.ui.components.TerminalCanvas
@@ -46,6 +47,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import org.jetbrains.compose.resources.stringResource
 import puzzroom.mobile_vibe_terminal.generated.resources.*
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalFontConfig
+import androidx.activity.compose.BackHandler
 
 data class TerminalScreen(
     val config: ConnectionConfig
@@ -145,7 +147,13 @@ data class TerminalScreen(
         var selectedFilePath by remember { mutableStateOf<String?>(null) }
         var fileExplorerInitialPath by remember { mutableStateOf<String?>(null) }
         var isLoadingInitialPath by remember { mutableStateOf(false) }
+        var showDisconnectConfirmDialog by remember { mutableStateOf(false) }
         val coroutineScope = rememberCoroutineScope()
+
+        // Handle BACK key - show confirmation dialog when connected
+        BackHandler(enabled = state.isConnected) {
+            showDisconnectConfirmDialog = true
+        }
 
         // Lifecycle observer: Check connection state when app resumes from background
         LifecycleResumeEffect(Unit) {
@@ -500,6 +508,19 @@ data class TerminalScreen(
                 sshRepository = sshRepository,
                 filePath = filePath,
                 onDismiss = { selectedFilePath = null }
+            )
+        }
+
+        // Disconnect Confirmation Dialog
+        if (showDisconnectConfirmDialog) {
+            DisconnectConfirmDialog(
+                onConfirm = {
+                    showDisconnectConfirmDialog = false
+                    screenModel.disconnectAndClearSession {
+                        navigator.pop()
+                    }
+                },
+                onDismiss = { showDisconnectConfirmDialog = false }
             )
         }
     }

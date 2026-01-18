@@ -606,6 +606,22 @@ class KeyboardInputProcessorTest {
     // =========================================================================
 
     /**
+     * Alt+iがToggleIme結果を返すことを検証。
+     *
+     * ## Android TV向け機能
+     * Alt+iはIMEモードとRAWモードを切り替えるための専用ショートカット。
+     * 物理キーボード使用時に日本語入力などIMEが必要な場合にトグルできる。
+     *
+     * このキー組み合わせは通常のAlt+文字の処理より前にインターセプトされ、
+     * エスケープシーケンスではなくToggleIme結果を返す。
+     */
+    @Test
+    fun testAltIReturnsToggleIme() {
+        val result = KeyboardInputProcessor.processKeyEvent(keyDown(KeyCodes.I, alt = true))
+        assertIs<KeyboardInputProcessor.KeyResult.ToggleIme>(result)
+    }
+
+    /**
      * Alt+Aが`ESC a`（0x1B 0x61）を生成することを検証。
      *
      * ## ターミナル標準
