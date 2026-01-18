@@ -113,6 +113,9 @@ kotlin {
                 implementation("androidx.test.ext:junit:1.2.1")
                 implementation("androidx.test:runner:1.6.2")
                 implementation("androidx.test:rules:1.6.1")
+                // Compose UI Testing
+                @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
+                implementation(compose.uiTest)
             }
         }
     }

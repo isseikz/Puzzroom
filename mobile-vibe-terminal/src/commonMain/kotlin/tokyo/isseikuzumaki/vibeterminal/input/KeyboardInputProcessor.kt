@@ -19,6 +19,8 @@ object KeyboardInputProcessor {
         data object Ignored : KeyResult()
         /** Key should be passed to default handler */
         data object PassThrough : KeyResult()
+        /** Alt+i was pressed, toggle IME mode */
+        data object ToggleIme : KeyResult()
     }
 
     /**
@@ -50,6 +52,11 @@ object KeyboardInputProcessor {
             if (ctrlSequence != null) {
                 return KeyResult.Handled(ctrlSequence)
             }
+        }
+
+        // Handle Alt+i for IME toggle (special case before general Alt handling)
+        if (event.isAltPressed && event.keyCode == KeyCodes.I) {
+            return KeyResult.ToggleIme
         }
 
         // Handle Alt+key combinations (send ESC prefix)

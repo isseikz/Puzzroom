@@ -46,6 +46,10 @@
     <string name="terminal_reconnecting">Reconnecting...</string>
     <string name="terminal_secondary_display">Terminal displayed on secondary screen</string>
     <string name="terminal_initializing">Initializing terminal...</string>
+    <string name="terminal_disconnect_confirm_title">Disconnect?</string>
+    <string name="terminal_disconnect_confirm_message">Are you sure you want to disconnect from the server?</string>
+    <string name="terminal_disconnect_confirm_yes">Disconnect</string>
+    <string name="terminal_disconnect_confirm_no">Cancel</string>
 
     <!-- File Explorer -->
     <string name="file_explorer_title">File Explorer</string>

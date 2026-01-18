@@ -146,6 +146,12 @@ class TerminalScreenModel(
             sendInput(input, appendNewline = false)
         }
 
+        // Register IME toggle request callback (Alt+i)
+        TerminalStateProvider.onToggleImeRequest = {
+            Logger.d("IME toggle requested via Alt+i")
+            toggleImeMode()
+        }
+
         // Initialize command mode state
         TerminalStateProvider.setCommandMode(!_state.value.isImeEnabled)
 
@@ -401,13 +407,9 @@ class TerminalScreenModel(
     }
 
     fun toggleImeMode() {
-        // Don't allow toggling when hardware keyboard is connected
-        if (_state.value.isHardwareKeyboardConnected) {
-            Logger.d("Cannot toggle IME mode: hardware keyboard is connected")
-            return
-        }
         _state.update {
             val nextImeState = !it.isImeEnabled
+            Logger.d("Toggling IME mode: ${it.isImeEnabled} -> $nextImeState")
             TerminalStateProvider.setCommandMode(!nextImeState)
             it.copy(isImeEnabled = nextImeState)
         }

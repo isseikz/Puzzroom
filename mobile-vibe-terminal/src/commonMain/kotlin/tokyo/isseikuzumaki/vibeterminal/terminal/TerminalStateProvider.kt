@@ -193,4 +193,18 @@ object TerminalStateProvider {
     fun sendHardwareKeyboardInput(input: String) {
         onHardwareKeyboardInput?.invoke(input)
     }
+
+    /**
+     * Callback for IME toggle request.
+     * Set by TerminalScreenModel to handle Alt+i toggle request.
+     */
+    var onToggleImeRequest: (() -> Unit)? = null
+
+    /**
+     * Request to toggle IME mode.
+     * Called by MainActivity when Alt+i is pressed.
+     */
+    fun requestToggleIme() {
+        onToggleImeRequest?.invoke()
+    }
 }

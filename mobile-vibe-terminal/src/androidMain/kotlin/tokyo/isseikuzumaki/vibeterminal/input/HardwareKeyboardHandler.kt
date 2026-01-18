@@ -21,6 +21,8 @@ object HardwareKeyboardHandler {
         object Ignored : KeyResult()
         /** Key should be passed to default handler */
         object PassThrough : KeyResult()
+        /** Alt+i was pressed, toggle IME mode */
+        object ToggleIme : KeyResult()
     }
 
     /**
@@ -41,6 +43,7 @@ object HardwareKeyboardHandler {
             is KeyboardInputProcessor.KeyResult.Handled -> KeyResult.Handled(result.sequence)
             is KeyboardInputProcessor.KeyResult.Ignored -> KeyResult.Ignored
             is KeyboardInputProcessor.KeyResult.PassThrough -> KeyResult.PassThrough
+            is KeyboardInputProcessor.KeyResult.ToggleIme -> KeyResult.ToggleIme
         }
     }
 

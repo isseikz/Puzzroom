@@ -46,6 +46,10 @@
     <string name="terminal_reconnecting">再接続中...</string>
     <string name="terminal_secondary_display">ターミナルはセカンダリディスプレイに表示中</string>
     <string name="terminal_initializing">ターミナルを初期化中...</string>
+    <string name="terminal_disconnect_confirm_title">切断しますか？</string>
+    <string name="terminal_disconnect_confirm_message">サーバーとの接続を切断してもよろしいですか？</string>
+    <string name="terminal_disconnect_confirm_yes">切断</string>
+    <string name="terminal_disconnect_confirm_no">キャンセル</string>
 
     <!-- File Explorer -->
     <string name="file_explorer_title">ファイルエクスプローラー</string>
