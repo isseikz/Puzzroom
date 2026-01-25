@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import tokyo.isseikuzumaki.quickdeploy.model.DownloadProgress
 import tokyo.isseikuzumaki.quickdeploy.repository.DeviceRepository
 import tokyo.isseikuzumaki.quickdeploy.util.ApkInstaller
 
@@ -87,9 +88,11 @@ class RegistrationViewModel(
      */
     fun downloadAndInstall(downloadUrl: String) {
         viewModelScope.launch {
-            _uiState.value = RegistrationUiState.Downloading
+            _uiState.value = RegistrationUiState.Downloading()
 
-            val result = apkInstaller.downloadAndInstall(downloadUrl)
+            val result = apkInstaller.downloadAndInstall(downloadUrl) { progress ->
+                _uiState.value = RegistrationUiState.Downloading(progress)
+            }
 
             result.onSuccess {
                 // Return to registered state after installation starts
@@ -145,7 +148,7 @@ sealed interface RegistrationUiState {
     data object Loading : RegistrationUiState
     data object NotRegistered : RegistrationUiState
     data object Registering : RegistrationUiState
-    data object Downloading : RegistrationUiState
+    data class Downloading(val progress: DownloadProgress? = null) : RegistrationUiState
 
     data class Registered(
         val uploadUrl: String,
