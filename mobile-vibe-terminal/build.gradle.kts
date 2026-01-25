@@ -1,6 +1,4 @@
-import org.gradle.process.ExecOperations
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import javax.inject.Inject
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -10,6 +8,7 @@ plugins {
     alias(libs.plugins.kotlinx.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
+    id("io.github.isseikz.buildnotify") version "1.0.0"
 }
 
 kotlin {
@@ -186,49 +185,4 @@ dependencies {
     debugImplementation(compose.uiTooling)
     debugImplementation(libs.hyperion.core)
     debugImplementation(libs.hyperion.timber)
-}
-
-abstract class NotifyApkPathTask : DefaultTask() {
-    @get:Inject
-    abstract val execOperations: ExecOperations
-
-    @get:Internal
-    abstract val apkDirectory: DirectoryProperty
-
-    @TaskAction
-    fun notifyPath() {
-        val dir = apkDirectory.get().asFile
-        if (!dir.exists()) {
-            println("APK directory not found: $dir")
-            return
-        }
-        val apkFile = dir.walkTopDown().find { it.name.endsWith(".apk") && !it.name.contains("unaligned") }
-
-        if (apkFile != null) {
-            val absolutePath = apkFile.absolutePath
-            println("Found APK at: $absolutePath")
-            try {
-                execOperations.exec {
-                    commandLine("sh", "-c", "echo \"$absolutePath\" | nc -w 1 localhost 58080")
-                    isIgnoreExitValue = true
-                }
-                println("Sent APK path to localhost:58080")
-            } catch (e: Exception) {
-                println("Failed to send APK path: ${e.message}")
-            }
-        } else {
-            println("APK file not found in $dir")
-        }
-    }
-}
-
-tasks.register<NotifyApkPathTask>("notifyApkPath") {
-    apkDirectory.set(layout.buildDirectory.dir("outputs/apk/debug"))
-}
-
-// Hook into assembleDebug
-afterEvaluate {
-    tasks.named("assembleDebug") {
-        finalizedBy("notifyApkPath")
-    }
 }
