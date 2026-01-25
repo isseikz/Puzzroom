@@ -8,7 +8,7 @@ plugins {
     alias(libs.plugins.kotlinx.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
-    id("io.github.isseikz.buildnotify") version "1.0.0"
+    id("io.github.isseikz.buildnotify") version "1.0.1"
 }
 
 kotlin {
