@@ -145,4 +145,8 @@
     <string name="macro_vim_search">Search</string>
     <string name="macro_vim_next_match">Next match</string>
     <string name="macro_vim_prev_match">Prev match</string>
+
+    <!-- Discord -->
+    <string name="join_discord">Join our Discord</string>
+    <string name="discord_description">Share feedback, get help, and connect with other users</string>
 </resources>
