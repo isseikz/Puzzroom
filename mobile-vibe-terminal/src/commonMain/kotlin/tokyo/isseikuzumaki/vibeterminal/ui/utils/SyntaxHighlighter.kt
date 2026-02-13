@@ -97,7 +97,7 @@ object SyntaxHighlighter {
                             if (content[i] == '\\' && i + 1 < content.length) i++
                             i++
                         }
-                        if (i < content.length) i++ // consume closing quote if present
+                        if (i < content.length) i++ // Only increment if we found closing quote
                         append(content.substring(start, i))
                         addStyle(SpanStyle(color = STRING_COLOR), start, i)
                     }
@@ -162,7 +162,7 @@ object SyntaxHighlighter {
                             if (content[i] == '\\' && i + 1 < content.length) i++
                             i++
                         }
-                        if (i < content.length) i++ // consume closing quote if present
+                        if (i < content.length) i++ // Only increment if we found closing quote
                         append(content.substring(start, i))
                         addStyle(SpanStyle(color = STRING_COLOR), start, i)
                     }
@@ -174,7 +174,7 @@ object SyntaxHighlighter {
                             if (content[i] == '\\' && i + 1 < content.length) i++
                             i++
                         }
-                        if (i < content.length) i++ // consume closing quote if present
+                        if (i < content.length) i++ // Only increment if we found closing quote
                         append(content.substring(start, i))
                         addStyle(SpanStyle(color = STRING_COLOR), start, i)
                     }
