@@ -94,10 +94,10 @@ object SyntaxHighlighter {
                         val start = i
                         i++
                         while (i < content.length && content[i] != '"') {
-                            if (content[i] == '\\') i++
+                            if (content[i] == '\\' && i + 1 < content.length) i++
                             i++
                         }
-                        i++
+                        if (i < content.length) i++ // consume closing quote if present
                         append(content.substring(start, i))
                         addStyle(SpanStyle(color = STRING_COLOR), start, i)
                     }
@@ -159,10 +159,10 @@ object SyntaxHighlighter {
                         val start = i
                         i++
                         while (i < content.length && content[i] != '"') {
-                            if (content[i] == '\\') i++
+                            if (content[i] == '\\' && i + 1 < content.length) i++
                             i++
                         }
-                        i++
+                        if (i < content.length) i++ // consume closing quote if present
                         append(content.substring(start, i))
                         addStyle(SpanStyle(color = STRING_COLOR), start, i)
                     }
@@ -171,10 +171,10 @@ object SyntaxHighlighter {
                         val start = i
                         i++
                         while (i < content.length && content[i] != '\'') {
-                            if (content[i] == '\\') i++
+                            if (content[i] == '\\' && i + 1 < content.length) i++
                             i++
                         }
-                        i++
+                        if (i < content.length) i++ // consume closing quote if present
                         append(content.substring(start, i))
                         addStyle(SpanStyle(color = STRING_COLOR), start, i)
                     }
