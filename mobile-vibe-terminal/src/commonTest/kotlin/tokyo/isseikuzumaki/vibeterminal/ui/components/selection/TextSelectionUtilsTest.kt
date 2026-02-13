@@ -7,134 +7,187 @@ import kotlin.test.assertEquals
 class TextSelectionUtilsTest {
 
     // ========================================
+    // Parameterized Test Cases
+    // ========================================
+
+    /**
+     * Test case for calculateTerminalPosition (1-based coordinates)
+     */
+    private data class TerminalPositionTestCase(
+        val name: String,
+        val pixelX: Float,
+        val pixelY: Float,
+        val charWidth: Float,
+        val charHeight: Float,
+        val cols: Int,
+        val rows: Int,
+        val expectedCol: Int,
+        val expectedRow: Int
+    )
+
+    /**
+     * Test case for calculateCellPosition (0-based coordinates)
+     */
+    private data class CellPositionTestCase(
+        val name: String,
+        val pixelX: Float,
+        val pixelY: Float,
+        val charWidth: Float,
+        val charHeight: Float,
+        val cols: Int,
+        val rows: Int,
+        val expectedCol: Int,
+        val expectedRow: Int
+    )
+
+    /**
+     * Test case for extractSelectedText
+     */
+    private data class ExtractTextTestCase(
+        val name: String,
+        val lines: List<String>,
+        val anchorRow: Int,
+        val anchorCol: Int,
+        val currentRow: Int,
+        val currentCol: Int,
+        val isSelecting: Boolean,
+        val expected: String
+    )
+
+    // ========================================
     // Regression Tests for Issue #163
     // calculateTerminalPosition and calculateCellPosition
     // must not throw IllegalArgumentException when buffer is empty
     // ========================================
 
-    @Test
-    fun `calculateTerminalPosition with empty buffer does not throw`() {
-        // This test reproduces Issue #163: IllegalArgumentException when cols=0 or rows=0
-        // The bug was: coerceIn(1, 0) throws because max < min
-        val (col, row) = calculateTerminalPosition(
-            pixelX = 100f,
-            pixelY = 100f,
-            charWidth = 10f,
-            charHeight = 20f,
-            cols = 0,
-            rows = 0
+    private val terminalPositionTestCases = listOf(
+        TerminalPositionTestCase(
+            name = "empty buffer (cols=0, rows=0)",
+            pixelX = 100f, pixelY = 100f,
+            charWidth = 10f, charHeight = 20f,
+            cols = 0, rows = 0,
+            expectedCol = 1, expectedRow = 1
+        ),
+        TerminalPositionTestCase(
+            name = "zero cols only",
+            pixelX = 100f, pixelY = 100f,
+            charWidth = 10f, charHeight = 20f,
+            cols = 0, rows = 10,
+            expectedCol = 1, expectedRow = 6  // 100/20 + 1 = 6, clamped to 1..10
+        ),
+        TerminalPositionTestCase(
+            name = "zero rows only",
+            pixelX = 100f, pixelY = 100f,
+            charWidth = 10f, charHeight = 20f,
+            cols = 10, rows = 0,
+            expectedCol = 10, expectedRow = 1  // 100/10 + 1 = 11, clamped to 1..10
+        ),
+        TerminalPositionTestCase(
+            name = "normal position",
+            pixelX = 25f, pixelY = 45f,
+            charWidth = 10f, charHeight = 20f,
+            cols = 80, rows = 24,
+            expectedCol = 3, expectedRow = 3  // 25/10 + 1 = 3, 45/20 + 1 = 3
+        ),
+        TerminalPositionTestCase(
+            name = "clamps to max bounds",
+            pixelX = 1000f, pixelY = 1000f,
+            charWidth = 10f, charHeight = 20f,
+            cols = 80, rows = 24,
+            expectedCol = 80, expectedRow = 24
+        ),
+        TerminalPositionTestCase(
+            name = "position at origin",
+            pixelX = 0f, pixelY = 0f,
+            charWidth = 10f, charHeight = 20f,
+            cols = 80, rows = 24,
+            expectedCol = 1, expectedRow = 1
+        ),
+        TerminalPositionTestCase(
+            name = "position at cell boundary",
+            pixelX = 10f, pixelY = 20f,
+            charWidth = 10f, charHeight = 20f,
+            cols = 80, rows = 24,
+            expectedCol = 2, expectedRow = 2  // exactly on boundary = next cell
         )
-        // With empty buffer, should return (1, 1) as minimum valid terminal position
-        assertEquals(1, col)
-        assertEquals(1, row)
-    }
+    )
 
     @Test
-    fun `calculateTerminalPosition with zero cols does not throw`() {
-        val (col, row) = calculateTerminalPosition(
-            pixelX = 100f,
-            pixelY = 100f,
-            charWidth = 10f,
-            charHeight = 20f,
-            cols = 0,
-            rows = 10
-        )
-        assertEquals(1, col)
-        assertEquals(6, row) // 100/20 + 1 = 6, clamped to 1..10
+    fun calculateTerminalPosition_parameterized() {
+        terminalPositionTestCases.forEach { case ->
+            val (col, row) = calculateTerminalPosition(
+                pixelX = case.pixelX,
+                pixelY = case.pixelY,
+                charWidth = case.charWidth,
+                charHeight = case.charHeight,
+                cols = case.cols,
+                rows = case.rows
+            )
+            assertEquals(case.expectedCol, col, "col mismatch for: ${case.name}")
+            assertEquals(case.expectedRow, row, "row mismatch for: ${case.name}")
+        }
     }
 
-    @Test
-    fun `calculateTerminalPosition with zero rows does not throw`() {
-        val (col, row) = calculateTerminalPosition(
-            pixelX = 100f,
-            pixelY = 100f,
-            charWidth = 10f,
-            charHeight = 20f,
-            cols = 10,
-            rows = 0
+    private val cellPositionTestCases = listOf(
+        CellPositionTestCase(
+            name = "empty buffer (cols=0, rows=0)",
+            pixelX = 100f, pixelY = 100f,
+            charWidth = 10f, charHeight = 20f,
+            cols = 0, rows = 0,
+            expectedCol = 0, expectedRow = 0
+        ),
+        CellPositionTestCase(
+            name = "normal position",
+            pixelX = 25f, pixelY = 45f,
+            charWidth = 10f, charHeight = 20f,
+            cols = 80, rows = 24,
+            expectedCol = 2, expectedRow = 2  // 25/10 = 2, 45/20 = 2
+        ),
+        CellPositionTestCase(
+            name = "clamps to max bounds (0-based)",
+            pixelX = 1000f, pixelY = 1000f,
+            charWidth = 10f, charHeight = 20f,
+            cols = 80, rows = 24,
+            expectedCol = 79, expectedRow = 23  // 0-based, so max is cols-1, rows-1
+        ),
+        CellPositionTestCase(
+            name = "position at origin",
+            pixelX = 0f, pixelY = 0f,
+            charWidth = 10f, charHeight = 20f,
+            cols = 80, rows = 24,
+            expectedCol = 0, expectedRow = 0
+        ),
+        CellPositionTestCase(
+            name = "position at cell boundary",
+            pixelX = 10f, pixelY = 20f,
+            charWidth = 10f, charHeight = 20f,
+            cols = 80, rows = 24,
+            expectedCol = 1, expectedRow = 1  // exactly on boundary = next cell
         )
-        assertEquals(10, col) // 100/10 + 1 = 11, clamped to 1..10
-        assertEquals(1, row)
-    }
+    )
 
     @Test
-    fun `calculateTerminalPosition returns valid 1-based position`() {
-        val (col, row) = calculateTerminalPosition(
-            pixelX = 25f,
-            pixelY = 45f,
-            charWidth = 10f,
-            charHeight = 20f,
-            cols = 80,
-            rows = 24
-        )
-        // 25/10 + 1 = 3, 45/20 + 1 = 3
-        assertEquals(3, col)
-        assertEquals(3, row)
-    }
-
-    @Test
-    fun `calculateTerminalPosition clamps to max bounds`() {
-        val (col, row) = calculateTerminalPosition(
-            pixelX = 1000f,
-            pixelY = 1000f,
-            charWidth = 10f,
-            charHeight = 20f,
-            cols = 80,
-            rows = 24
-        )
-        assertEquals(80, col)
-        assertEquals(24, row)
-    }
-
-    @Test
-    fun `calculateCellPosition with empty buffer does not throw`() {
-        val (col, row) = calculateCellPosition(
-            pixelX = 100f,
-            pixelY = 100f,
-            charWidth = 10f,
-            charHeight = 20f,
-            cols = 0,
-            rows = 0
-        )
-        // With empty buffer, should return (0, 0) as minimum valid cell position
-        assertEquals(0, col)
-        assertEquals(0, row)
-    }
-
-    @Test
-    fun `calculateCellPosition returns valid 0-based position`() {
-        val (col, row) = calculateCellPosition(
-            pixelX = 25f,
-            pixelY = 45f,
-            charWidth = 10f,
-            charHeight = 20f,
-            cols = 80,
-            rows = 24
-        )
-        // 25/10 = 2, 45/20 = 2
-        assertEquals(2, col)
-        assertEquals(2, row)
-    }
-
-    @Test
-    fun `calculateCellPosition clamps to max bounds`() {
-        val (col, row) = calculateCellPosition(
-            pixelX = 1000f,
-            pixelY = 1000f,
-            charWidth = 10f,
-            charHeight = 20f,
-            cols = 80,
-            rows = 24
-        )
-        assertEquals(79, col) // 0-based, so max is cols-1
-        assertEquals(23, row) // 0-based, so max is rows-1
+    fun calculateCellPosition_parameterized() {
+        cellPositionTestCases.forEach { case ->
+            val (col, row) = calculateCellPosition(
+                pixelX = case.pixelX,
+                pixelY = case.pixelY,
+                charWidth = case.charWidth,
+                charHeight = case.charHeight,
+                cols = case.cols,
+                rows = case.rows
+            )
+            assertEquals(case.expectedCol, col, "col mismatch for: ${case.name}")
+            assertEquals(case.expectedRow, row, "row mismatch for: ${case.name}")
+        }
     }
 
     // ========================================
     // extractSelectedText Tests
     // ========================================
 
-    private fun createBuffer(vararg lines: String): Array<Array<TerminalCell>> {
+    private fun createBuffer(lines: List<String>): Array<Array<TerminalCell>> {
+        if (lines.isEmpty()) return arrayOf()
         val maxCols = lines.maxOfOrNull { it.length } ?: 0
         return lines.map { line ->
             (0 until maxCols).map { col ->
@@ -147,122 +200,90 @@ class TextSelectionUtilsTest {
         }.toTypedArray()
     }
 
-    @Test
-    fun `選択範囲がない場合は空文字列を返す`() {
-        val buffer = createBuffer("Hello World")
-        val state = TextSelectionState.Empty
-
-        val result = extractSelectedText(buffer, state)
-
-        assertEquals("", result)
-    }
-
-    @Test
-    fun `単一行の一部を選択した場合、その部分のテキストを返す`() {
-        val buffer = createBuffer("Hello World")
-        val state = TextSelectionState(
+    private val extractTextTestCases = listOf(
+        ExtractTextTestCase(
+            name = "no selection returns empty",
+            lines = listOf("Hello World"),
+            anchorRow = 0, anchorCol = 0,
+            currentRow = 0, currentCol = 0,
+            isSelecting = false,
+            expected = ""
+        ),
+        ExtractTextTestCase(
+            name = "single line partial selection",
+            lines = listOf("Hello World"),
+            anchorRow = 0, anchorCol = 0,
+            currentRow = 0, currentCol = 4,
             isSelecting = true,
-            anchorPosition = TerminalPosition(0, 0),
-            currentPosition = TerminalPosition(0, 4)
+            expected = "Hello"
+        ),
+        ExtractTextTestCase(
+            name = "single line trims trailing spaces",
+            lines = listOf("Hello   "),
+            anchorRow = 0, anchorCol = 0,
+            currentRow = 0, currentCol = 7,
+            isSelecting = true,
+            expected = "Hello"
+        ),
+        ExtractTextTestCase(
+            name = "multiple lines with newlines",
+            lines = listOf("Line 1", "Line 2", "Line 3"),
+            anchorRow = 0, anchorCol = 0,
+            currentRow = 2, currentCol = 5,
+            isSelecting = true,
+            expected = "Line 1\nLine 2\nLine 3"
+        ),
+        ExtractTextTestCase(
+            name = "multiple lines trim trailing spaces",
+            lines = listOf("AAA   ", "BBB   ", "CCC   "),
+            anchorRow = 0, anchorCol = 0,
+            currentRow = 2, currentCol = 5,
+            isSelecting = true,
+            expected = "AAA\nBBB\nCCC"
+        ),
+        ExtractTextTestCase(
+            name = "partial selection across lines",
+            lines = listOf("Hello World", "Foo Bar"),
+            anchorRow = 0, anchorCol = 6,
+            currentRow = 1, currentCol = 2,
+            isSelecting = true,
+            expected = "World\nFoo"
+        ),
+        ExtractTextTestCase(
+            name = "reverse selection returns same text",
+            lines = listOf("Hello World"),
+            anchorRow = 0, anchorCol = 4,
+            currentRow = 0, currentCol = 0,
+            isSelecting = true,
+            expected = "Hello"
+        ),
+        ExtractTextTestCase(
+            name = "empty buffer returns empty",
+            lines = emptyList(),
+            anchorRow = 0, anchorCol = 0,
+            currentRow = 0, currentCol = 5,
+            isSelecting = true,
+            expected = ""
         )
-
-        val result = extractSelectedText(buffer, state)
-
-        assertEquals("Hello", result)
-    }
+    )
 
     @Test
-    fun `単一行の全体を選択した場合、末尾の空白を除去する`() {
-        val buffer = createBuffer("Hello   ")
-        val state = TextSelectionState(
-            isSelecting = true,
-            anchorPosition = TerminalPosition(0, 0),
-            currentPosition = TerminalPosition(0, 7)
-        )
+    fun extractSelectedText_parameterized() {
+        extractTextTestCases.forEach { case ->
+            val buffer = createBuffer(case.lines)
+            val state = if (case.isSelecting) {
+                TextSelectionState(
+                    isSelecting = true,
+                    anchorPosition = TerminalPosition(case.anchorRow, case.anchorCol),
+                    currentPosition = TerminalPosition(case.currentRow, case.currentCol)
+                )
+            } else {
+                TextSelectionState.Empty
+            }
 
-        val result = extractSelectedText(buffer, state)
+            val result = extractSelectedText(buffer, state)
 
-        assertEquals("Hello", result)
-    }
-
-    @Test
-    fun `複数行を選択した場合、改行で区切られたテキストを返す`() {
-        val buffer = createBuffer(
-            "Line 1",
-            "Line 2",
-            "Line 3"
-        )
-        val state = TextSelectionState(
-            isSelecting = true,
-            anchorPosition = TerminalPosition(0, 0),
-            currentPosition = TerminalPosition(2, 5)
-        )
-
-        val result = extractSelectedText(buffer, state)
-
-        assertEquals("Line 1\nLine 2\nLine 3", result)
-    }
-
-    @Test
-    fun `複数行選択で各行の末尾空白を除去する`() {
-        val buffer = createBuffer(
-            "AAA   ",
-            "BBB   ",
-            "CCC   "
-        )
-        val state = TextSelectionState(
-            isSelecting = true,
-            anchorPosition = TerminalPosition(0, 0),
-            currentPosition = TerminalPosition(2, 5)
-        )
-
-        val result = extractSelectedText(buffer, state)
-
-        assertEquals("AAA\nBBB\nCCC", result)
-    }
-
-    @Test
-    fun `複数行で途中から選択を開始した場合`() {
-        val buffer = createBuffer(
-            "Hello World",
-            "Foo Bar"
-        )
-        val state = TextSelectionState(
-            isSelecting = true,
-            anchorPosition = TerminalPosition(0, 6),
-            currentPosition = TerminalPosition(1, 2)
-        )
-
-        val result = extractSelectedText(buffer, state)
-
-        assertEquals("World\nFoo", result)
-    }
-
-    @Test
-    fun `逆方向に選択しても正しいテキストを返す`() {
-        val buffer = createBuffer("Hello World")
-        val state = TextSelectionState(
-            isSelecting = true,
-            anchorPosition = TerminalPosition(0, 4),
-            currentPosition = TerminalPosition(0, 0)
-        )
-
-        val result = extractSelectedText(buffer, state)
-
-        assertEquals("Hello", result)
-    }
-
-    @Test
-    fun `空のバッファでも例外を発生させない`() {
-        val buffer = arrayOf<Array<TerminalCell>>()
-        val state = TextSelectionState(
-            isSelecting = true,
-            anchorPosition = TerminalPosition(0, 0),
-            currentPosition = TerminalPosition(0, 5)
-        )
-
-        val result = extractSelectedText(buffer, state)
-
-        assertEquals("", result)
+            assertEquals(case.expected, result, "Failed for: ${case.name}")
+        }
     }
 }
