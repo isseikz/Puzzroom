@@ -85,8 +85,9 @@ fun SelectableTerminalContainer(
                     onDragStart = { offset ->
                         Logger.d("SelectableTerminalContainer: onDragStart at $offset")
                         // ピクセル座標からセル位置を計算
-                        val col = (offset.x / charWidth).toInt().coerceIn(0, (cols - 1).coerceAtLeast(0))
-                        val row = (offset.y / charHeight).toInt().coerceIn(0, (rows - 1).coerceAtLeast(0))
+                        val (col, row) = calculateCellPosition(
+                            offset.x, offset.y, charWidth, charHeight, cols, rows
+                        )
                         val position = TerminalPosition(row, col)
                         Logger.d("SelectableTerminalContainer: Selection started at row=$row, col=$col")
                         selectionState = TextSelectionState(
@@ -98,9 +99,9 @@ fun SelectableTerminalContainer(
                     },
                     onDrag = { change, _ ->
                         change.consume()
-                        val offset = change.position
-                        val col = (offset.x / charWidth).toInt().coerceIn(0, (cols - 1).coerceAtLeast(0))
-                        val row = (offset.y / charHeight).toInt().coerceIn(0, (rows - 1).coerceAtLeast(0))
+                        val (col, row) = calculateCellPosition(
+                            change.position.x, change.position.y, charWidth, charHeight, cols, rows
+                        )
                         selectionState = selectionState.copy(
                             currentPosition = TerminalPosition(row, col)
                         )
@@ -155,9 +156,11 @@ fun SelectableTerminalContainer(
                                     ScrollDirection.UP    // Swipe down = scroll up (natural scrolling)
                                 }
 
-                                // Calculate cell position (1-based for terminal) and clamp to bounds
-                                val col = ((change.position.x / charWidth).toInt() + 1).coerceIn(1, cols)
-                                val row = ((change.position.y / charHeight).toInt() + 1).coerceIn(1, rows)
+                                // Calculate cell position (1-based for terminal) with safe bounds handling
+                                val (col, row) = calculateTerminalPosition(
+                                    change.position.x, change.position.y,
+                                    charWidth, charHeight, cols, rows
+                                )
 
                                 val handled = onScroll(direction, col, row)
                                 if (handled) {
