@@ -6,6 +6,134 @@ import kotlin.test.assertEquals
 
 class TextSelectionUtilsTest {
 
+    // ========================================
+    // Regression Tests for Issue #163
+    // calculateTerminalPosition and calculateCellPosition
+    // must not throw IllegalArgumentException when buffer is empty
+    // ========================================
+
+    @Test
+    fun `calculateTerminalPosition with empty buffer does not throw`() {
+        // This test reproduces Issue #163: IllegalArgumentException when cols=0 or rows=0
+        // The bug was: coerceIn(1, 0) throws because max < min
+        val (col, row) = calculateTerminalPosition(
+            pixelX = 100f,
+            pixelY = 100f,
+            charWidth = 10f,
+            charHeight = 20f,
+            cols = 0,
+            rows = 0
+        )
+        // With empty buffer, should return (1, 1) as minimum valid terminal position
+        assertEquals(1, col)
+        assertEquals(1, row)
+    }
+
+    @Test
+    fun `calculateTerminalPosition with zero cols does not throw`() {
+        val (col, row) = calculateTerminalPosition(
+            pixelX = 100f,
+            pixelY = 100f,
+            charWidth = 10f,
+            charHeight = 20f,
+            cols = 0,
+            rows = 10
+        )
+        assertEquals(1, col)
+        assertEquals(6, row) // 100/20 + 1 = 6, clamped to 1..10
+    }
+
+    @Test
+    fun `calculateTerminalPosition with zero rows does not throw`() {
+        val (col, row) = calculateTerminalPosition(
+            pixelX = 100f,
+            pixelY = 100f,
+            charWidth = 10f,
+            charHeight = 20f,
+            cols = 10,
+            rows = 0
+        )
+        assertEquals(10, col) // 100/10 + 1 = 11, clamped to 1..10
+        assertEquals(1, row)
+    }
+
+    @Test
+    fun `calculateTerminalPosition returns valid 1-based position`() {
+        val (col, row) = calculateTerminalPosition(
+            pixelX = 25f,
+            pixelY = 45f,
+            charWidth = 10f,
+            charHeight = 20f,
+            cols = 80,
+            rows = 24
+        )
+        // 25/10 + 1 = 3, 45/20 + 1 = 3
+        assertEquals(3, col)
+        assertEquals(3, row)
+    }
+
+    @Test
+    fun `calculateTerminalPosition clamps to max bounds`() {
+        val (col, row) = calculateTerminalPosition(
+            pixelX = 1000f,
+            pixelY = 1000f,
+            charWidth = 10f,
+            charHeight = 20f,
+            cols = 80,
+            rows = 24
+        )
+        assertEquals(80, col)
+        assertEquals(24, row)
+    }
+
+    @Test
+    fun `calculateCellPosition with empty buffer does not throw`() {
+        val (col, row) = calculateCellPosition(
+            pixelX = 100f,
+            pixelY = 100f,
+            charWidth = 10f,
+            charHeight = 20f,
+            cols = 0,
+            rows = 0
+        )
+        // With empty buffer, should return (0, 0) as minimum valid cell position
+        assertEquals(0, col)
+        assertEquals(0, row)
+    }
+
+    @Test
+    fun `calculateCellPosition returns valid 0-based position`() {
+        val (col, row) = calculateCellPosition(
+            pixelX = 25f,
+            pixelY = 45f,
+            charWidth = 10f,
+            charHeight = 20f,
+            cols = 80,
+            rows = 24
+        )
+        // 25/10 = 2, 45/20 = 2
+        assertEquals(2, col)
+        assertEquals(2, row)
+    }
+
+    @Test
+    fun `calculateCellPosition clamps to max bounds`() {
+        val (col, row) = calculateCellPosition(
+            pixelX = 1000f,
+            pixelY = 1000f,
+            charWidth = 10f,
+            charHeight = 20f,
+            cols = 80,
+            rows = 24
+        )
+        assertEquals(79, col) // 0-based, so max is cols-1
+        assertEquals(23, row) // 0-based, so max is rows-1
+    }
+
+    // ========================================
+    // extractSelectedText Tests
+    // ========================================
+
     private fun createBuffer(vararg lines: String): Array<Array<TerminalCell>> {
         val maxCols = lines.maxOfOrNull { it.length } ?: 0
         return lines.map { line ->

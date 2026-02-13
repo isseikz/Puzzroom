@@ -3,6 +3,57 @@ package tokyo.isseikuzumaki.vibeterminal.ui.components.selection
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalCell
 
 /**
+ * Calculate safe cell position (0-based) from pixel coordinates.
+ * Ensures the result is within valid bounds even when buffer is empty.
+ *
+ * @param pixelX X coordinate in pixels
+ * @param pixelY Y coordinate in pixels
+ * @param charWidth Width of a single character in pixels
+ * @param charHeight Height of a single character in pixels
+ * @param cols Number of columns in the buffer
+ * @param rows Number of rows in the buffer
+ * @return A pair of (col, row) clamped to valid bounds
+ */
+fun calculateCellPosition(
+    pixelX: Float,
+    pixelY: Float,
+    charWidth: Float,
+    charHeight: Float,
+    cols: Int,
+    rows: Int
+): Pair<Int, Int> {
+    val col = (pixelX / charWidth).toInt().coerceIn(0, (cols - 1).coerceAtLeast(0))
+    val row = (pixelY / charHeight).toInt().coerceIn(0, (rows - 1).coerceAtLeast(0))
+    return Pair(col, row)
+}
+
+/**
+ * Calculate safe terminal position (1-based) from pixel coordinates for scroll events.
+ * Terminal protocols typically use 1-based coordinates.
+ * Ensures the result is within valid bounds even when buffer is empty.
+ *
+ * @param pixelX X coordinate in pixels
+ * @param pixelY Y coordinate in pixels
+ * @param charWidth Width of a single character in pixels
+ * @param charHeight Height of a single character in pixels
+ * @param cols Number of columns in the buffer
+ * @param rows Number of rows in the buffer
+ * @return A pair of (col, row) in 1-based coordinates, clamped to valid bounds
+ */
+fun calculateTerminalPosition(
+    pixelX: Float,
+    pixelY: Float,
+    charWidth: Float,
+    charHeight: Float,
+    cols: Int,
+    rows: Int
+): Pair<Int, Int> {
+    val col = ((pixelX / charWidth).toInt() + 1).coerceIn(1, cols.coerceAtLeast(1))
+    val row = ((pixelY / charHeight).toInt() + 1).coerceIn(1, rows.coerceAtLeast(1))
+    return Pair(col, row)
+}
+
+/**
  * 選択範囲からテキストを抽出する
  */
 fun extractSelectedText(
