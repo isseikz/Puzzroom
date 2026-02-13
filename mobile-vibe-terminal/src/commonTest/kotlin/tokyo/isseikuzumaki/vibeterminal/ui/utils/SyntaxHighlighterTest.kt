@@ -14,352 +14,330 @@ import kotlin.test.assertTrue
 class SyntaxHighlighterTest {
 
     // ========================================
-    // Regression Tests (Bug Fix Verification)
+    // Test Case Data Classes
     // ========================================
 
     /**
-     * Test: Unterminated double-quoted string at EOF should not throw exception.
-     *
-     * This was the original bug - the highlighter would throw
-     * StringIndexOutOfBoundsException when a string reached end of content
-     * without a closing quote.
+     * Test case for basic highlight operations that should not throw exceptions.
      */
-    @Test
-    fun highlight_unterminatedDoubleQuote_noException() {
-        val result = SyntaxHighlighter.highlight("val x = \"hello", "kt")
-        assertNotNull(result)
-        assertEquals("val x = \"hello", result.text)
-    }
+    private data class HighlightTestCase(
+        val name: String,
+        val content: String,
+        val extension: String,
+        val expectedText: String = content  // defaults to same as content
+    )
 
     /**
-     * Test: Unterminated single-quoted string at EOF should not throw exception.
+     * Test case for highlight operations that should produce span styles.
      */
-    @Test
-    fun highlight_unterminatedSingleQuote_noException() {
-        val result = SyntaxHighlighter.highlight("val x = 'hello", "kt")
-        assertNotNull(result)
-        assertEquals("val x = 'hello", result.text)
-    }
+    private data class HighlightWithStylesTestCase(
+        val name: String,
+        val content: String,
+        val extension: String
+    )
 
-    /**
-     * Test: Escape character at end of string content should not throw exception.
-     *
-     * When a backslash is the last character before EOF, the increment past
-     * the escape sequence must be bounds-checked.
-     */
-    @Test
-    fun highlight_escapeAtEndOfString_noException() {
-        val result = SyntaxHighlighter.highlight("val x = \"hello\\", "kt")
-        assertNotNull(result)
-        assertEquals("val x = \"hello\\", result.text)
-    }
+    // ========================================
+    // Regression Tests (Bug Fix Verification)
+    // Issue #162: StringIndexOutOfBoundsException with unterminated strings
+    // ========================================
 
-    /**
-     * Test: Just an opening quote at EOF should not throw exception.
-     */
-    @Test
-    fun highlight_emptyUnterminatedString_noException() {
-        val result = SyntaxHighlighter.highlight("val x = \"", "kt")
-        assertNotNull(result)
-        assertEquals("val x = \"", result.text)
-    }
+    private val unterminatedStringTestCases = listOf(
+        // Kotlin unterminated strings
+        HighlightTestCase(
+            name = "Kotlin unterminated double quote",
+            content = "val x = \"hello",
+            extension = "kt"
+        ),
+        HighlightTestCase(
+            name = "Kotlin unterminated single quote",
+            content = "val x = 'hello",
+            extension = "kt"
+        ),
+        HighlightTestCase(
+            name = "Kotlin escape at end of string",
+            content = "val x = \"hello\\",
+            extension = "kt"
+        ),
+        HighlightTestCase(
+            name = "Kotlin empty unterminated string",
+            content = "val x = \"",
+            extension = "kt"
+        ),
+        HighlightTestCase(
+            name = "Kotlin single quote character only",
+            content = "\"",
+            extension = "kt"
+        ),
+        // JSON unterminated strings
+        HighlightTestCase(
+            name = "JSON unterminated string",
+            content = "{\"key\": \"value",
+            extension = "json"
+        ),
+        HighlightTestCase(
+            name = "JSON escape at end",
+            content = "{\"key\": \"value\\",
+            extension = "json"
+        ),
+        // Other languages
+        HighlightTestCase(
+            name = "Java unterminated string",
+            content = "String s = \"hello",
+            extension = "java"
+        ),
+        HighlightTestCase(
+            name = "Python unterminated string",
+            content = "s = \"hello",
+            extension = "py"
+        ),
+        HighlightTestCase(
+            name = "JavaScript unterminated string",
+            content = "const s = \"hello",
+            extension = "js"
+        ),
+        // Multi-line cases
+        HighlightTestCase(
+            name = "Kotlin multiple unterminated strings",
+            content = "val a = \"first\nval b = \"second",
+            extension = "kt"
+        ),
+        HighlightTestCase(
+            name = "Kotlin terminated then unterminated",
+            content = "val a = \"complete\"\nval b = \"incomplete",
+            extension = "kt"
+        ),
+        // Unclosed comments
+        HighlightTestCase(
+            name = "Kotlin unclosed multi-line comment",
+            content = "/* unclosed comment",
+            extension = "kt"
+        )
+    )
 
-    /**
-     * Test: JSON with unterminated string should not throw exception.
-     */
     @Test
-    fun highlightJson_unterminatedString_noException() {
-        val result = SyntaxHighlighter.highlight("{\"key\": \"value", "json")
-        assertNotNull(result)
-        assertEquals("{\"key\": \"value", result.text)
-    }
-
-    /**
-     * Test: JSON with escape at end should not throw exception.
-     */
-    @Test
-    fun highlightJson_escapeAtEnd_noException() {
-        val result = SyntaxHighlighter.highlight("{\"key\": \"value\\", "json")
-        assertNotNull(result)
-        assertEquals("{\"key\": \"value\\", result.text)
-    }
-
-    /**
-     * Test: Java with unterminated string should not throw exception.
-     */
-    @Test
-    fun highlightJava_unterminatedString_noException() {
-        val result = SyntaxHighlighter.highlight("String s = \"hello", "java")
-        assertNotNull(result)
-        assertEquals("String s = \"hello", result.text)
-    }
-
-    /**
-     * Test: Python with unterminated string should not throw exception.
-     */
-    @Test
-    fun highlightPython_unterminatedString_noException() {
-        val result = SyntaxHighlighter.highlight("s = \"hello", "py")
-        assertNotNull(result)
-        assertEquals("s = \"hello", result.text)
-    }
-
-    /**
-     * Test: JavaScript with unterminated string should not throw exception.
-     */
-    @Test
-    fun highlightJavaScript_unterminatedString_noException() {
-        val result = SyntaxHighlighter.highlight("const s = \"hello", "js")
-        assertNotNull(result)
-        assertEquals("const s = \"hello", result.text)
+    fun unterminatedStrings_noException() {
+        unterminatedStringTestCases.forEach { case ->
+            val result = SyntaxHighlighter.highlight(case.content, case.extension)
+            assertNotNull(result, "Result should not be null for: ${case.name}")
+            assertEquals(case.expectedText, result.text, "Text mismatch for: ${case.name}")
+        }
     }
 
     // ========================================
     // Functional Tests (Ensure Fix Doesn't Break Existing)
     // ========================================
 
-    /**
-     * Test: Valid Kotlin string should be highlighted correctly.
-     */
-    @Test
-    fun highlight_validKotlinString_highlighted() {
-        val result = SyntaxHighlighter.highlight("val x = \"hello\"", "kt")
-        assertEquals("val x = \"hello\"", result.text)
-        // Verify the string is present in the annotated string
-        assertTrue(result.spanStyles.isNotEmpty(), "Should have span styles")
-    }
+    private val validHighlightTestCases = listOf(
+        HighlightWithStylesTestCase(
+            name = "Kotlin valid string",
+            content = "val x = \"hello\"",
+            extension = "kt"
+        ),
+        HighlightWithStylesTestCase(
+            name = "Kotlin escaped quotes in string",
+            content = "val x = \"say \\\"hi\\\"\"",
+            extension = "kt"
+        ),
+        HighlightWithStylesTestCase(
+            name = "Kotlin keywords",
+            content = "fun test()",
+            extension = "kt"
+        ),
+        HighlightWithStylesTestCase(
+            name = "Kotlin single-line comment",
+            content = "// comment",
+            extension = "kt"
+        ),
+        HighlightWithStylesTestCase(
+            name = "Kotlin multi-line comment",
+            content = "/* comment */",
+            extension = "kt"
+        ),
+        HighlightWithStylesTestCase(
+            name = "Kotlin integer number",
+            content = "val x = 42",
+            extension = "kt"
+        ),
+        HighlightWithStylesTestCase(
+            name = "Kotlin float number",
+            content = "val x = 3.14f",
+            extension = "kt"
+        ),
+        HighlightWithStylesTestCase(
+            name = "JSON number",
+            content = "{\"count\": 42}",
+            extension = "json"
+        ),
+        HighlightWithStylesTestCase(
+            name = "JSON negative number",
+            content = "{\"temp\": -10.5}",
+            extension = "json"
+        )
+    )
 
-    /**
-     * Test: Escaped quotes inside string should be handled correctly.
-     */
     @Test
-    fun highlight_escapedQuoteInString_highlighted() {
-        val result = SyntaxHighlighter.highlight("val x = \"say \\\"hi\\\"\"", "kt")
-        assertEquals("val x = \"say \\\"hi\\\"\"", result.text)
-        assertNotNull(result)
-    }
-
-    /**
-     * Test: Kotlin keywords should be highlighted.
-     */
-    @Test
-    fun highlight_kotlinKeywords_highlighted() {
-        val result = SyntaxHighlighter.highlight("fun test()", "kt")
-        assertEquals("fun test()", result.text)
-        assertTrue(result.spanStyles.isNotEmpty(), "Should have span styles for keywords")
-    }
-
-    /**
-     * Test: Single-line comment should be highlighted.
-     */
-    @Test
-    fun highlight_singleLineComment_highlighted() {
-        val result = SyntaxHighlighter.highlight("// comment", "kt")
-        assertEquals("// comment", result.text)
-        assertTrue(result.spanStyles.isNotEmpty(), "Should have span styles for comment")
-    }
-
-    /**
-     * Test: Multi-line comment should be highlighted.
-     */
-    @Test
-    fun highlight_multiLineComment_highlighted() {
-        val result = SyntaxHighlighter.highlight("/* comment */", "kt")
-        assertEquals("/* comment */", result.text)
-        assertTrue(result.spanStyles.isNotEmpty(), "Should have span styles for comment")
-    }
-
-    /**
-     * Test: Numbers should be highlighted.
-     */
-    @Test
-    fun highlight_numbers_highlighted() {
-        val result = SyntaxHighlighter.highlight("val x = 42", "kt")
-        assertEquals("val x = 42", result.text)
-        assertTrue(result.spanStyles.isNotEmpty(), "Should have span styles for number")
-    }
-
-    /**
-     * Test: Floating point numbers should be highlighted.
-     */
-    @Test
-    fun highlight_floatNumbers_highlighted() {
-        val result = SyntaxHighlighter.highlight("val x = 3.14f", "kt")
-        assertEquals("val x = 3.14f", result.text)
-        assertTrue(result.spanStyles.isNotEmpty(), "Should have span styles for float")
-    }
-
-    /**
-     * Test: JSON numbers should be highlighted.
-     */
-    @Test
-    fun highlightJson_numbers_highlighted() {
-        val result = SyntaxHighlighter.highlight("{\"count\": 42}", "json")
-        assertEquals("{\"count\": 42}", result.text)
-        assertTrue(result.spanStyles.isNotEmpty(), "Should have span styles")
-    }
-
-    /**
-     * Test: JSON negative numbers should be highlighted.
-     */
-    @Test
-    fun highlightJson_negativeNumbers_highlighted() {
-        val result = SyntaxHighlighter.highlight("{\"temp\": -10.5}", "json")
-        assertEquals("{\"temp\": -10.5}", result.text)
-        assertTrue(result.spanStyles.isNotEmpty(), "Should have span styles")
+    fun validContent_hasSpanStyles() {
+        validHighlightTestCases.forEach { case ->
+            val result = SyntaxHighlighter.highlight(case.content, case.extension)
+            assertEquals(case.content, result.text, "Text mismatch for: ${case.name}")
+            assertTrue(result.spanStyles.isNotEmpty(), "Should have span styles for: ${case.name}")
+        }
     }
 
     // ========================================
     // Edge Cases
     // ========================================
 
-    /**
-     * Test: Empty content should return empty AnnotatedString.
-     */
+    private val edgeCaseTestCases = listOf(
+        HighlightTestCase(
+            name = "empty content",
+            content = "",
+            extension = "kt"
+        ),
+        HighlightTestCase(
+            name = "whitespace only",
+            content = "   \n\t",
+            extension = "kt"
+        ),
+        HighlightTestCase(
+            name = "unknown extension",
+            content = "random text",
+            extension = "xyz"
+        ),
+        HighlightTestCase(
+            name = "single character",
+            content = "x",
+            extension = "kt"
+        )
+    )
+
     @Test
-    fun highlight_emptyContent_returnsEmpty() {
-        val result = SyntaxHighlighter.highlight("", "kt")
-        assertEquals("", result.text)
+    fun edgeCases_noException() {
+        edgeCaseTestCases.forEach { case ->
+            val result = SyntaxHighlighter.highlight(case.content, case.extension)
+            assertNotNull(result, "Result should not be null for: ${case.name}")
+            assertEquals(case.expectedText, result.text, "Text mismatch for: ${case.name}")
+        }
     }
 
-    /**
-     * Test: Only whitespace should not throw exception.
-     */
+    // ========================================
+    // File Extension Support Tests
+    // ========================================
+
+    private val extensionTestCases = listOf(
+        // Kotlin variants
+        HighlightTestCase(
+            name = "kt extension",
+            content = "val x = \"hello\"",
+            extension = "kt"
+        ),
+        HighlightTestCase(
+            name = "kts extension",
+            content = "val x = \"hello\"",
+            extension = "kts"
+        ),
+        // JavaScript variants
+        HighlightTestCase(
+            name = "js extension",
+            content = "const x = \"hello\"",
+            extension = "js"
+        ),
+        HighlightTestCase(
+            name = "ts extension",
+            content = "const x = \"hello\"",
+            extension = "ts"
+        ),
+        HighlightTestCase(
+            name = "jsx extension",
+            content = "const x = <div>",
+            extension = "jsx"
+        ),
+        HighlightTestCase(
+            name = "tsx extension",
+            content = "const x: string = \"test\"",
+            extension = "tsx"
+        ),
+        // Other languages
+        HighlightTestCase(
+            name = "java extension",
+            content = "String s = \"hello\";",
+            extension = "java"
+        ),
+        HighlightTestCase(
+            name = "py extension",
+            content = "s = \"hello\"",
+            extension = "py"
+        ),
+        HighlightTestCase(
+            name = "json extension",
+            content = "{\"key\": \"value\"}",
+            extension = "json"
+        ),
+        // Markup languages
+        HighlightTestCase(
+            name = "xml extension",
+            content = "<root><child /></root>",
+            extension = "xml"
+        ),
+        HighlightTestCase(
+            name = "html extension",
+            content = "<html><body></body></html>",
+            extension = "html"
+        ),
+        HighlightTestCase(
+            name = "md extension",
+            content = "# Title\n\nText",
+            extension = "md"
+        ),
+        HighlightTestCase(
+            name = "markdown extension",
+            content = "# Title\n\nText",
+            extension = "markdown"
+        )
+    )
+
     @Test
-    fun highlight_onlyWhitespace_noException() {
-        val result = SyntaxHighlighter.highlight("   \n\t", "kt")
-        assertNotNull(result)
-        assertEquals("   \n\t", result.text)
+    fun fileExtensions_allSupported() {
+        extensionTestCases.forEach { case ->
+            val result = SyntaxHighlighter.highlight(case.content, case.extension)
+            assertNotNull(result, "Result should not be null for: ${case.name}")
+            assertEquals(case.expectedText, result.text, "Text mismatch for: ${case.name}")
+        }
     }
 
-    /**
-     * Test: Unknown extension should use default color and not throw.
-     */
-    @Test
-    fun highlight_unknownExtension_defaultColor() {
-        val result = SyntaxHighlighter.highlight("random text", "xyz")
-        assertNotNull(result)
-        assertEquals("random text", result.text)
-    }
+    // ========================================
+    // Case Sensitivity Tests
+    // ========================================
 
-    /**
-     * Test: Unclosed multi-line comment should not throw exception.
-     */
-    @Test
-    fun highlight_unclosedMultiLineComment_noException() {
-        val result = SyntaxHighlighter.highlight("/* unclosed comment", "kt")
-        assertNotNull(result)
-        assertEquals("/* unclosed comment", result.text)
-    }
+    private val caseSensitivityTestCases = listOf(
+        HighlightTestCase(
+            name = "uppercase KT",
+            content = "val x = 1",
+            extension = "KT"
+        ),
+        HighlightTestCase(
+            name = "mixed case Kt",
+            content = "val x = 1",
+            extension = "Kt"
+        ),
+        HighlightTestCase(
+            name = "uppercase JSON",
+            content = "{\"a\": 1}",
+            extension = "JSON"
+        ),
+        HighlightTestCase(
+            name = "uppercase PY",
+            content = "x = 1",
+            extension = "PY"
+        )
+    )
 
-    /**
-     * Test: Multiple unterminated strings in sequence should not throw.
-     */
     @Test
-    fun highlight_multipleUnterminatedStrings_noException() {
-        val result = SyntaxHighlighter.highlight("val a = \"first\nval b = \"second", "kt")
-        assertNotNull(result)
-        assertTrue(result.text.contains("first"))
-        assertTrue(result.text.contains("second"))
-    }
-
-    /**
-     * Test: String followed by newline then unterminated should work.
-     */
-    @Test
-    fun highlight_terminatedThenUnterminated_noException() {
-        val result = SyntaxHighlighter.highlight("val a = \"complete\"\nval b = \"incomplete", "kt")
-        assertNotNull(result)
-        assertEquals("val a = \"complete\"\nval b = \"incomplete", result.text)
-    }
-
-    /**
-     * Test: Single character content should not throw.
-     */
-    @Test
-    fun highlight_singleCharacter_noException() {
-        val result = SyntaxHighlighter.highlight("x", "kt")
-        assertNotNull(result)
-        assertEquals("x", result.text)
-    }
-
-    /**
-     * Test: Single quote character should not throw.
-     */
-    @Test
-    fun highlight_singleQuoteCharacter_noException() {
-        val result = SyntaxHighlighter.highlight("\"", "kt")
-        assertNotNull(result)
-        assertEquals("\"", result.text)
-    }
-
-    /**
-     * Test: TypeScript extension should work.
-     */
-    @Test
-    fun highlight_typescript_works() {
-        val result = SyntaxHighlighter.highlight("const x = \"hello\"", "ts")
-        assertNotNull(result)
-        assertEquals("const x = \"hello\"", result.text)
-    }
-
-    /**
-     * Test: JSX extension should work.
-     */
-    @Test
-    fun highlight_jsx_works() {
-        val result = SyntaxHighlighter.highlight("const x = <div>", "jsx")
-        assertNotNull(result)
-        assertEquals("const x = <div>", result.text)
-    }
-
-    /**
-     * Test: TSX extension should work.
-     */
-    @Test
-    fun highlight_tsx_works() {
-        val result = SyntaxHighlighter.highlight("const x: string = \"test\"", "tsx")
-        assertNotNull(result)
-        assertEquals("const x: string = \"test\"", result.text)
-    }
-
-    /**
-     * Test: XML extension should work.
-     */
-    @Test
-    fun highlight_xml_works() {
-        val result = SyntaxHighlighter.highlight("<root><child /></root>", "xml")
-        assertNotNull(result)
-        assertEquals("<root><child /></root>", result.text)
-    }
-
-    /**
-     * Test: HTML extension should work.
-     */
-    @Test
-    fun highlight_html_works() {
-        val result = SyntaxHighlighter.highlight("<html><body></body></html>", "html")
-        assertNotNull(result)
-        assertEquals("<html><body></body></html>", result.text)
-    }
-
-    /**
-     * Test: Markdown extension should work.
-     */
-    @Test
-    fun highlight_markdown_works() {
-        val result = SyntaxHighlighter.highlight("# Title\n\nText", "md")
-        assertNotNull(result)
-        assertEquals("# Title\n\nText", result.text)
-    }
-
-    /**
-     * Test: KTS extension should work like Kotlin.
-     */
-    @Test
-    fun highlight_kts_works() {
-        val result = SyntaxHighlighter.highlight("val x = \"hello\"", "kts")
-        assertNotNull(result)
-        assertEquals("val x = \"hello\"", result.text)
+    fun extensionCaseSensitivity_caseInsensitive() {
+        caseSensitivityTestCases.forEach { case ->
+            val result = SyntaxHighlighter.highlight(case.content, case.extension)
+            assertNotNull(result, "Result should not be null for: ${case.name}")
+            assertEquals(case.expectedText, result.text, "Text mismatch for: ${case.name}")
+        }
     }
 }
