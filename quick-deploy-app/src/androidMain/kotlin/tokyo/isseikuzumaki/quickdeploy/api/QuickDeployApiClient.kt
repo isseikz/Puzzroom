@@ -4,6 +4,7 @@ import android.util.Log
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.android.*
+import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -26,6 +27,11 @@ class QuickDeployApiClient(
                 ignoreUnknownKeys = true
                 isLenient = true
             })
+        }
+        install(HttpTimeout) {
+            connectTimeoutMillis = CONNECT_TIMEOUT_MS
+            socketTimeoutMillis = SOCKET_TIMEOUT_MS
+            requestTimeoutMillis = REQUEST_TIMEOUT_MS
         }
     }
 
@@ -76,5 +82,10 @@ class QuickDeployApiClient(
 
     companion object {
         private const val TAG = "QuickDeployApiClient"
+        
+        // Timeout configurations for large file downloads (140MB+ APK files)
+        private const val CONNECT_TIMEOUT_MS = 30_000L       // 30 seconds for connection establishment
+        private const val SOCKET_TIMEOUT_MS = 300_000L      // 5 minutes for socket read/write (handles slow networks)
+        private const val REQUEST_TIMEOUT_MS = 600_000L     // 10 minutes total request timeout for large files
     }
 }
