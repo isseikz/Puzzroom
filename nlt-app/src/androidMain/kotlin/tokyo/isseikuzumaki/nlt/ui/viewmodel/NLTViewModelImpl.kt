@@ -241,6 +241,17 @@ class NLTViewModelImpl(
         saveUserSettings()
     }
     
+    override fun addPackageToFilter(packageName: String) {
+        val currentPackages = _settingsState.value.targetPackages
+        if (packageName !in currentPackages) {
+            _settingsState.value = _settingsState.value.copy(
+                targetPackages = currentPackages + packageName
+            )
+            saveUserSettings()
+            Log.d(TAG, "Added package to filter: $packageName")
+        }
+    }
+    
     override fun updateKeywords(keywords: Set<String>) {
         _settingsState.value = _settingsState.value.copy(keywords = keywords)
         // FR 4.1.2: Save to Firestore when user presses save button

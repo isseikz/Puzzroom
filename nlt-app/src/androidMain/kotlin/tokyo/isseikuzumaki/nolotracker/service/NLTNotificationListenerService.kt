@@ -13,8 +13,8 @@ import java.util.UUID
 /**
  * Android NotificationListenerService for monitoring and recording notifications.
  * 
- * This service runs in the background and listens for notifications from specified apps.
- * When a notification matches the filter criteria, it:
+ * This service runs in the background and listens for all notifications.
+ * When a notification is posted, it:
  * 1. Extracts notification details (title, text, package name)
  * 2. Attempts to parse payment information
  * 3. Triggers location capture
@@ -52,29 +52,10 @@ class NLTNotificationListenerService : NotificationListenerService() {
             val packageName = sbn.packageName
             val notification = sbn.notification
             
-            // FR 1.3: Filter by target application
-            if (targetPackages.isNotEmpty() && packageName !in targetPackages) {
-                Log.d(tag, "Notification from $packageName ignored (not in target list)")
-                return
-            }
-            
             // Extract notification content
             val extras = notification.extras
             val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()
             val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
-            
-            // FR 1.4: Filter by keywords
-            if (filterKeywords.isNotEmpty()) {
-                val hasMatchingKeyword = filterKeywords.any { keyword ->
-                    title?.contains(keyword, ignoreCase = true) == true ||
-                    text.contains(keyword, ignoreCase = true)
-                }
-                
-                if (!hasMatchingKeyword) {
-                    Log.d(tag, "Notification ignored (no matching keywords)")
-                    return
-                }
-            }
             
             Log.d(tag, "Processing notification from $packageName: $title")
             
