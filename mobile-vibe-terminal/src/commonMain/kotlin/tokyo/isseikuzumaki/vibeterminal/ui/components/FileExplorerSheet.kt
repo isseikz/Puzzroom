@@ -12,7 +12,10 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
+import tokyo.isseikuzumaki.vibeterminal.domain.model.FileTransferState
+import tokyo.isseikuzumaki.vibeterminal.domain.model.TransferStatus
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,6 +47,8 @@ fun FileExplorerSheet(
     onDismiss: () -> Unit,
     onFileSelected: (FileEntry) -> Unit,
     onInstall: (FileEntry) -> Unit,
+    onShare: (FileEntry) -> Unit = {},
+    activeTransfer: FileTransferState? = null,
     onPathChanged: (String) -> Unit = {}
 ) {
     var state by remember { mutableStateOf(FileExplorerState(currentPath = initialPath)) }
@@ -233,6 +238,9 @@ fun FileExplorerSheet(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         items(state.files) { file ->
+                            val isTransferring = activeTransfer?.fileEntry?.path == file.path &&
+                                activeTransfer.status == TransferStatus.InProgress
+
                             FileItem(
                                 file = file,
                                 onClick = {
@@ -246,7 +254,10 @@ fun FileExplorerSheet(
                                 onInstall = {
                                     onInstall(file)
                                     onDismiss()
-                                }
+                                },
+                                onShare = { onShare(file) },
+                                transferProgress = if (isTransferring) activeTransfer.progress else null,
+                                isTransferring = isTransferring
                             )
                         }
                     }
@@ -260,8 +271,13 @@ fun FileExplorerSheet(
 private fun FileItem(
     file: FileEntry,
     onClick: () -> Unit,
-    onInstall: () -> Unit
+    onInstall: () -> Unit,
+    onShare: () -> Unit,
+    transferProgress: Float? = null,
+    isTransferring: Boolean = false
 ) {
+    val shareLabel = stringResource(Res.string.file_explorer_share)
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -269,45 +285,79 @@ private fun FileItem(
         color = Color(0xFF161B22),
         shape = MaterialTheme.shapes.small
     ) {
-        Row(
-            modifier = Modifier
-                .padding(12.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = if (file.isDirectory) Icons.Default.Folder else Icons.Default.InsertDriveFile,
-                contentDescription = null,
-                tint = if (file.isDirectory) Color(0xFF39D353) else Color(0xFF58A6FF),
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = file.name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.White,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+        Column {
+            Row(
+                modifier = Modifier
+                    .padding(12.dp)
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = if (file.isDirectory) Icons.Default.Folder else Icons.Default.InsertDriveFile,
+                    contentDescription = null,
+                    tint = if (file.isDirectory) Color(0xFF39D353) else Color(0xFF58A6FF),
+                    modifier = Modifier.size(24.dp)
                 )
-                if (!file.isDirectory) {
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = formatFileSize(file.size),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
+                        text = file.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
+                    if (!file.isDirectory) {
+                        Text(
+                            text = formatFileSize(file.size),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray
+                        )
+                    }
+                }
+
+                // Action icons for files only (not directories)
+                if (!file.isDirectory) {
+                    // Share icon
+                    IconButton(
+                        onClick = onShare,
+                        enabled = !isTransferring
+                    ) {
+                        Icon(
+                            Icons.Default.Share,
+                            contentDescription = shareLabel,
+                            tint = if (isTransferring) Color.Gray else Color(0xFF58A6FF),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    // APK Install icon (only for APK files)
+                    if (file.name.endsWith(".apk", ignoreCase = true)) {
+                        IconButton(
+                            onClick = onInstall,
+                            enabled = !isTransferring
+                        ) {
+                            Icon(
+                                Icons.Default.Download, // Using Download icon for install/deploy
+                                contentDescription = stringResource(Res.string.file_explorer_install_apk),
+                                tint = if (isTransferring) Color.Gray else Color(0xFF00FF00)
+                            )
+                        }
+                    }
                 }
             }
-            
-            if (!file.isDirectory && file.name.endsWith(".apk", ignoreCase = true)) {
-                IconButton(onClick = onInstall) {
-                    Icon(
-                        Icons.Default.Download, // Using Download icon for install/deploy
-                        contentDescription = stringResource(Res.string.file_explorer_install_apk),
-                        tint = Color(0xFF00FF00)
-                    )
-                }
+
+            // Progress indicator when transferring
+            if (isTransferring && transferProgress != null) {
+                LinearProgressIndicator(
+                    progress = { transferProgress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(2.dp),
+                    color = Color(0xFF39D353),
+                    trackColor = Color(0xFF21262D)
+                )
             }
         }
     }

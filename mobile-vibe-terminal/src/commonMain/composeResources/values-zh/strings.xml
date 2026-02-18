@@ -53,6 +53,11 @@
     <string name="file_explorer_error">加载目录时出错</string>
     <string name="file_explorer_empty">空目录</string>
     <string name="file_explorer_install_apk">安装APK</string>
+    <string name="file_explorer_download">下载文件</string>
+    <string name="file_explorer_share">分享文件</string>
+    <string name="file_explorer_download_success">已下载：%s</string>
+    <string name="file_explorer_download_failed">下载失败</string>
+    <string name="file_explorer_share_failed">分享失败</string>
 
     <!-- Code Viewer -->
     <string name="code_viewer_title">代码查看器</string>

@@ -18,7 +18,13 @@ val appModule = module {
         )
     }
 
-    factory { FileExplorerScreenModel(sshRepository = get()) }
+    factory {
+        FileExplorerScreenModel(
+            sshRepository = get(),
+            fileDownloader = get(),
+            fileSharer = get()
+        )
+    }
 }
 
 val dataModule = module {
