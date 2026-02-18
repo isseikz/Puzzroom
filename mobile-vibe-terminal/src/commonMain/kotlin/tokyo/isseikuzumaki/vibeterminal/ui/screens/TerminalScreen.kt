@@ -28,6 +28,7 @@ import tokyo.isseikuzumaki.vibeterminal.ui.components.CodeViewerSheet
 import tokyo.isseikuzumaki.vibeterminal.ui.components.TerminalCanvas
 import tokyo.isseikuzumaki.vibeterminal.ui.components.macro.MacroInputPanel
 import tokyo.isseikuzumaki.vibeterminal.ui.components.selection.SelectableTerminalContainer
+import tokyo.isseikuzumaki.vibeterminal.ui.components.FixedKeyRow
 
 import io.github.isseikz.kmpinput.TerminalInputContainer
 import io.github.isseikz.kmpinput.rememberTerminalInputContainerState
@@ -450,6 +451,16 @@ data class TerminalScreen(
                                 }
                             }
                         }
+                    }
+
+                    // Fixed Auxiliary Key Row (Main Display Mode Only)
+                    if (state.isConnected) {
+                        FixedKeyRow(
+                            onKeyPress = { keyCode ->
+                                screenModel.sendInput(keyCode, appendNewline = false)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
 
                     // Buffered Input Deck with Macro Row (Main Display Mode Only)

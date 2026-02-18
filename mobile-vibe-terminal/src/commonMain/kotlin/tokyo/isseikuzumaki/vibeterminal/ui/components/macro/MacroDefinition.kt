@@ -17,12 +17,9 @@ enum class MacroTab {
 
 object MacroConfig {
     val basicKeys = listOf(
-        MacroKey("ESC", MacroAction.DirectSend("\u001B"), "Escape"),
-        MacroKey("TAB", MacroAction.DirectSend("\t"), "Tab"),
-        MacroKey("CTRL+C", MacroAction.DirectSend("\u0003"), "Interrupt"),
+        // ESC, TAB, CTRL+C, | moved to FixedKeyRow
         MacroKey("CTRL+D", MacroAction.DirectSend("\u0004"), "EOF"),
         MacroKey("CTRL+Z", MacroAction.DirectSend("\u001A"), "Suspend"),
-        MacroKey("|", MacroAction.BufferInsert("|"), "Pipe"),
         MacroKey("->", MacroAction.BufferInsert(" -> "), "Arrow"),
         MacroKey("&&", MacroAction.BufferInsert(" && "), "AND"),
         MacroKey("||", MacroAction.BufferInsert(" || "), "OR"),
@@ -31,11 +28,9 @@ object MacroConfig {
     )
 
     val navKeys = listOf(
-        MacroKey("↑", MacroAction.DirectSend("\u001B[A"), "Up"),
-        MacroKey("↓", MacroAction.DirectSend("\u001B[B"), "Down"),
+        // ↑, ↓, ↵ (Enter) moved to FixedKeyRow
         MacroKey("→", MacroAction.DirectSend("\u001B[C"), "Right"),
         MacroKey("←", MacroAction.DirectSend("\u001B[D"), "Left"),
-        MacroKey("↵", MacroAction.DirectSend("\r"), "Enter"),
         MacroKey("Home", MacroAction.DirectSend("\u001B[H"), "Home"),
         MacroKey("End", MacroAction.DirectSend("\u001B[F"), "End"),
         MacroKey("PgUp", MacroAction.DirectSend("\u001B[5~"), "Page Up"),
@@ -59,8 +54,7 @@ object MacroConfig {
         MacroKey(":q", MacroAction.BufferInsert(":q"), "Quit"),
         MacroKey(":wq", MacroAction.BufferInsert(":wq"), "Save & quit"),
         MacroKey(":q!", MacroAction.BufferInsert(":q!"), "Force quit"),
-        // Search mode
-        MacroKey("/", MacroAction.DirectSend("/"), "Search"),
+        // Search mode (/ moved to FixedKeyRow)
         MacroKey("n", MacroAction.DirectSend("n"), "Next match"),
         MacroKey("N", MacroAction.DirectSend("N"), "Prev match")
     )
