@@ -53,6 +53,11 @@
     <string name="file_explorer_error">Error loading directory</string>
     <string name="file_explorer_empty">Empty directory</string>
     <string name="file_explorer_install_apk">Install APK</string>
+    <string name="file_explorer_download">Download file</string>
+    <string name="file_explorer_share">Share file</string>
+    <string name="file_explorer_download_success">Downloaded: %s</string>
+    <string name="file_explorer_download_failed">Download failed</string>
+    <string name="file_explorer_share_failed">Share failed</string>
 
     <!-- Code Viewer -->
     <string name="code_viewer_title">Code Viewer</string>

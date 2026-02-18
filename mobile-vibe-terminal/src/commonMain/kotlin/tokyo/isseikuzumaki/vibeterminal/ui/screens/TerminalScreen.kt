@@ -19,7 +19,10 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import org.koin.compose.koinInject
 import tokyo.isseikuzumaki.vibeterminal.domain.model.ConnectionConfig
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
+import tokyo.isseikuzumaki.vibeterminal.domain.downloader.FileDownloader
+import tokyo.isseikuzumaki.vibeterminal.domain.sharer.FileSharer
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.TerminalScreenModel
+import tokyo.isseikuzumaki.vibeterminal.viewmodel.FileExplorerScreenModel
 import tokyo.isseikuzumaki.vibeterminal.ui.components.FileExplorerSheet
 import tokyo.isseikuzumaki.vibeterminal.ui.components.CodeViewerSheet
 import tokyo.isseikuzumaki.vibeterminal.ui.components.TerminalCanvas
@@ -58,10 +61,18 @@ data class TerminalScreen(
         val sshRepository = koinInject<SshRepository>()
         val apkInstaller = koinInject<tokyo.isseikuzumaki.vibeterminal.domain.installer.ApkInstaller>()
         val connectionRepository = koinInject<tokyo.isseikuzumaki.vibeterminal.domain.repository.ConnectionRepository>()
+        val fileDownloader = koinInject<FileDownloader>()
+        val fileSharer = koinInject<FileSharer>()
         val screenModel = remember(config) {
             TerminalScreenModel(config, sshRepository, apkInstaller, connectionRepository)
         }
         val state by screenModel.state.collectAsState()
+
+        // File Explorer Screen Model for download/share functionality
+        val fileExplorerScreenModel = remember {
+            FileExplorerScreenModel(sshRepository, fileDownloader, fileSharer)
+        }
+        val fileExplorerState by fileExplorerScreenModel.state.collectAsState()
 
         // Terminal Input Library State
         val terminalInputState = rememberTerminalInputContainerState()
@@ -488,6 +499,10 @@ data class TerminalScreen(
                 onInstall = { file ->
                     screenModel.downloadAndInstallApk(file.path)
                 },
+                onShare = { file ->
+                    fileExplorerScreenModel.shareFile(file)
+                },
+                activeTransfer = fileExplorerState.activeTransfer,
                 onPathChanged = { path ->
                     screenModel.updateLastFileExplorerPath(path)
                 }

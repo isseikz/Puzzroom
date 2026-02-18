@@ -20,6 +20,19 @@ class SshRepositoryStub : SshRepository {
     ): Result<Unit> {
         return Result.failure(NotImplementedError("SSH not supported on iOS yet"))
     }
+    override suspend fun connectWithKey(
+        host: String,
+        port: Int,
+        username: String,
+        keyAlias: String,
+        initialCols: Int,
+        initialRows: Int,
+        initialWidthPx: Int,
+        initialHeightPx: Int,
+        startupCommand: String?
+    ): Result<Unit> {
+        return Result.failure(NotImplementedError("SSH not supported on iOS yet"))
+    }
     override suspend fun disconnect() {}
     override fun isConnected(): Boolean = false
     override suspend fun executeCommand(command: String): Result<String> {
@@ -34,6 +47,14 @@ class SshRepositoryStub : SshRepository {
         return Result.failure(NotImplementedError("SFTP not supported on iOS yet"))
     }
     override suspend fun readFileContent(remotePath: String): Result<String> {
+        return Result.failure(NotImplementedError("SFTP not supported on iOS yet"))
+    }
+    override suspend fun downloadFileWithProgress(
+        remotePath: String,
+        localFile: File,
+        totalBytes: Long,
+        onProgress: (bytesTransferred: Long, totalBytes: Long) -> Unit
+    ): Result<Unit> {
         return Result.failure(NotImplementedError("SFTP not supported on iOS yet"))
     }
     override suspend fun resizeTerminal(cols: Int, rows: Int, widthPx: Int, heightPx: Int) {}

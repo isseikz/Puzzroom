@@ -18,6 +18,10 @@ import tokyo.isseikuzumaki.vibeterminal.security.PasswordEncryptionHelper
 import tokyo.isseikuzumaki.vibeterminal.security.SshKeyManager
 import tokyo.isseikuzumaki.vibeterminal.security.SshKeyProvider
 import tokyo.isseikuzumaki.vibeterminal.ssh.MinaSshdRepository
+import tokyo.isseikuzumaki.vibeterminal.domain.downloader.FileDownloader
+import tokyo.isseikuzumaki.vibeterminal.domain.sharer.FileSharer
+import tokyo.isseikuzumaki.vibeterminal.downloader.AndroidFileDownloader
+import tokyo.isseikuzumaki.vibeterminal.sharer.AndroidFileSharer
 
 actual fun platformModule() = module {
     single<AppDatabase> {
@@ -44,6 +48,10 @@ actual fun platformModule() = module {
         val context = get<Context>()
         AndroidApkInstaller(context)
     }
+
+    factory<FileDownloader> { AndroidFileDownloader() }
+
+    factory<FileSharer> { AndroidFileSharer() }
 
     single {
         val context = get<Context>()

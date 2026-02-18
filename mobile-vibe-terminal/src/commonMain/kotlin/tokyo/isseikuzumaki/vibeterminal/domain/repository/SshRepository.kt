@@ -56,6 +56,21 @@ interface SshRepository {
     suspend fun downloadFile(remotePath: String, localFile: File): Result<Unit>
 
     /**
+     * Download a file from the remote server via SFTP with progress reporting.
+     * @param remotePath Path to the file on the remote server
+     * @param localFile Local file to save the downloaded content
+     * @param totalBytes Total file size in bytes for progress calculation
+     * @param onProgress Callback invoked with (bytesTransferred, totalBytes) during download
+     * @return Result indicating success or failure
+     */
+    suspend fun downloadFileWithProgress(
+        remotePath: String,
+        localFile: File,
+        totalBytes: Long,
+        onProgress: (bytesTransferred: Long, totalBytes: Long) -> Unit
+    ): Result<Unit>
+
+    /**
      * List files in a directory on the remote server via SFTP
      * @param remotePath Path to the directory on the remote server
      * @return Result containing list of file entries or error

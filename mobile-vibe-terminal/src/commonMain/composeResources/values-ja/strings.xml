@@ -53,6 +53,11 @@
     <string name="file_explorer_error">ディレクトリの読み込みエラー</string>
     <string name="file_explorer_empty">空のディレクトリ</string>
     <string name="file_explorer_install_apk">APKをインストール</string>
+    <string name="file_explorer_download">ファイルをダウンロード</string>
+    <string name="file_explorer_share">ファイルを共有</string>
+    <string name="file_explorer_download_success">ダウンロード完了: %s</string>
+    <string name="file_explorer_download_failed">ダウンロード失敗</string>
+    <string name="file_explorer_share_failed">共有に失敗しました</string>
 
     <!-- Code Viewer -->
     <string name="code_viewer_title">コードビューアー</string>

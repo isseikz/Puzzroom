@@ -806,4 +806,70 @@ class MinaSshdRepository(
             Result.failure(e)
         }
     }
+
+    override suspend fun downloadFileWithProgress(
+        remotePath: String,
+        localFile: File,
+        totalBytes: Long,
+        onProgress: (bytesTransferred: Long, totalBytes: Long) -> Unit
+    ): Result<Unit> {
+        return try {
+            Timber.d("=== SFTP Download With Progress Start ===")
+            Timber.d("Remote: $remotePath")
+            Timber.d("Local: ${localFile.absolutePath}")
+            Timber.d("Total size: $totalBytes bytes")
+
+            withSftpSession { sftpClient ->
+                Timber.d("Opening remote file for reading...")
+                sftpClient.read(remotePath).use { inputStream ->
+                    Timber.d("Creating local file...")
+                    FileOutputStream(localFile).use { outputStream ->
+                        Timber.d("Copying file content with progress...")
+                        val buffer = ByteArray(8192)
+                        var bytesRead: Int = 0
+                        var bytesTransferred = 0L
+                        var lastProgressUpdate = 0L
+
+                        while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                            outputStream.write(buffer, 0, bytesRead)
+                            bytesTransferred += bytesRead
+
+                            // Debounce progress updates to avoid UI jank
+                            // Update every 32KB or when complete
+                            if (bytesTransferred - lastProgressUpdate >= 32768 || bytesTransferred == totalBytes) {
+                                onProgress(bytesTransferred, totalBytes)
+                                lastProgressUpdate = bytesTransferred
+                            }
+
+                            if (bytesTransferred % (1024 * 1024) == 0L) { // Log every MB
+                                Timber.d("Downloaded: ${bytesTransferred / (1024 * 1024)} MB / ${totalBytes / (1024 * 1024)} MB")
+                            }
+                        }
+
+                        // Final progress update
+                        onProgress(bytesTransferred, totalBytes)
+
+                        Timber.d("=== SFTP Download With Progress Complete ===")
+                        Timber.d("Total bytes: $bytesTransferred")
+                    }
+                }
+                Result.success(Unit)
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            Timber.d("=== SFTP Download Cancelled ===")
+            // Clean up partial file on cancellation
+            if (localFile.exists()) {
+                localFile.delete()
+            }
+            throw e
+        } catch (e: Exception) {
+            Timber.e(e, "=== SFTP Download With Progress Failed ===")
+            Timber.e("Error: ${e.message}")
+            // Clean up partial file on error
+            if (localFile.exists()) {
+                localFile.delete()
+            }
+            Result.failure(e)
+        }
+    }
 }
