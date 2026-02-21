@@ -25,6 +25,7 @@ import tokyo.isseikuzumaki.vibeterminal.viewmodel.TerminalScreenModel
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.FileExplorerScreenModel
 import tokyo.isseikuzumaki.vibeterminal.ui.components.FileExplorerSheet
 import tokyo.isseikuzumaki.vibeterminal.ui.components.CodeViewerSheet
+import tokyo.isseikuzumaki.vibeterminal.ui.utils.BackHandler
 import tokyo.isseikuzumaki.vibeterminal.ui.components.TerminalCanvas
 import tokyo.isseikuzumaki.vibeterminal.ui.components.macro.MacroInputPanel
 import tokyo.isseikuzumaki.vibeterminal.ui.components.selection.SelectableTerminalContainer
@@ -154,6 +155,13 @@ data class TerminalScreen(
 
         var showFileExplorer by remember { mutableStateOf(false) }
         var selectedFilePath by remember { mutableStateOf<String?>(null) }
+
+        // System Back Handler for Code Viewer (returns to explorer)
+        BackHandler(enabled = selectedFilePath != null) {
+            selectedFilePath = null
+            showFileExplorer = true
+        }
+
         var fileExplorerInitialPath by remember { mutableStateOf<String?>(null) }
         var isLoadingInitialPath by remember { mutableStateOf(false) }
         val coroutineScope = rememberCoroutineScope()
@@ -514,7 +522,14 @@ data class TerminalScreen(
             CodeViewerSheet(
                 sshRepository = sshRepository,
                 filePath = filePath,
-                onDismiss = { selectedFilePath = null }
+                onBack = {
+                    selectedFilePath = null
+                    showFileExplorer = true
+                },
+                onClose = {
+                    selectedFilePath = null
+                    showFileExplorer = false
+                }
             )
         }
     }

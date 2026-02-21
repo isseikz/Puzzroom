@@ -38,3 +38,10 @@ The project can be built and run for different platforms using the following Gra
     *   `navigation-compose` for navigation.
     *   `imagepicker` for selecting images.
 *   **Testing:** The project uses `kotlinx-coroutines-test` for testing.
+
+## Active Technologies
+- Kotlin Multiplatform (KMP) + Compose Multiplatform, Material 3, `voyager` (navigator in TerminalScreen) (003-code-viewer-back-nav)
+- Transient UI state in `TerminalScreen` (using `mutableStateOf`) (003-code-viewer-back-nav)
+
+## Recent Changes
+- 003-code-viewer-back-nav: Added Kotlin Multiplatform (KMP) + Compose Multiplatform, Material 3, `voyager` (navigator in TerminalScreen)
