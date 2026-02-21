@@ -1,13 +1,13 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version Change: 1.0.0 → 1.1.0 (MINOR - new principle added)
+Version Change: 1.1.0 → 1.2.0 (MINOR - new principle added)
 
 Modified Principles: None
 
 Added Sections:
-- Principle VI: Worktree-First Development
-- Quality Gate #6: Worktree Isolation
+- Principle VII: Clean Architecture Layering
+- Quality Gate #7: Clean Architecture Compliance
 
 Removed Sections: None
 
@@ -113,6 +113,19 @@ ln -s ../../local.properties worktrees/<name>/local.properties
 
 **Rationale**: Isolates experimental work, enables parallel feature development, and keeps the main directory stable for builds and releases.
 
+### VII. Clean Architecture Layering
+
+The codebase MUST adhere to strict layer separation with dependencies pointing inward.
+
+**Rules**:
+- **Domain Layer** (`domain/`): Pure Kotlin, no framework dependencies (no Android, Compose, etc.). Contains UseCases, Models, Interfaces.
+- **Data Layer** (`data/`): Implements Domain interfaces. Depends on Domain.
+- **UI Layer** (`ui/`): Observes Domain state via ViewModels. Depends on Domain.
+- **DI Layer** (`di/`): Wires implementations to interfaces.
+- **Dependency Rule**: Inner layers (Domain) must NOT know about outer layers (Data, UI).
+
+**Rationale**: Decouples business logic from external frameworks, enabling independent testing and platform portability.
+
 ## Development Standards
 
 **Naming Conventions**:
@@ -144,6 +157,7 @@ All changes MUST pass these gates before merge:
 4. **Data Flow**: State and events follow unidirectional pattern
 5. **Simplicity Check**: No unnecessary complexity introduced
 6. **Worktree Isolation**: Feature development occurs in dedicated worktree, not main directory
+7. **Clean Architecture Compliance**: Domain layer remains pure; dependencies point inward
 
 ## Governance
 
@@ -166,4 +180,4 @@ All changes MUST pass these gates before merge:
 - Complexity violations MUST be justified in Complexity Tracking
 - Runtime development guidance in `.github/copilot-instructions.md`
 
-**Version**: 1.1.0 | **Ratified**: 2026-02-07 | **Last Amended**: 2026-02-07
+**Version**: 1.2.0 | **Ratified**: 2026-02-07 | **Last Amended**: 2026-02-21

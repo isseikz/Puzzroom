@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,7 +27,8 @@ import puzzroom.mobile_vibe_terminal.generated.resources.*
 fun CodeViewerSheet(
     sshRepository: SshRepository,
     filePath: String,
-    onDismiss: () -> Unit
+    onBack: () -> Unit,
+    onClose: () -> Unit
 ) {
     var fileContent by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
@@ -53,9 +55,9 @@ fun CodeViewerSheet(
     }
 
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = Color(0xFF0D1117),
-        contentColor = Color.White,
+        onDismissRequest = onClose,
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier.fillMaxHeight(0.95f)
     ) {
         Column(
@@ -67,29 +69,36 @@ fun CodeViewerSheet(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 8.dp),
+                    .padding(vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        stringResource(Res.string.action_back),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Column(modifier = Modifier.weight(1f).padding(horizontal = 12.dp)) {
                     Text(
                         stringResource(Res.string.code_viewer_title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF39D353)
+                        color = MaterialTheme.colorScheme.primary
                     )
                     Text(
                         filePath.substringAfterLast("/"),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp
                     )
                 }
-                IconButton(onClick = onDismiss) {
+                IconButton(onClick = onClose) {
                     Icon(
                         Icons.Default.Close,
                         stringResource(Res.string.action_close),
-                        tint = Color(0xFF39D353)
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -97,11 +106,11 @@ fun CodeViewerSheet(
             Text(
                 filePath,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
-            Divider(color = Color(0xFF21262D), thickness = 1.dp)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp)
 
             // Content
             when {
@@ -111,11 +120,11 @@ fun CodeViewerSheet(
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator(color = Color(0xFF39D353))
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 stringResource(Res.string.code_viewer_loading),
-                                color = Color.Gray,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
@@ -130,13 +139,13 @@ fun CodeViewerSheet(
                             Text(
                                 stringResource(Res.string.code_viewer_error),
                                 style = MaterialTheme.typography.titleMedium,
-                                color = Color(0xFFFF7B72)
+                                color = MaterialTheme.colorScheme.error
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 errorMessage!!,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color.Gray
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -148,7 +157,7 @@ fun CodeViewerSheet(
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color(0xFF0D1117)),
+                            .background(MaterialTheme.colorScheme.surface),
                         contentPadding = PaddingValues(vertical = 8.dp)
                     ) {
                         itemsIndexed(lines) { index, line ->
@@ -162,7 +171,7 @@ fun CodeViewerSheet(
                                     text = "${index + 1}",
                                     fontFamily = FontFamily.Monospace,
                                     fontSize = 12.sp,
-                                    color = Color(0xFF6E7681),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier
                                         .width(40.dp)
                                         .padding(end = 8.dp)
@@ -173,6 +182,7 @@ fun CodeViewerSheet(
                                     text = SyntaxHighlighter.highlight(line, extension),
                                     fontFamily = FontFamily.Monospace,
                                     fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.weight(1f)
                                 )
                             }
