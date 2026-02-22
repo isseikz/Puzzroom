@@ -42,6 +42,8 @@ The project can be built and run for different platforms using the following Gra
 ## Active Technologies
 - Kotlin Multiplatform (KMP) + Compose Multiplatform, Material 3, `voyager` (navigator in TerminalScreen) (003-code-viewer-back-nav)
 - Transient UI state in `TerminalScreen` (using `mutableStateOf`) (003-code-viewer-back-nav)
+- Kotlin 2.2.20 + Compose Multiplatform 1.9.0 (001-copy-code-viewer)
+- N/A (Temporary in-memory storage of SSH file content) (001-copy-code-viewer)
 
 ## Recent Changes
 - 003-code-viewer-back-nav: Added Kotlin Multiplatform (KMP) + Compose Multiplatform, Material 3, `voyager` (navigator in TerminalScreen)
