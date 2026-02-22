@@ -12,6 +12,7 @@
     <string name="action_delete">削除</string>
     <string name="action_dismiss">閉じる</string>
     <string name="action_close">閉じる</string>
+    <string name="action_copy_all">すべてコピー</string>
 
     <!-- Connection List Screen -->
     <string name="connection_list_title">Vibe Terminal</string>

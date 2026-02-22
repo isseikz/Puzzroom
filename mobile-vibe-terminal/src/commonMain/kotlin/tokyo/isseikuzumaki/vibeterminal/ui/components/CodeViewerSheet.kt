@@ -4,9 +4,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.text.selection.DisableSelection
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
 import tokyo.isseikuzumaki.vibeterminal.ui.utils.SyntaxHighlighter
+import tokyo.isseikuzumaki.vibeterminal.util.ClipboardManager
 import org.jetbrains.compose.resources.stringResource
 import puzzroom.mobile_vibe_terminal.generated.resources.*
 
@@ -94,6 +98,15 @@ fun CodeViewerSheet(
                         fontSize = 12.sp
                     )
                 }
+                if (fileContent != null) {
+                    IconButton(onClick = { ClipboardManager.copyToClipboard(fileContent!!) }) {
+                        Icon(
+                            Icons.Default.ContentCopy,
+                            stringResource(Res.string.action_copy_all),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
                 IconButton(onClick = onClose) {
                     Icon(
                         Icons.Default.Close,
@@ -154,37 +167,41 @@ fun CodeViewerSheet(
                     val extension = filePath.substringAfterLast(".", "")
                     val lines = fileContent!!.lines()
 
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surface),
-                        contentPadding = PaddingValues(vertical = 8.dp)
-                    ) {
-                        itemsIndexed(lines) { index, line ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 2.dp)
-                            ) {
-                                // Line number
-                                Text(
-                                    text = "${index + 1}",
-                                    fontFamily = FontFamily.Monospace,
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    SelectionContainer {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.surface),
+                            contentPadding = PaddingValues(vertical = 8.dp)
+                        ) {
+                            itemsIndexed(lines) { index, line ->
+                                Row(
                                     modifier = Modifier
-                                        .width(40.dp)
-                                        .padding(end = 8.dp)
-                                )
+                                        .fillMaxWidth()
+                                        .padding(vertical = 2.dp)
+                                ) {
+                                    // Line number
+                                    DisableSelection {
+                                        Text(
+                                            text = "${index + 1}",
+                                            fontFamily = FontFamily.Monospace,
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier
+                                                .width(40.dp)
+                                                .padding(end = 8.dp)
+                                        )
+                                    }
 
-                                // Code line with syntax highlighting
-                                Text(
-                                    text = SyntaxHighlighter.highlight(line, extension),
-                                    fontFamily = FontFamily.Monospace,
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.weight(1f)
-                                )
+                                    // Code line with syntax highlighting
+                                    Text(
+                                        text = SyntaxHighlighter.highlight(line, extension),
+                                        fontFamily = FontFamily.Monospace,
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
                             }
                         }
                     }
