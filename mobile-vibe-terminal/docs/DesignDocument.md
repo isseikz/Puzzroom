@@ -320,7 +320,11 @@ val terminalDisplayTarget: StateFlow<DisplayTarget> = combine(
 
 ---
 
-## 7. プロダクトオーナー判断 (Product Owner Notes)
+## 8. トラブルシューティング (Troubleshooting)
+
+一般的な問題と解決策については、[Troubleshooting.md](Troubleshooting.md) を参照してください。
+
+## 9. プロダクトオーナー判断 (Product Owner Notes)
 
 **優先順位の根拠:**
 * **Phase 5 (Input) が最優先:** 現状の「VimでCtrlキーが押しにくい」「コメント入力時に入力欄が邪魔」という二重苦は、アプリの利用継続を阻害する欠陥レベルの課題であるため。

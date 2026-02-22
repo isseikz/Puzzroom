@@ -173,6 +173,7 @@ echo ">> VIBE_DEPLOY: /home/user/project/build/app.apk"
 詳細なドキュメントは `docs/` ディレクトリを参照してください:
 
 - [DesignDocument.md](docs/DesignDocument.md) - 設計書
+- [Troubleshooting.md](docs/Troubleshooting.md) - トラブルシューティング
 - [TestCoverage.md](docs/TestCoverage.md) - テストカバレッジ
 - [Xterm-Control-Sequences.html](docs/Xterm-Control-Sequences.html) - Xterm制御シーケンス
 
