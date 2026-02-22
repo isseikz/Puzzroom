@@ -12,6 +12,7 @@
     <string name="action_delete">Delete</string>
     <string name="action_dismiss">Dismiss</string>
     <string name="action_close">Close</string>
+    <string name="action_copy_all">Copy All</string>
 
     <!-- Connection List Screen -->
     <string name="connection_list_title">Vibe Terminal</string>
