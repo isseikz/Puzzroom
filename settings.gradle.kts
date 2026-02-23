@@ -3,6 +3,7 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
     repositories {
+        mavenLocal()
         google()
         mavenCentral()
         maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
@@ -29,3 +30,4 @@ include(":nlt-app")
 include(":unison-app")
 include(":quick-deploy-app")
 include(":mobile-vibe-terminal")
+includeBuild("magic-deploy")
