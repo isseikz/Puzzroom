@@ -9,7 +9,9 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import io.ktor.utils.io.*
 import kotlinx.serialization.json.Json
+import tokyo.isseikuzumaki.quickdeploy.model.DownloadProgress
 import tokyo.isseikuzumaki.quickdeploy.model.RegisterRequest
 import tokyo.isseikuzumaki.quickdeploy.model.RegisterResponse
 import java.io.File
@@ -70,6 +72,67 @@ class QuickDeployApiClient(
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to download APK", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Download APK file from the server with progress reporting (A-005)
+     */
+    suspend fun downloadApkWithProgress(
+        downloadUrl: String,
+        destinationFile: File,
+        onProgress: (DownloadProgress) -> Unit
+    ): Result<File> {
+        return try {
+            Log.d(TAG, "Starting APK download with progress from: $downloadUrl")
+            val startTime = System.currentTimeMillis()
+
+            client.prepareGet(downloadUrl).execute { response ->
+                if (response.status.isSuccess()) {
+                    val totalBytes = response.contentLength() ?: -1L
+                    val channel: ByteReadChannel = response.bodyAsChannel()
+
+                    destinationFile.parentFile?.mkdirs()
+                    destinationFile.outputStream().use { output ->
+                        var bytesDownloaded = 0L
+                        var lastProgressUpdate = 0L
+                        val buffer = ByteArray(8192)
+
+                        while (!channel.isClosedForRead) {
+                            val bytesRead = channel.readAvailable(buffer)
+                            if (bytesRead == -1) break
+                            if (bytesRead > 0) {
+                                output.write(buffer, 0, bytesRead)
+                                bytesDownloaded += bytesRead
+                                
+                                // Throttle progress updates to avoid overwhelming UI (update every ~100ms or 1% progress)
+                                val currentTime = System.currentTimeMillis()
+                                val shouldUpdateByTime = currentTime - lastProgressUpdate >= 100
+                                val progressPercent = if (totalBytes > 0) (bytesDownloaded.toFloat() / totalBytes * 100).toInt() else 0
+                                val lastProgressPercent = if (totalBytes > 0) ((bytesDownloaded - bytesRead).toFloat() / totalBytes * 100).toInt() else 0
+                                val shouldUpdateByProgress = totalBytes > 0 && progressPercent != lastProgressPercent
+                                if (shouldUpdateByTime || shouldUpdateByProgress) {
+                                    onProgress(DownloadProgress(bytesDownloaded, totalBytes, startTime))
+                                    lastProgressUpdate = currentTime
+                                }
+                            }
+                        }
+                        
+                        // Final progress update
+                        onProgress(DownloadProgress(bytesDownloaded, totalBytes, startTime))
+                    }
+
+                    Log.d(TAG, "APK downloaded successfully with progress: ${destinationFile.absolutePath}")
+                    Result.success(destinationFile)
+                } else {
+                    val error = "Failed to download APK: ${response.status}"
+                    Log.e(TAG, error)
+                    Result.failure(Exception(error))
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to download APK with progress", e)
             Result.failure(e)
         }
     }
