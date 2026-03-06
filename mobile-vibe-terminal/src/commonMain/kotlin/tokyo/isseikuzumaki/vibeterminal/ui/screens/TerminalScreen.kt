@@ -115,7 +115,7 @@ data class TerminalScreen(
                 terminalInputState.ptyInputStream.collect { bytes ->
                     val text = bytes.decodeToString()
                     Logger.d("TerminalScreen: Received input from ptyInputStream: '$text' (${bytes.size} bytes)")
-                    screenModel.sendInput(text, appendNewline = false)
+                    screenModel.sendInput(text)
                 }
             }
         }
@@ -313,7 +313,7 @@ data class TerminalScreen(
                         altState = state.altState,
                         isHardwareKeyboardConnected = state.isHardwareKeyboardConnected,
                         onDirectSend = { sequence ->
-                            screenModel.sendInput(sequence, appendNewline = false)
+                            screenModel.sendInput(sequence)
                         },
                         onTabSelected = { tab ->
                             screenModel.selectMacroTab(tab)
@@ -484,7 +484,7 @@ data class TerminalScreen(
                             altState = state.altState,
                             isHardwareKeyboardConnected = state.isHardwareKeyboardConnected,
                             onDirectSend = { sequence ->
-                                screenModel.sendInput(sequence, appendNewline = false)
+                                screenModel.sendInput(sequence)
                             },
                             onTabSelected = { tab ->
                                 screenModel.selectMacroTab(tab)

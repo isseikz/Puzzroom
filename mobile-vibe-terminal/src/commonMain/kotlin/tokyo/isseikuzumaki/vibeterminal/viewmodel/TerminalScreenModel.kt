@@ -27,6 +27,7 @@ import tokyo.isseikuzumaki.vibeterminal.input.KeyboardInputProcessor
 import tokyo.isseikuzumaki.vibeterminal.input.ModifierBitmask
 import tokyo.isseikuzumaki.vibeterminal.input.ModifierButtonState
 import tokyo.isseikuzumaki.vibeterminal.input.ModifierKey
+import tokyo.isseikuzumaki.vibeterminal.input.TerminalInputAggregator
 import tokyo.isseikuzumaki.vibeterminal.ui.components.macro.MacroTab
 import tokyo.isseikuzumaki.vibeterminal.util.Logger
 
@@ -103,6 +104,15 @@ class TerminalScreenModel(
     private val _state = MutableStateFlow(TerminalState())
     val state: StateFlow<TerminalState> = _state.asStateFlow()
 
+    private val inputAggregator = TerminalInputAggregator(
+        getModifierBitmask = { computeUiModifierBitmask() },
+        consumeOneShotModifiers = { applyAndConsumeOneShotModifiers() },
+        onDispatch = { sequence ->
+            Logger.d("SSH_TX: $sequence")
+            sshRepository.sendInput(sequence)
+        }
+    )
+
     // Terminal emulator components
     private val terminalBuffer = TerminalScreenBuffer(cols = 80, rows = 24)
     private val mouseInputHandler = MouseInputHandler { data ->
@@ -144,13 +154,14 @@ class TerminalScreenModel(
         // Register input callback from secondary display
         TerminalStateProvider.onSecondaryDisplayInput = { input ->
             Logger.d("Input from secondary display: '$input'")
-            sendInput(input, appendNewline = false)
+            screenModelScope.launch(Dispatchers.IO) { inputAggregator.send(input) }
         }
 
-        // Register input callback from hardware keyboard
+        // Hardware keyboard sequences are pre-resolved by KeyboardInputProcessor.
+        // Use dispatch() to skip modifier application but still consume ONE_SHOT state.
         TerminalStateProvider.onHardwareKeyboardInput = { input ->
             Logger.d("Input from hardware keyboard: '$input'")
-            sendInput(input, appendNewline = false)
+            screenModelScope.launch(Dispatchers.IO) { inputAggregator.dispatch(input) }
         }
 
         // Initialize command mode state
@@ -345,79 +356,14 @@ class TerminalScreenModel(
         }
     }
 
-    /**
-     * Send a fixed key sequence (from FixedKeyRow) applying active modifier state.
-     * Unlike sendInput(), this handles multi-character escape sequences for arrows etc.
-     */
+    /** Send a fixed key sequence from FixedKeyRow, applying active modifier state. */
     fun sendFixedKey(rawSequence: String) {
-        screenModelScope.launch(Dispatchers.IO) {
-            val currentState = _state.value
-            val bitmask = computeUiModifierBitmask()
-            val anyModifierActive = bitmask != 0
-
-            val sequence = if (bitmask == 0) {
-                rawSequence
-            } else {
-                val modNum = bitmask + 1
-                val hasShift = (bitmask and 1) != 0
-                val hasAlt   = (bitmask and 2) != 0
-                when (rawSequence) {
-                    "\t"         -> if (hasShift) "\u001B[Z" else rawSequence  // Shift+Tab → backtab
-                    "\u001B[A"   -> "\u001B[1;${modNum}A"  // Up
-                    "\u001B[B"   -> "\u001B[1;${modNum}B"  // Down
-                    "\u001B[C"   -> "\u001B[1;${modNum}C"  // Right
-                    "\u001B[D"   -> "\u001B[1;${modNum}D"  // Left
-                    "\u001B[H"   -> "\u001B[1;${modNum}H"  // Home
-                    "\u001B[F"   -> "\u001B[1;${modNum}F"  // End
-                    else         -> if (rawSequence.length == 1 && hasAlt) "\u001B$rawSequence"
-                                    else rawSequence
-                }
-            }
-
-            if (anyModifierActive) {
-                applyAndConsumeOneShotModifiers()
-            }
-
-            Logger.d("SSH_TX (fixed): $sequence")
-            sshRepository.sendInput(sequence)
-        }
+        screenModelScope.launch(Dispatchers.IO) { inputAggregator.send(rawSequence) }
     }
 
-    fun sendInput(text: String, appendNewline: Boolean = false) {
-        if (text.isEmpty()) return
-
-        screenModelScope.launch(Dispatchers.IO) {
-            var toSend = if (appendNewline) text + "\n" else text
-
-            val currentState = _state.value
-            val anyModifierActive = currentState.ctrlState.isActive ||
-                    currentState.altState.isActive ||
-                    currentState.shiftState.isActive
-
-            if (toSend.length == 1) {
-                val char = toSend[0]
-                val combinedHasCtrl = currentState.ctrlState.isActive
-                val combinedHasAlt  = currentState.altState.isActive
-
-                if (combinedHasCtrl && combinedHasAlt) {
-                    val ctrlByte = KeyboardInputProcessor.getCtrlSequenceForChar(char)
-                    if (ctrlByte != null) toSend = "\u001B$ctrlByte"
-                } else if (combinedHasCtrl) {
-                    val ctrlByte = KeyboardInputProcessor.getCtrlSequenceForChar(char)
-                    if (ctrlByte != null) toSend = ctrlByte
-                } else if (combinedHasAlt) {
-                    toSend = "\u001B$toSend"
-                }
-            }
-
-            // Always consume ONE_SHOT modifiers after any key press
-            if (anyModifierActive) {
-                applyAndConsumeOneShotModifiers()
-            }
-
-            Logger.d("SSH_TX: $toSend")
-            sshRepository.sendInput(toSend)
-        }
+    /** Send IME text input, applying active modifier state to single-char input. */
+    fun sendInput(text: String) {
+        screenModelScope.launch(Dispatchers.IO) { inputAggregator.send(text) }
     }
 
     /**
