@@ -308,8 +308,9 @@ data class TerminalScreen(
                         isAlternateScreen = state.isAlternateScreen,
                         isImeEnabled = state.isImeEnabled,
                         isSoftKeyboardVisible = state.isSoftKeyboardVisible,
-                        isCtrlActive = state.isCtrlActive,
-                        isAltActive = state.isAltActive,
+                        shiftState = state.shiftState,
+                        ctrlState = state.ctrlState,
+                        altState = state.altState,
                         isHardwareKeyboardConnected = state.isHardwareKeyboardConnected,
                         onDirectSend = { sequence ->
                             screenModel.sendInput(sequence, appendNewline = false)
@@ -323,11 +324,11 @@ data class TerminalScreen(
                         onToggleSoftKeyboard = {
                             screenModel.toggleSoftKeyboard()
                         },
-                        onToggleCtrl = {
-                            screenModel.toggleCtrl()
+                        onModifierTap = { modifier ->
+                            screenModel.onModifierTap(modifier)
                         },
-                        onToggleAlt = {
-                            screenModel.toggleAlt()
+                        onModifierDoubleTap = { modifier ->
+                            screenModel.onModifierDoubleTap(modifier)
                         },
                         modifier = Modifier.fillMaxSize(),
                         terminalInputState = terminalInputState
@@ -465,7 +466,7 @@ data class TerminalScreen(
                     if (state.isConnected) {
                         FixedKeyRow(
                             onKeyPress = { keyCode ->
-                                screenModel.sendInput(keyCode, appendNewline = false)
+                                screenModel.sendFixedKey(keyCode)
                             },
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -478,8 +479,9 @@ data class TerminalScreen(
                             isAlternateScreen = state.isAlternateScreen,
                             isImeEnabled = state.isImeEnabled,
                             isSoftKeyboardVisible = state.isSoftKeyboardVisible,
-                            isCtrlActive = state.isCtrlActive,
-                            isAltActive = state.isAltActive,
+                            shiftState = state.shiftState,
+                            ctrlState = state.ctrlState,
+                            altState = state.altState,
                             isHardwareKeyboardConnected = state.isHardwareKeyboardConnected,
                             onDirectSend = { sequence ->
                                 screenModel.sendInput(sequence, appendNewline = false)
@@ -493,11 +495,11 @@ data class TerminalScreen(
                             onToggleSoftKeyboard = {
                                 screenModel.toggleSoftKeyboard()
                             },
-                            onToggleCtrl = {
-                                screenModel.toggleCtrl()
+                            onModifierTap = { modifier ->
+                                screenModel.onModifierTap(modifier)
                             },
-                            onToggleAlt = {
-                                screenModel.toggleAlt()
+                            onModifierDoubleTap = { modifier ->
+                                screenModel.onModifierDoubleTap(modifier)
                             },
                             modifier = Modifier.fillMaxWidth()
                         )

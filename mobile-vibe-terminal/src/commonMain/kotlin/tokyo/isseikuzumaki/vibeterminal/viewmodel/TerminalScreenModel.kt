@@ -23,6 +23,10 @@ import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalCell
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalCommandExecutor
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalScreenBuffer
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalStateProvider
+import tokyo.isseikuzumaki.vibeterminal.input.KeyboardInputProcessor
+import tokyo.isseikuzumaki.vibeterminal.input.ModifierBitmask
+import tokyo.isseikuzumaki.vibeterminal.input.ModifierButtonState
+import tokyo.isseikuzumaki.vibeterminal.input.ModifierKey
 import tokyo.isseikuzumaki.vibeterminal.ui.components.macro.MacroTab
 import tokyo.isseikuzumaki.vibeterminal.util.Logger
 
@@ -41,8 +45,9 @@ data class TerminalState(
     val hasAutoSwitchedToNav: Boolean = false,
     val isImeEnabled: Boolean = false,
     val isSoftKeyboardVisible: Boolean = false,
-    val isCtrlActive: Boolean = false,
-    val isAltActive: Boolean = false,
+    val shiftState: ModifierButtonState = ModifierButtonState.INACTIVE,
+    val ctrlState: ModifierButtonState = ModifierButtonState.INACTIVE,
+    val altState: ModifierButtonState = ModifierButtonState.INACTIVE,
     val isHardwareKeyboardConnected: Boolean = false,  // Hardware keyboard connection state
     val lastFileExplorerPath: String? = null,  // Last opened path in File Explorer (loaded from database)
     val isReconnecting: Boolean = false,  // Whether attempting to reconnect after connection loss
@@ -66,8 +71,9 @@ data class TerminalState(
                 hasAutoSwitchedToNav == other.hasAutoSwitchedToNav &&
                 isImeEnabled == other.isImeEnabled &&
                 isSoftKeyboardVisible == other.isSoftKeyboardVisible &&
-                isCtrlActive == other.isCtrlActive &&
-                isAltActive == other.isAltActive &&
+                shiftState == other.shiftState &&
+                ctrlState == other.ctrlState &&
+                altState == other.altState &&
                 isHardwareKeyboardConnected == other.isHardwareKeyboardConnected &&
                 lastFileExplorerPath == other.lastFileExplorerPath &&
                 isReconnecting == other.isReconnecting
@@ -77,8 +83,9 @@ data class TerminalState(
         var result = bufferUpdateCounter
         result = 31 * result + isImeEnabled.hashCode()
         result = 31 * result + isSoftKeyboardVisible.hashCode()
-        result = 31 * result + isCtrlActive.hashCode()
-        result = 31 * result + isAltActive.hashCode()
+        result = 31 * result + shiftState.hashCode()
+        result = 31 * result + ctrlState.hashCode()
+        result = 31 * result + altState.hashCode()
         result = 31 * result + isHardwareKeyboardConnected.hashCode()
         result = 31 * result + lastFileExplorerPath.hashCode()
         result = 31 * result + isReconnecting.hashCode()
@@ -338,6 +345,44 @@ class TerminalScreenModel(
         }
     }
 
+    /**
+     * Send a fixed key sequence (from FixedKeyRow) applying active modifier state.
+     * Unlike sendInput(), this handles multi-character escape sequences for arrows etc.
+     */
+    fun sendFixedKey(rawSequence: String) {
+        screenModelScope.launch(Dispatchers.IO) {
+            val currentState = _state.value
+            val bitmask = computeUiModifierBitmask()
+            val anyModifierActive = bitmask != 0
+
+            val sequence = if (bitmask == 0) {
+                rawSequence
+            } else {
+                val modNum = bitmask + 1
+                val hasShift = (bitmask and 1) != 0
+                val hasAlt   = (bitmask and 2) != 0
+                when (rawSequence) {
+                    "\t"         -> if (hasShift) "\u001B[Z" else rawSequence  // Shift+Tab → backtab
+                    "\u001B[A"   -> "\u001B[1;${modNum}A"  // Up
+                    "\u001B[B"   -> "\u001B[1;${modNum}B"  // Down
+                    "\u001B[C"   -> "\u001B[1;${modNum}C"  // Right
+                    "\u001B[D"   -> "\u001B[1;${modNum}D"  // Left
+                    "\u001B[H"   -> "\u001B[1;${modNum}H"  // Home
+                    "\u001B[F"   -> "\u001B[1;${modNum}F"  // End
+                    else         -> if (rawSequence.length == 1 && hasAlt) "\u001B$rawSequence"
+                                    else rawSequence
+                }
+            }
+
+            if (anyModifierActive) {
+                applyAndConsumeOneShotModifiers()
+            }
+
+            Logger.d("SSH_TX (fixed): $sequence")
+            sshRepository.sendInput(sequence)
+        }
+    }
+
     fun sendInput(text: String, appendNewline: Boolean = false) {
         if (text.isEmpty()) return
 
@@ -345,28 +390,29 @@ class TerminalScreenModel(
             var toSend = if (appendNewline) text + "\n" else text
 
             val currentState = _state.value
-            var modified = false
+            val anyModifierActive = currentState.ctrlState.isActive ||
+                    currentState.altState.isActive ||
+                    currentState.shiftState.isActive
 
             if (toSend.length == 1) {
-                var char = toSend[0]
+                val char = toSend[0]
+                val combinedHasCtrl = currentState.ctrlState.isActive
+                val combinedHasAlt  = currentState.altState.isActive
 
-                if (currentState.isCtrlActive) {
-                    if (char in 'a'..'z' || char in 'A'..'Z') {
-                        // Convert to control character (A=1, B=2, ...)
-                        char = (char.uppercaseChar().code - 'A'.code + 1).toChar()
-                        toSend = char.toString()
-                        modified = true
-                    }
-                }
-
-                if (currentState.isAltActive) {
-                    toSend = "\u001B" + toSend
-                    modified = true
+                if (combinedHasCtrl && combinedHasAlt) {
+                    val ctrlByte = KeyboardInputProcessor.getCtrlSequenceForChar(char)
+                    if (ctrlByte != null) toSend = "\u001B$ctrlByte"
+                } else if (combinedHasCtrl) {
+                    val ctrlByte = KeyboardInputProcessor.getCtrlSequenceForChar(char)
+                    if (ctrlByte != null) toSend = ctrlByte
+                } else if (combinedHasAlt) {
+                    toSend = "\u001B$toSend"
                 }
             }
 
-            if (modified) {
-                _state.update { it.copy(isCtrlActive = false, isAltActive = false) }
+            // Always consume ONE_SHOT modifiers after any key press
+            if (anyModifierActive) {
+                applyAndConsumeOneShotModifiers()
             }
 
             Logger.d("SSH_TX: $toSend")
@@ -423,12 +469,49 @@ class TerminalScreenModel(
         }
     }
 
-    fun toggleCtrl() {
-        _state.update { it.copy(isCtrlActive = !it.isCtrlActive) }
+    fun onModifierTap(modifier: ModifierKey) {
+        _state.update { state ->
+            when (modifier) {
+                ModifierKey.SHIFT -> state.copy(shiftState = state.shiftState.nextOnTap())
+                ModifierKey.CTRL  -> state.copy(ctrlState  = state.ctrlState.nextOnTap())
+                ModifierKey.ALT   -> state.copy(altState   = state.altState.nextOnTap())
+            }
+        }
+        TerminalStateProvider.uiModifierBitmask = computeUiModifierBitmask()
     }
 
-    fun toggleAlt() {
-        _state.update { it.copy(isAltActive = !it.isAltActive) }
+    fun onModifierDoubleTap(modifier: ModifierKey) {
+        _state.update { state ->
+            when (modifier) {
+                ModifierKey.SHIFT -> state.copy(shiftState = state.shiftState.nextOnDoubleTap())
+                ModifierKey.CTRL  -> state.copy(ctrlState  = state.ctrlState.nextOnDoubleTap())
+                ModifierKey.ALT   -> state.copy(altState   = state.altState.nextOnDoubleTap())
+            }
+        }
+        TerminalStateProvider.uiModifierBitmask = computeUiModifierBitmask()
+    }
+
+
+    /** Consumes all ONE_SHOT modifiers after a key press. LOCKED modifiers are untouched. */
+    private fun applyAndConsumeOneShotModifiers() {
+        _state.update { state ->
+            state.copy(
+                shiftState = if (state.shiftState == ModifierButtonState.ONE_SHOT) ModifierButtonState.INACTIVE else state.shiftState,
+                ctrlState  = if (state.ctrlState  == ModifierButtonState.ONE_SHOT) ModifierButtonState.INACTIVE else state.ctrlState,
+                altState   = if (state.altState   == ModifierButtonState.ONE_SHOT) ModifierButtonState.INACTIVE else state.altState
+            )
+        }
+        TerminalStateProvider.uiModifierBitmask = computeUiModifierBitmask()
+    }
+
+    /** Computes the combined UI modifier bitmask from the current toggle button states. */
+    private fun computeUiModifierBitmask(): Int {
+        val state = _state.value
+        var bitmask = 0
+        if (state.shiftState.isActive) bitmask = bitmask or 1
+        if (state.altState.isActive)   bitmask = bitmask or 2
+        if (state.ctrlState.isActive)  bitmask = bitmask or 4
+        return bitmask
     }
 
     /**
