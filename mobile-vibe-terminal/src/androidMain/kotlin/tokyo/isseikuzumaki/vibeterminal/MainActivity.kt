@@ -221,7 +221,11 @@ class MainActivity : ComponentActivity() {
         val isConnected = TerminalStateProvider.state.value.isConnected
 
         if (isCommandMode && isConnected) {
-            val result = HardwareKeyboardHandler.processKeyEvent(event, isCommandMode)
+            val result = HardwareKeyboardHandler.processKeyEvent(
+                event,
+                isCommandMode,
+                uiModifierBitmask = TerminalStateProvider.uiModifierBitmask
+            )
             when (result) {
                 is HardwareKeyboardHandler.KeyResult.Handled -> {
                     Logger.d("MainActivity: Sending key sequence to terminal: '${result.sequence}'")

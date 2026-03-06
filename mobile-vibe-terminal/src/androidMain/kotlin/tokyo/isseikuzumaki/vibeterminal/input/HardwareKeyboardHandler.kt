@@ -30,14 +30,14 @@ object HardwareKeyboardHandler {
      * @param isCommandMode Whether the terminal is in command mode (RAW mode)
      * @return KeyResult indicating how the key was handled
      */
-    fun processKeyEvent(event: KeyEvent, isCommandMode: Boolean): KeyResult {
-        Logger.d("HardwareKeyboardHandler: keyCode=${event.keyCode}, ctrl=${event.isCtrlPressed}, alt=${event.isAltPressed}, shift=${event.isShiftPressed}, meta=${event.isMetaPressed}")
+    fun processKeyEvent(event: KeyEvent, isCommandMode: Boolean, uiModifierBitmask: Int = 0): KeyResult {
+        Logger.d("HardwareKeyboardHandler: keyCode=${event.keyCode}, ctrl=${event.isCtrlPressed}, alt=${event.isAltPressed}, shift=${event.isShiftPressed}, meta=${event.isMetaPressed}, uiBitmask=$uiModifierBitmask")
 
         // Convert Android KeyEvent to platform-independent KeyEventData
         val keyEventData = event.toKeyEventData()
 
-        // Delegate to platform-independent processor
-        return when (val result = KeyboardInputProcessor.processKeyEvent(keyEventData)) {
+        // Delegate to platform-independent processor with combined UI modifier bitmask
+        return when (val result = KeyboardInputProcessor.processKeyEvent(keyEventData, uiModifierBitmask)) {
             is KeyboardInputProcessor.KeyResult.Handled -> KeyResult.Handled(result.sequence)
             is KeyboardInputProcessor.KeyResult.Ignored -> KeyResult.Ignored
             is KeyboardInputProcessor.KeyResult.PassThrough -> KeyResult.PassThrough

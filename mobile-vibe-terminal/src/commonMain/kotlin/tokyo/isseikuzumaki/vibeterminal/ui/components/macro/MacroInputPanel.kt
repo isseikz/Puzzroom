@@ -1,13 +1,23 @@
 package tokyo.isseikuzumaki.vibeterminal.ui.components.macro
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.KeyboardHide
@@ -15,6 +25,8 @@ import org.jetbrains.compose.resources.stringResource
 import puzzroom.mobile_vibe_terminal.generated.resources.*
 import io.github.isseikz.kmpinput.TerminalInputContainer
 import io.github.isseikz.kmpinput.TerminalInputContainerState
+import tokyo.isseikuzumaki.vibeterminal.input.ModifierButtonState
+import tokyo.isseikuzumaki.vibeterminal.input.ModifierKey
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -23,15 +35,16 @@ fun MacroInputPanel(
     isAlternateScreen: Boolean,
     isImeEnabled: Boolean,
     isSoftKeyboardVisible: Boolean,
-    isCtrlActive: Boolean,
-    isAltActive: Boolean,
+    shiftState: ModifierButtonState,
+    ctrlState: ModifierButtonState,
+    altState: ModifierButtonState,
     isHardwareKeyboardConnected: Boolean,
     onDirectSend: (String) -> Unit,
     onTabSelected: (MacroTab) -> Unit,
     onToggleImeMode: () -> Unit,
     onToggleSoftKeyboard: () -> Unit,
-    onToggleCtrl: () -> Unit,
-    onToggleAlt: () -> Unit,
+    onModifierTap: (ModifierKey) -> Unit,
+    onModifierDoubleTap: (ModifierKey) -> Unit,
     modifier: Modifier = Modifier,
     terminalInputState: TerminalInputContainerState? = null
 ) {
@@ -69,7 +82,7 @@ fun MacroInputPanel(
             thickness = 1.dp
         )
 
-        // Controls Row (Input Mode, Keyboard, Ctrl, Alt)
+        // Controls Row (Input Mode, Keyboard, Shift, Ctrl, Alt)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -77,8 +90,7 @@ fun MacroInputPanel(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // IME Mode Toggle (TEXT MODE is special - uses primary color outline)
-            // Disabled when hardware keyboard is connected (locked to CMD mode)
+            // IME Mode Toggle
             FilterChip(
                 selected = isImeEnabled,
                 onClick = onToggleImeMode,
@@ -136,45 +148,112 @@ fun MacroInputPanel(
 
             Spacer(modifier = Modifier.weight(1f))
 
+            // Shift Toggle
+            ModifierChip(
+                state = shiftState,
+                label = stringResource(Res.string.macro_shift),
+                modifierKey = ModifierKey.SHIFT,
+                onTap = onModifierTap,
+                onDoubleTap = onModifierDoubleTap
+            )
+
             // Ctrl Toggle
-            FilterChip(
-                selected = isCtrlActive,
-                onClick = onToggleCtrl,
-                label = { Text(stringResource(Res.string.macro_ctrl)) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
-                border = FilterChipDefaults.filterChipBorder(
-                    enabled = true,
-                    selected = isCtrlActive,
-                    borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                    selectedBorderColor = MaterialTheme.colorScheme.primary
-                ),
-                modifier = Modifier.focusProperties { canFocus = false }
+            ModifierChip(
+                state = ctrlState,
+                label = stringResource(Res.string.macro_ctrl),
+                modifierKey = ModifierKey.CTRL,
+                onTap = onModifierTap,
+                onDoubleTap = onModifierDoubleTap
             )
 
             // Alt Toggle
-            FilterChip(
-                selected = isAltActive,
-                onClick = onToggleAlt,
-                label = { Text(stringResource(Res.string.macro_alt)) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
-                border = FilterChipDefaults.filterChipBorder(
-                    enabled = true,
-                    selected = isAltActive,
-                    borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                    selectedBorderColor = MaterialTheme.colorScheme.primary
-                ),
-                modifier = Modifier.focusProperties { canFocus = false }
+            ModifierChip(
+                state = altState,
+                label = stringResource(Res.string.macro_alt),
+                modifierKey = ModifierKey.ALT,
+                onTap = onModifierTap,
+                onDoubleTap = onModifierDoubleTap
             )
         }
+    }
+}
+
+/**
+ * A three-state modifier toggle chip.
+ *
+ * Visual states:
+ * - INACTIVE → surfaceVariant container
+ * - ONE_SHOT → primary container (active for next key only)
+ * - LOCKED   → tertiary container (stays active until tapped again)
+ *
+ * Single-tap → onTap; Double-tap → onDoubleTap.
+ * Haptic feedback fires on every tap (single or double) within the pointerInput handler.
+ */
+/**
+ * A three-state modifier toggle chip.
+ *
+ * Uses a plain Surface + combinedClickable instead of FilterChip so that
+ * there is no competing internal onClick handler to steal the gesture.
+ *
+ * Visual states:
+ * - INACTIVE → surfaceVariant container
+ * - ONE_SHOT → primary container (active for next key only)
+ * - LOCKED   → tertiary container (stays active until tapped again)
+ *
+ * Single-tap → onTap; Double-tap → onDoubleTap.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun ModifierChip(
+    state: ModifierButtonState,
+    label: String,
+    modifierKey: ModifierKey,
+    onTap: (ModifierKey) -> Unit,
+    onDoubleTap: (ModifierKey) -> Unit
+) {
+    val haptic = LocalHapticFeedback.current
+    val shape = FilterChipDefaults.shape
+    val containerColor = when (state) {
+        ModifierButtonState.INACTIVE -> MaterialTheme.colorScheme.surfaceVariant
+        ModifierButtonState.ONE_SHOT -> MaterialTheme.colorScheme.primary
+        ModifierButtonState.LOCKED   -> MaterialTheme.colorScheme.tertiary
+    }
+    val labelColor = when (state) {
+        ModifierButtonState.INACTIVE -> MaterialTheme.colorScheme.onSurfaceVariant
+        ModifierButtonState.ONE_SHOT -> MaterialTheme.colorScheme.onPrimary
+        ModifierButtonState.LOCKED   -> MaterialTheme.colorScheme.onTertiary
+    }
+    val borderColor = when (state) {
+        ModifierButtonState.INACTIVE -> MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+        ModifierButtonState.ONE_SHOT -> MaterialTheme.colorScheme.primary
+        ModifierButtonState.LOCKED   -> MaterialTheme.colorScheme.tertiary
+    }
+
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .clip(shape)
+            .background(containerColor)
+            .border(width = 1.dp, color = borderColor, shape = shape)
+            .combinedClickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(),
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onTap(modifierKey)
+                },
+                onDoubleClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onDoubleTap(modifierKey)
+                }
+            )
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+    ) {
+        Text(
+            text = label,
+            color = labelColor,
+            style = MaterialTheme.typography.labelLarge,
+            textAlign = TextAlign.Center
+        )
     }
 }

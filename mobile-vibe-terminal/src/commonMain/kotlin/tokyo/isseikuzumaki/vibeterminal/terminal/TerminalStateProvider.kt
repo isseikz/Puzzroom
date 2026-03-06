@@ -181,6 +181,14 @@ object TerminalStateProvider {
     }
 
     /**
+     * Combined UI modifier bitmask (Shift=1, Alt=2, Ctrl=4) from on-screen toggle buttons.
+     * Updated by TerminalScreenModel whenever modifier state changes.
+     * Read by MainActivity to pass into HardwareKeyboardHandler.
+     */
+    @Volatile
+    var uiModifierBitmask: Int = 0
+
+    /**
      * Callback for hardware keyboard input.
      * Set by TerminalScreenModel to handle direct keyboard input.
      */

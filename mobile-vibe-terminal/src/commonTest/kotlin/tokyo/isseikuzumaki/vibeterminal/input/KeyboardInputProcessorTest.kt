@@ -699,8 +699,8 @@ class KeyboardInputProcessorTest {
      */
     @Test
     fun testGetSpecialKeySequenceReturnsNullForRegularKeys() {
-        assertNull(KeyboardInputProcessor.getSpecialKeySequence(KeyCodes.A, hasShift = false))
-        assertNull(KeyboardInputProcessor.getSpecialKeySequence(KeyCodes.NUM_1, hasShift = false))
+        assertNull(KeyboardInputProcessor.getSpecialKeySequence(KeyCodes.A, combinedBitmask = 0))
+        assertNull(KeyboardInputProcessor.getSpecialKeySequence(KeyCodes.NUM_1, combinedBitmask = 0))
     }
 
     /**
@@ -709,10 +709,10 @@ class KeyboardInputProcessorTest {
      */
     @Test
     fun testGetSpecialKeySequenceArrows() {
-        assertEquals("\u001B[A", KeyboardInputProcessor.getSpecialKeySequence(KeyCodes.DPAD_UP, hasShift = false))
-        assertEquals("\u001B[B", KeyboardInputProcessor.getSpecialKeySequence(KeyCodes.DPAD_DOWN, hasShift = false))
-        assertEquals("\u001B[C", KeyboardInputProcessor.getSpecialKeySequence(KeyCodes.DPAD_RIGHT, hasShift = false))
-        assertEquals("\u001B[D", KeyboardInputProcessor.getSpecialKeySequence(KeyCodes.DPAD_LEFT, hasShift = false))
+        assertEquals("\u001B[A", KeyboardInputProcessor.getSpecialKeySequence(KeyCodes.DPAD_UP, combinedBitmask = 0))
+        assertEquals("\u001B[B", KeyboardInputProcessor.getSpecialKeySequence(KeyCodes.DPAD_DOWN, combinedBitmask = 0))
+        assertEquals("\u001B[C", KeyboardInputProcessor.getSpecialKeySequence(KeyCodes.DPAD_RIGHT, combinedBitmask = 0))
+        assertEquals("\u001B[D", KeyboardInputProcessor.getSpecialKeySequence(KeyCodes.DPAD_LEFT, combinedBitmask = 0))
     }
 
     // =========================================================================
@@ -861,5 +861,190 @@ class KeyboardInputProcessorTest {
         // ROキー（ろ）
         assertEquals('\\', KeyboardInputProcessor.getCharFromKeyCode(KeyCodes.RO, hasShift = false))
         assertEquals('_', KeyboardInputProcessor.getCharFromKeyCode(KeyCodes.RO, hasShift = true))
+    }
+
+    // =========================================================================
+    // T015: getCtrlSequenceForChar tests
+    // =========================================================================
+
+    @Test
+    fun `getCtrlSequenceForChar - letter a returns 0x01`() {
+        assertEquals("\u0001", KeyboardInputProcessor.getCtrlSequenceForChar('a'))
+    }
+
+    @Test
+    fun `getCtrlSequenceForChar - letter z returns 0x1A`() {
+        assertEquals("\u001A", KeyboardInputProcessor.getCtrlSequenceForChar('z'))
+    }
+
+    @Test
+    fun `getCtrlSequenceForChar - uppercase A returns 0x01`() {
+        assertEquals("\u0001", KeyboardInputProcessor.getCtrlSequenceForChar('A'))
+    }
+
+    @Test
+    fun `getCtrlSequenceForChar - symbol bracket returns 0x1B`() {
+        assertEquals("\u001B", KeyboardInputProcessor.getCtrlSequenceForChar('['))
+    }
+
+    @Test
+    fun `getCtrlSequenceForChar - space returns 0x00`() {
+        assertEquals("\u0000", KeyboardInputProcessor.getCtrlSequenceForChar(' '))
+    }
+
+    @Test
+    fun `getCtrlSequenceForChar - unmapped char returns null`() {
+        assertNull(KeyboardInputProcessor.getCtrlSequenceForChar('!'))
+        assertNull(KeyboardInputProcessor.getCtrlSequenceForChar('@'))
+    }
+
+    // =========================================================================
+    // T019: Modified cursor key tests
+    // =========================================================================
+
+    @Test
+    fun `processKeyEvent - Shift+Up returns CSI parameterized sequence`() {
+        val result = KeyboardInputProcessor.processKeyEvent(
+            keyDown(KeyCodes.DPAD_UP, shift = true)
+        )
+        assertIs<KeyboardInputProcessor.KeyResult.Handled>(result)
+        assertEquals("\u001B[1;2A", result.sequence)
+    }
+
+    @Test
+    fun `processKeyEvent - Ctrl+Right returns modifier-parameterized cursor sequence`() {
+        val result = KeyboardInputProcessor.processKeyEvent(
+            keyDown(KeyCodes.DPAD_RIGHT, ctrl = true)
+        )
+        assertIs<KeyboardInputProcessor.KeyResult.Handled>(result)
+        assertEquals("\u001B[1;5C", result.sequence)
+    }
+
+    @Test
+    fun `processKeyEvent - Shift+Ctrl+Up returns combined modifier cursor sequence`() {
+        val result = KeyboardInputProcessor.processKeyEvent(
+            keyDown(KeyCodes.DPAD_UP, shift = true, ctrl = true)
+        )
+        assertIs<KeyboardInputProcessor.KeyResult.Handled>(result)
+        assertEquals("\u001B[1;6A", result.sequence)
+    }
+
+    @Test
+    fun `processKeyEvent - unmodified Up returns CSI A`() {
+        val result = KeyboardInputProcessor.processKeyEvent(keyDown(KeyCodes.DPAD_UP))
+        assertIs<KeyboardInputProcessor.KeyResult.Handled>(result)
+        assertEquals("\u001B[A", result.sequence)
+    }
+
+    @Test
+    fun `processKeyEvent - UI Ctrl bitmask plus Right returns modifier cursor sequence`() {
+        val result = KeyboardInputProcessor.processKeyEvent(
+            keyDown(KeyCodes.DPAD_RIGHT),
+            uiModifierBitmask = 4  // Ctrl bit
+        )
+        assertIs<KeyboardInputProcessor.KeyResult.Handled>(result)
+        assertEquals("\u001B[1;5C", result.sequence)
+    }
+
+    @Test
+    fun `processKeyEvent - Home+Ctrl returns modifier-parameterized home sequence`() {
+        val result = KeyboardInputProcessor.processKeyEvent(keyDown(KeyCodes.MOVE_HOME, ctrl = true))
+        assertIs<KeyboardInputProcessor.KeyResult.Handled>(result)
+        assertEquals("\u001B[1;5H", result.sequence)
+    }
+
+    // =========================================================================
+    // T020: Modified function key tests
+    // =========================================================================
+
+    @Test
+    fun `processKeyEvent - Shift+F5 returns modifier-parameterized function key sequence`() {
+        val result = KeyboardInputProcessor.processKeyEvent(keyDown(KeyCodes.F5, shift = true))
+        assertIs<KeyboardInputProcessor.KeyResult.Handled>(result)
+        assertEquals("\u001B[15;2~", result.sequence)
+    }
+
+    @Test
+    fun `processKeyEvent - Ctrl+F6 returns modifier-parameterized F6 sequence`() {
+        val result = KeyboardInputProcessor.processKeyEvent(keyDown(KeyCodes.F6, ctrl = true))
+        assertIs<KeyboardInputProcessor.KeyResult.Handled>(result)
+        assertEquals("\u001B[17;5~", result.sequence)
+    }
+
+    @Test
+    fun `processKeyEvent - unmodified F1 returns SS3 OP`() {
+        val result = KeyboardInputProcessor.processKeyEvent(keyDown(KeyCodes.F1))
+        assertIs<KeyboardInputProcessor.KeyResult.Handled>(result)
+        assertEquals("\u001BOP", result.sequence)
+    }
+
+    @Test
+    fun `processKeyEvent - modified F1 Shift returns CSI tilde instead of SS3`() {
+        val result = KeyboardInputProcessor.processKeyEvent(keyDown(KeyCodes.F1, shift = true))
+        assertIs<KeyboardInputProcessor.KeyResult.Handled>(result)
+        assertEquals("\u001B[11;2~", result.sequence)
+    }
+
+    // =========================================================================
+    // T029: Alt, special key combination tests
+    // =========================================================================
+
+    @Test
+    fun `processKeyEvent - Alt+f returns ESC + 0x66`() {
+        val result = KeyboardInputProcessor.processKeyEvent(keyDown(KeyCodes.F, alt = true))
+        assertIs<KeyboardInputProcessor.KeyResult.Handled>(result)
+        assertEquals("\u001Bf", result.sequence)
+    }
+
+    @Test
+    fun `processKeyEvent - Alt+Ctrl+C returns ESC + 0x03`() {
+        val result = KeyboardInputProcessor.processKeyEvent(keyDown(KeyCodes.C, alt = true, ctrl = true))
+        assertIs<KeyboardInputProcessor.KeyResult.Handled>(result)
+        assertEquals("\u001B\u0003", result.sequence)
+    }
+
+    @Test
+    fun `processKeyEvent - Ctrl+Backspace returns 0x08`() {
+        val result = KeyboardInputProcessor.processKeyEvent(keyDown(KeyCodes.DEL, ctrl = true))
+        assertIs<KeyboardInputProcessor.KeyResult.Handled>(result)
+        assertEquals("\u0008", result.sequence)
+    }
+
+    @Test
+    fun `processKeyEvent - plain Backspace returns 0x7F`() {
+        val result = KeyboardInputProcessor.processKeyEvent(keyDown(KeyCodes.DEL))
+        assertIs<KeyboardInputProcessor.KeyResult.Handled>(result)
+        assertEquals("\u007F", result.sequence)
+    }
+
+    @Test
+    fun `processKeyEvent - Shift+Tab via hardware Shift returns backtab`() {
+        val result = KeyboardInputProcessor.processKeyEvent(keyDown(KeyCodes.TAB, shift = true))
+        assertIs<KeyboardInputProcessor.KeyResult.Handled>(result)
+        assertEquals("\u001B[Z", result.sequence)
+    }
+
+    @Test
+    fun `processKeyEvent - Shift+Tab via UI bitmask returns backtab`() {
+        val result = KeyboardInputProcessor.processKeyEvent(
+            keyDown(KeyCodes.TAB),
+            uiModifierBitmask = 1  // Shift bit
+        )
+        assertIs<KeyboardInputProcessor.KeyResult.Handled>(result)
+        assertEquals("\u001B[Z", result.sequence)
+    }
+
+    @Test
+    fun `processKeyEvent - Ctrl+Delete returns modifier-parameterized delete sequence`() {
+        val result = KeyboardInputProcessor.processKeyEvent(keyDown(KeyCodes.FORWARD_DEL, ctrl = true))
+        assertIs<KeyboardInputProcessor.KeyResult.Handled>(result)
+        assertEquals("\u001B[3;5~", result.sequence)
+    }
+
+    @Test
+    fun `processKeyEvent - Ctrl+PageUp returns modifier-parameterized pageup sequence`() {
+        val result = KeyboardInputProcessor.processKeyEvent(keyDown(KeyCodes.PAGE_UP, ctrl = true))
+        assertIs<KeyboardInputProcessor.KeyResult.Handled>(result)
+        assertEquals("\u001B[5;5~", result.sequence)
     }
 }
