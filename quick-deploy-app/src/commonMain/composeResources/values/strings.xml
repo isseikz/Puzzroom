@@ -19,4 +19,6 @@
     <string name="action_close">Close</string>
     <string name="toast_url_copied">URL copied</string>
     <string name="toast_curl_copied">cURL command copied</string>
+    <string name="download_progress_format">%1$s / %2$s</string>
+    <string name="download_remaining_time_format">Remaining: %1$s</string>
 </resources>

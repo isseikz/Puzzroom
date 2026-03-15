@@ -20,4 +20,6 @@
     <string name="action_close">閉じる</string>
     <string name="toast_url_copied">URLをコピーしました</string>
     <string name="toast_curl_copied">curlコマンドをコピーしました</string>
+    <string name="download_progress_format">%1$s / %2$s</string>
+    <string name="download_remaining_time_format">残り: %1$s</string>
 </resources>
