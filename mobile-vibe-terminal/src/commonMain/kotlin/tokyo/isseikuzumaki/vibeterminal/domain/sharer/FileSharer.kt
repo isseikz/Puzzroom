@@ -1,6 +1,6 @@
 package tokyo.isseikuzumaki.vibeterminal.domain.sharer
 
-import java.io.File
+import okio.Path
 
 /**
  * Platform-specific file sharing interface.
@@ -10,17 +10,17 @@ interface FileSharer {
     /**
      * Get the temporary directory for share preparation.
      * Files are downloaded here before being shared.
-     * @return The cache directory for temporary files
+     * @return The cache directory path for temporary files
      */
-    fun getShareCacheDirectory(): File
+    fun getShareCacheDirectory(): Path
 
     /**
      * Share a file using the system share sheet.
-     * @param file Local file to share
+     * @param file Local file path to share
      * @param mimeType MIME type of the file
      * @return Result indicating success or failure
      */
-    suspend fun shareFile(file: File, mimeType: String): Result<Unit>
+    suspend fun shareFile(file: Path, mimeType: String): Result<Unit>
 
     /**
      * Clean up temporary files created for sharing.

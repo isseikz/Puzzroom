@@ -15,7 +15,7 @@ composeMultiplatform = "1.9.0"
 composeMultiplatformMaterialIconsCoreJs = "0.4.0"
 icons = "1.4.3"
 junit = "4.13.2"
-kotlin = "2.2.20"
+kotlin = "2.3.0"
 kotlinx-coroutines = "1.10.2"
 kotlinx-serialization = "1.9.0"
 coil = "3.3.0"
@@ -32,7 +32,7 @@ credentials-play-services-auth = "1.5.0-beta01"
 googleid = "1.1.1"
 google-services = "4.4.2"
 androidWork = "2.11.0"
-voyager = "1.1.0-beta02"
+voyager = "1.1.0-beta03"
 koin = "4.1.1"
 room = "2.7.1"
 ksp = "2.2.20-2.0.4"
@@ -40,6 +40,8 @@ mina-sshd = "2.16.0"
 datastore = "1.2.0"
 timber = "5.0.1"
 hyperion = "0.9.38"
+okio = "3.9.0"
+sqlite-bundled = "2.5.1"
 
 [libraries]
 androidx-icons-core = { module = "androidx.compose.material.icons:material-icons-core", version.ref = "icons" }
@@ -107,6 +109,12 @@ mina-sshd-sftp = { module = "org.apache.sshd:sshd-sftp", version.ref = "mina-ssh
 # DataStore
 datastore = { module = "androidx.datastore:datastore", version.ref = "datastore" }
 datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
+
+# OkIO
+okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
+
+# SQLite Bundled Driver (for Room KMP on iOS)
+sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite-bundled" }
 
 # Timber Logging
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }

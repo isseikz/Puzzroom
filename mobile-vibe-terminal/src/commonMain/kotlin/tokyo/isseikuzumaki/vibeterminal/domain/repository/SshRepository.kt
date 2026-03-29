@@ -1,8 +1,8 @@
 package tokyo.isseikuzumaki.vibeterminal.domain.repository
 
 import kotlinx.coroutines.flow.Flow
+import okio.Path
 import tokyo.isseikuzumaki.vibeterminal.domain.model.FileEntry
-import java.io.File
 
 interface SshRepository {
     suspend fun connect(
@@ -53,19 +53,19 @@ interface SshRepository {
      * @param localFile Local file to save the downloaded content
      * @return Result indicating success or failure
      */
-    suspend fun downloadFile(remotePath: String, localFile: File): Result<Unit>
+    suspend fun downloadFile(remotePath: String, localFile: Path): Result<Unit>
 
     /**
      * Download a file from the remote server via SFTP with progress reporting.
      * @param remotePath Path to the file on the remote server
-     * @param localFile Local file to save the downloaded content
+     * @param localFile Local file path to save the downloaded content
      * @param totalBytes Total file size in bytes for progress calculation
      * @param onProgress Callback invoked with (bytesTransferred, totalBytes) during download
      * @return Result indicating success or failure
      */
     suspend fun downloadFileWithProgress(
         remotePath: String,
-        localFile: File,
+        localFile: Path,
         totalBytes: Long,
         onProgress: (bytesTransferred: Long, totalBytes: Long) -> Unit
     ): Result<Unit>

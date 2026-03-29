@@ -2,9 +2,9 @@ package tokyo.isseikuzumaki.vibeterminal.ssh
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import okio.Path
 import tokyo.isseikuzumaki.vibeterminal.domain.model.FileEntry
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
-import java.io.File
 
 class SshRepositoryStub : SshRepository {
     override suspend fun connect(
@@ -40,7 +40,7 @@ class SshRepositoryStub : SshRepository {
     }
     override fun getOutputStream(): Flow<String> = flowOf()
     override suspend fun sendInput(input: String) {}
-    override suspend fun downloadFile(remotePath: String, localFile: File): Result<Unit> {
+    override suspend fun downloadFile(remotePath: String, localFile: Path): Result<Unit> {
         return Result.failure(NotImplementedError("SFTP not supported on iOS yet"))
     }
     override suspend fun listFiles(remotePath: String): Result<List<FileEntry>> {
@@ -51,7 +51,7 @@ class SshRepositoryStub : SshRepository {
     }
     override suspend fun downloadFileWithProgress(
         remotePath: String,
-        localFile: File,
+        localFile: Path,
         totalBytes: Long,
         onProgress: (bytesTransferred: Long, totalBytes: Long) -> Unit
     ): Result<Unit> {

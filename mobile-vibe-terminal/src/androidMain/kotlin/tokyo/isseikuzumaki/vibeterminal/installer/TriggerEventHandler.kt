@@ -19,6 +19,7 @@ import tokyo.isseikuzumaki.vibeterminal.domain.installer.ApkInstaller
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
 import tokyo.isseikuzumaki.vibeterminal.ssh.TriggerChannel
 import tokyo.isseikuzumaki.vibeterminal.ssh.TriggerEvent
+import okio.Path.Companion.toOkioPath
 import java.io.File
 import java.io.FileOutputStream
 import java.net.URL
@@ -132,7 +133,7 @@ class TriggerEventHandler(
             Timber.d("=== Downloading APK ===")
             Timber.d("Target: $apkUrl")
 
-            val cacheDir = apkInstaller.getCacheDir()
+            val cacheDir = apkInstaller.getCacheDir().toFile()
             val apkFile = File(cacheDir, "downloaded_${System.currentTimeMillis()}.apk")
 
             if (apkUrl.startsWith("http://") || apkUrl.startsWith("https://")) {
@@ -162,7 +163,7 @@ class TriggerEventHandler(
             }
             
             Timber.d("SFTP Download: $expandedPath -> ${localFile.absolutePath}")
-            val result = sshRepository.downloadFile(expandedPath, localFile)
+            val result = sshRepository.downloadFile(expandedPath, localFile.toOkioPath())
             
             return if (result.isSuccess) {
                 Timber.d("SFTP Download complete")
@@ -260,7 +261,7 @@ class TriggerEventHandler(
         Timber.d("=== Launching Install Intent ===")
         Timber.d("APK file: ${apkFile.absolutePath}")
 
-        val result = apkInstaller.installApk(apkFile)
+        val result = apkInstaller.installApk(apkFile.toOkioPath())
         if (result.isSuccess) {
             Timber.d("Install intent launched successfully")
         } else {

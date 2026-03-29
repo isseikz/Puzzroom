@@ -20,7 +20,7 @@ data class FileTransferState(
     val purpose: TransferPurpose,
     val localPath: String? = null,
     val error: String? = null,
-    val startedAt: Long = System.currentTimeMillis()
+    val startedAt: Long = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
 ) {
     init {
         require(progress in 0f..1f) { "Progress must be between 0.0 and 1.0" }

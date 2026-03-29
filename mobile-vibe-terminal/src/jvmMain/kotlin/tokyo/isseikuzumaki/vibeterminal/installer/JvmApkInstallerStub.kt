@@ -1,14 +1,15 @@
 package tokyo.isseikuzumaki.vibeterminal.installer
 
+import okio.Path
+import okio.Path.Companion.toPath
 import tokyo.isseikuzumaki.vibeterminal.domain.installer.ApkInstaller
-import java.io.File
 
 class JvmApkInstallerStub : ApkInstaller {
-    override fun installApk(apkFile: File): Result<Unit> {
+    override fun installApk(apkFile: Path): Result<Unit> {
         return Result.failure(NotImplementedError("APK installation not supported on JVM/Desktop"))
     }
 
-    override fun getCacheDir(): File {
-        return File(System.getProperty("java.io.tmpdir"))
+    override fun getCacheDir(): Path {
+        return System.getProperty("java.io.tmpdir").toPath()
     }
 }

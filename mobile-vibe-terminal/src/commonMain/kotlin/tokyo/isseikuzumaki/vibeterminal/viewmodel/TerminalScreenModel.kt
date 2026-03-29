@@ -4,7 +4,6 @@ import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
-import java.io.File
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -936,7 +935,7 @@ class TerminalScreenModel(
                 processOutput("→ Resolving path: $expandedPath\n")
 
                 val cacheDir = apkInstaller.getCacheDir()
-                val localApkFile = File(cacheDir, "downloaded_app.apk")
+                val localApkFile = cacheDir / "downloaded_app.apk"
 
                 // Download via SFTP
                 Logger.d("Starting SFTP download...")
@@ -946,7 +945,7 @@ class TerminalScreenModel(
 
                 downloadResult.fold(
                     onSuccess = {
-                        processOutput("✅ Download complete: ${localApkFile.length()} bytes\n")
+                        processOutput("✅ Download complete\n")
                         Logger.d("Download successful, installing APK...")
 
                         // Install APK

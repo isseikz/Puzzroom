@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import okio.Path.Companion.toPath
 import tokyo.isseikuzumaki.vibeterminal.domain.downloader.FileDownloader
 import tokyo.isseikuzumaki.vibeterminal.domain.model.FileEntry
 import tokyo.isseikuzumaki.vibeterminal.domain.model.FileTransferState
@@ -165,7 +166,7 @@ class FileExplorerScreenModel(
                                 activeTransfer = it.activeTransfer?.copy(
                                     status = TransferStatus.Completed,
                                     progress = 1f,
-                                    localPath = localFile.absolutePath
+                                    localPath = localFile.toString()
                                 ),
                                 transferSuccessMessage = "Downloaded: ${file.name}"
                             )
@@ -239,7 +240,7 @@ class FileExplorerScreenModel(
 
                 // Get share cache directory
                 val shareDir = fileSharer.getShareCacheDirectory()
-                val localFile = java.io.File(shareDir, file.name)
+                val localFile = shareDir / file.name
 
                 // Update to in-progress
                 _state.update {
@@ -281,7 +282,7 @@ class FileExplorerScreenModel(
                                         activeTransfer = it.activeTransfer?.copy(
                                             status = TransferStatus.Completed,
                                             progress = 1f,
-                                            localPath = localFile.absolutePath
+                                            localPath = localFile.toString()
                                         )
                                     )
                                 }

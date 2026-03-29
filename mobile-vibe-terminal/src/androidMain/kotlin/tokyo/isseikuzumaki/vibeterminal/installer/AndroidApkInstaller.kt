@@ -4,20 +4,22 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
+import okio.Path
+import okio.Path.Companion.toOkioPath
 import timber.log.Timber
 import tokyo.isseikuzumaki.vibeterminal.domain.installer.ApkInstaller
-import java.io.File
 
 class AndroidApkInstaller(private val context: Context) : ApkInstaller {
 
-    override fun installApk(apkFile: File): Result<Unit> {
+    override fun installApk(apkFile: Path): Result<Unit> {
+        val javaFile = apkFile.toFile()
         return try {
             Timber.d("=== Installing APK ===")
-            Timber.d("APK File: ${apkFile.absolutePath}")
-            Timber.d("File exists: ${apkFile.exists()}")
-            Timber.d("File size: ${apkFile.length()} bytes")
+            Timber.d("APK File: ${javaFile.absolutePath}")
+            Timber.d("File exists: ${javaFile.exists()}")
+            Timber.d("File size: ${javaFile.length()} bytes")
 
-            if (!apkFile.exists()) {
+            if (!javaFile.exists()) {
                 return Result.failure(IllegalArgumentException("APK file does not exist"))
             }
 
@@ -25,7 +27,7 @@ class AndroidApkInstaller(private val context: Context) : ApkInstaller {
             val apkUri: Uri = FileProvider.getUriForFile(
                 context,
                 "${context.packageName}.fileprovider",
-                apkFile
+                javaFile
             )
 
             Timber.d("APK URI: $apkUri")
@@ -49,7 +51,7 @@ class AndroidApkInstaller(private val context: Context) : ApkInstaller {
         }
     }
 
-    override fun getCacheDir(): File {
-        return context.cacheDir
+    override fun getCacheDir(): Path {
+        return context.cacheDir.toOkioPath()
     }
 }

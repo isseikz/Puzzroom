@@ -185,7 +185,7 @@ object TerminalStateProvider {
      * Updated by TerminalScreenModel whenever modifier state changes.
      * Read by MainActivity to pass into HardwareKeyboardHandler.
      */
-    @Volatile
+    @kotlin.concurrent.Volatile
     var uiModifierBitmask: Int = 0
 
     /**

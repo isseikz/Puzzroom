@@ -87,7 +87,7 @@ fun extractSelectedText(
         if (row < end.row) {
             // 末尾の空白を削除
             while (result.isNotEmpty() && result.last() == ' ') {
-                result.deleteCharAt(result.length - 1)
+                result.deleteAt(result.length - 1)
             }
             result.append('\n')
         }
@@ -95,7 +95,7 @@ fun extractSelectedText(
 
     // 最終行の末尾の空白を削除
     while (result.isNotEmpty() && result.last() == ' ') {
-        result.deleteCharAt(result.length - 1)
+        result.deleteAt(result.length - 1)
     }
 
     return result.toString()

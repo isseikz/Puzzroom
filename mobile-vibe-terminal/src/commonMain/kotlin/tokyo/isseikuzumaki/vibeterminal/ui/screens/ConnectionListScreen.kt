@@ -41,6 +41,7 @@ import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalDisplayManager
 import tokyo.isseikuzumaki.vibeterminal.ui.components.StartUpCommandInput
 import tokyo.isseikuzumaki.vibeterminal.util.UrlOpener
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.ConnectionListScreenModel
+import kotlinx.datetime.Clock
 
 class ConnectionListScreen : Screen {
     @OptIn(ExperimentalMaterial3Api::class)
@@ -651,7 +652,7 @@ class ConnectionListScreen : Screen {
                             username = username,
                             authType = authType,
                             keyAlias = if (authType == "key" && keyAlias.isNotBlank()) keyAlias else null,
-                            createdAt = connection?.createdAt ?: System.currentTimeMillis(),
+                            createdAt = connection?.createdAt ?: Clock.System.now().toEpochMilliseconds(),
                             lastUsedAt = connection?.lastUsedAt,
                             deployPattern = deployPattern.ifBlank { null },
                             startupCommand = startupCommand.ifBlank { null },

@@ -1,0 +1,4 @@
+# Static libraries are built locally from libssh2-iosx — not committed to the repository.
+# See specs/006-ios-support/quickstart.md for build instructions.
+libs/**/*.a
+include/*.h

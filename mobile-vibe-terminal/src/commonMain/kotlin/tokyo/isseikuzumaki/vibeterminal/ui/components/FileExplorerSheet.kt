@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import tokyo.isseikuzumaki.vibeterminal.domain.model.FileEntry
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
+import tokyo.isseikuzumaki.vibeterminal.util.isMagicDeploySupported
 import kotlin.math.log10
 import kotlin.math.pow
 import org.jetbrains.compose.resources.stringResource
@@ -332,8 +333,8 @@ private fun FileItem(
                         )
                     }
 
-                    // APK Install icon (only for APK files)
-                    if (file.name.endsWith(".apk", ignoreCase = true)) {
+                    // APK Install icon (only for APK files on platforms that support Magic Deploy)
+                    if (isMagicDeploySupported && file.name.endsWith(".apk", ignoreCase = true)) {
                         IconButton(
                             onClick = onInstall,
                             enabled = !isTransferring

@@ -22,9 +22,9 @@ import org.apache.sshd.common.util.net.SshdSocketAddress
 import org.apache.sshd.sftp.client.SftpClient
 import org.apache.sshd.sftp.client.SftpClientFactory
 import timber.log.Timber
+import okio.Path
 import tokyo.isseikuzumaki.vibeterminal.domain.model.FileEntry
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
-import java.io.File
 import java.io.FileOutputStream
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
@@ -719,17 +719,18 @@ class MinaSshdRepository(
         }
     }
 
-    override suspend fun downloadFile(remotePath: String, localFile: File): Result<Unit> {
+    override suspend fun downloadFile(remotePath: String, localFile: Path): Result<Unit> {
         return try {
+            val javaFile = localFile.toFile()
             Timber.d("=== SFTP Download Start ===")
             Timber.d("Remote: $remotePath")
-            Timber.d("Local: ${localFile.absolutePath}")
+            Timber.d("Local: ${javaFile.absolutePath}")
 
             withSftpSession { sftpClient ->
                 Timber.d("Opening remote file for reading...")
                 sftpClient.read(remotePath).use { inputStream ->
                     Timber.d("Creating local file...")
-                    FileOutputStream(localFile).use { outputStream ->
+                    FileOutputStream(javaFile).use { outputStream ->
                         Timber.d("Copying file content...")
                         val buffer = ByteArray(8192)
                         var bytesRead: Int
@@ -809,21 +810,22 @@ class MinaSshdRepository(
 
     override suspend fun downloadFileWithProgress(
         remotePath: String,
-        localFile: File,
+        localFile: Path,
         totalBytes: Long,
         onProgress: (bytesTransferred: Long, totalBytes: Long) -> Unit
     ): Result<Unit> {
+        val javaFile = localFile.toFile()
         return try {
             Timber.d("=== SFTP Download With Progress Start ===")
             Timber.d("Remote: $remotePath")
-            Timber.d("Local: ${localFile.absolutePath}")
+            Timber.d("Local: ${javaFile.absolutePath}")
             Timber.d("Total size: $totalBytes bytes")
 
             withSftpSession { sftpClient ->
                 Timber.d("Opening remote file for reading...")
                 sftpClient.read(remotePath).use { inputStream ->
                     Timber.d("Creating local file...")
-                    FileOutputStream(localFile).use { outputStream ->
+                    FileOutputStream(javaFile).use { outputStream ->
                         Timber.d("Copying file content with progress...")
                         val buffer = ByteArray(8192)
                         var bytesRead: Int = 0
@@ -858,16 +860,16 @@ class MinaSshdRepository(
         } catch (e: kotlinx.coroutines.CancellationException) {
             Timber.d("=== SFTP Download Cancelled ===")
             // Clean up partial file on cancellation
-            if (localFile.exists()) {
-                localFile.delete()
+            if (javaFile.exists()) {
+                javaFile.delete()
             }
             throw e
         } catch (e: Exception) {
             Timber.e(e, "=== SFTP Download With Progress Failed ===")
             Timber.e("Error: ${e.message}")
             // Clean up partial file on error
-            if (localFile.exists()) {
-                localFile.delete()
+            if (javaFile.exists()) {
+                javaFile.delete()
             }
             Result.failure(e)
         }

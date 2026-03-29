@@ -33,6 +33,28 @@ kotlin {
             baseName = "VibeTerminal"
             isStatic = true
         }
+        // libssh2 cinterop: provides SSH2 + SFTP for iOS via static linking
+        // Build libssh2 + OpenSSL xcframeworks first (see specs/006-ios-support/quickstart.md)
+        // Place headers in src/nativeInterop/include/ and .a files in src/nativeInterop/libs/<arch>/
+        val interopDir = project.file("src/nativeInterop")
+        val archDir = when (iosTarget.name) {
+            "iosArm64" -> "ios-arm64"
+            "iosSimulatorArm64" -> "ios-arm64-simulator"
+            else -> error("Unsupported iOS target: ${iosTarget.name}")
+        }
+        iosTarget.compilations.getByName("main").cinterops {
+            val libssh2 by creating {
+                defFile(project.file("src/iosMain/cinterop/libssh2.def"))
+                packageName("libssh2")
+                includeDirs(interopDir.resolve("include"))
+                extraOpts("-libraryPath", interopDir.resolve("libs/$archDir").absolutePath)
+            }
+        }
+
+        // Bundled SQLite driver for Room KMP on iOS (no system SQLite dependency)
+        iosTarget.compilations.getByName("main").defaultSourceSet.dependencies {
+            implementation(libs.sqlite.bundled)
+        }
     }
 
     sourceSets {
@@ -66,6 +88,12 @@ kotlin {
             implementation(libs.kotlinx.datetime)
 
             implementation("io.github.isseikz:kmp-terminal-input:1.0.3")
+
+            // OkIO for multiplatform file path abstraction (replaces java.io.File in interfaces)
+            implementation(libs.okio)
+
+            // Room KMP runtime (works on all targets)
+            implementation(libs.room.runtime)
         }
 
         androidMain.dependencies {
@@ -76,7 +104,6 @@ kotlin {
             implementation(libs.mina.sshd.core)
             implementation(libs.mina.sshd.common)
             implementation(libs.mina.sshd.sftp)
-            implementation(libs.room.runtime)
             implementation(libs.room.ktx)
             implementation(libs.timber)
             // Explicit dependencies for ViewTree classes
@@ -93,6 +120,7 @@ kotlin {
                 implementation(libs.mina.sshd.sftp)
             }
         }
+
 
         commonTest.dependencies {
             implementation(libs.kotlin.test)

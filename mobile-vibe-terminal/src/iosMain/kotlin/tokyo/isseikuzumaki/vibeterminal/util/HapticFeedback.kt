@@ -3,27 +3,38 @@ package tokyo.isseikuzumaki.vibeterminal.util
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import platform.UIKit.UIImpactFeedbackGenerator
+import platform.UIKit.UIImpactFeedbackStyle
+import platform.UIKit.UINotificationFeedbackGenerator
+import platform.UIKit.UINotificationFeedbackType
 
-/**
- * No-op HapticFeedback implementation for iOS.
- * Future: Can integrate UIImpactFeedbackGenerator.
- */
-private object NoOpHapticFeedback : HapticFeedback {
+private class IosHapticFeedback : HapticFeedback {
     override fun performHapticFeedback(hapticFeedbackType: HapticFeedbackType) {
-        // No-op: iOS haptic feedback not yet implemented
-        // TODO: Integrate UIImpactFeedbackGenerator in future version
+        when (hapticFeedbackType) {
+            HapticFeedbackType.LongPress -> {
+                val generator = UIImpactFeedbackGenerator(UIImpactFeedbackStyle.UIImpactFeedbackStyleMedium)
+                generator.prepare()
+                generator.impactOccurred()
+            }
+            HapticFeedbackType.TextHandleMove -> {
+                val generator = UIImpactFeedbackGenerator(UIImpactFeedbackStyle.UIImpactFeedbackStyleLight)
+                generator.prepare()
+                generator.impactOccurred()
+            }
+            else -> {
+                val generator = UINotificationFeedbackGenerator()
+                generator.prepare()
+                generator.notificationOccurred(UINotificationFeedbackType.UINotificationFeedbackTypeSuccess)
+            }
+        }
     }
 }
 
-/**
- * iOS implementation of HapticFeedbackProvider.
- * Returns a no-op implementation for initial release.
- */
 private object IosHapticFeedbackProvider : HapticFeedbackProvider {
+    private val hapticFeedback = IosHapticFeedback()
+
     @Composable
-    override fun getHapticFeedback(): HapticFeedback {
-        return NoOpHapticFeedback
-    }
+    override fun getHapticFeedback(): HapticFeedback = hapticFeedback
 }
 
 actual fun getHapticFeedbackProvider(): HapticFeedbackProvider = IosHapticFeedbackProvider
