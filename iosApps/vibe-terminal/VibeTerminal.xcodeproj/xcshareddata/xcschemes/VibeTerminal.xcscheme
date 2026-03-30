@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   version = "1.7">
+   version = "1.3">
    <BuildAction
       parallelizeBuildables = "YES"
       buildImplicitDependencies = "YES">
@@ -19,14 +19,63 @@
                ReferencedContainer = "container:VibeTerminal.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "AA000051"
+               BuildableName = "SSHTests.xctest"
+               BlueprintName = "SSHTests"
+               ReferencedContainer = "container:VibeTerminal.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "01524EA4074E053DEEAED805"
+               BuildableName = "VibeTerminal.xctest"
+               BlueprintName = "UITests"
+               ReferencedContainer = "container:VibeTerminal.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-      shouldUseLaunchSchemeArgsEnv = "YES"
-      shouldAutocreateTestPlan = "YES">
+      shouldUseLaunchSchemeArgsEnv = "YES">
+      <Testables>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "AA000051"
+               BuildableName = "SSHTests.xctest"
+               BlueprintName = "SSHTests"
+               ReferencedContainer = "container:VibeTerminal.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "01524EA4074E053DEEAED805"
+               BuildableName = "VibeTerminal.xctest"
+               BlueprintName = "UITests"
+               ReferencedContainer = "container:VibeTerminal.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+      </Testables>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
@@ -44,7 +93,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "AA000050"
             BuildableName = "VibeTerminal.app"
-            BlueprintName = "VibeTerminal"
+            BlueprintName = "VibeTerminalApp"
             ReferencedContainer = "container:VibeTerminal.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

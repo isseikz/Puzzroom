@@ -57,3 +57,5 @@ Carthage/
 
 ## JavaScript
 node_modules/
+# SSH test credentials — never commit
+iosApps/vibe-terminal/SSHTests/TestConfig.swift

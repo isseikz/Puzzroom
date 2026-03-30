@@ -10,6 +10,7 @@ import platform.CoreFoundation.CFDataCreate
 import platform.CoreFoundation.CFDictionaryCreateMutable
 import platform.CoreFoundation.CFDictionarySetValue
 import platform.CoreFoundation.CFRelease
+import platform.CoreFoundation.CFRetain
 import platform.CoreFoundation.CFStringRef
 import platform.CoreFoundation.CFTypeRefVar
 import platform.CoreFoundation.kCFAllocatorDefault
@@ -53,13 +54,23 @@ object KeychainHelper {
             data.length.toLong()
         ) ?: return false
 
+        val serviceStr = cfString(SERVICE) ?: run { CFRelease(cfData); return false }
+        val accountStr = cfString(key) ?: run { CFRelease(cfData); return false }
+        // Explicitly retain CF strings — Kotlin/Native ARC may release them after the last
+        // lexical reference (i.e. after the CFDictionarySetValue calls below), but
+        // SecItemAdd internally calls CFDictionaryCopyMutable which still needs the values.
+        CFRetain(serviceStr)
+        CFRetain(accountStr)
+
         val query = CFDictionaryCreateMutable(kCFAllocatorDefault, 0, null, null)!!
         CFDictionarySetValue(query, kSecClass, kSecClassGenericPassword)
-        CFDictionarySetValue(query, kSecAttrService, cfString(SERVICE))
-        CFDictionarySetValue(query, kSecAttrAccount, cfString(key))
+        CFDictionarySetValue(query, kSecAttrService, serviceStr)
+        CFDictionarySetValue(query, kSecAttrAccount, accountStr)
         CFDictionarySetValue(query, kSecValueData, cfData)
 
         val status = SecItemAdd(query, null)
+        CFRelease(serviceStr)
+        CFRelease(accountStr)
         CFRelease(cfData)
         CFRelease(query)
         return status == errSecSuccess
@@ -69,10 +80,19 @@ object KeychainHelper {
      * Retrieve a secret string from the Keychain for the given key.
      */
     fun load(key: String): String? {
+        val serviceStr = cfString(SERVICE) ?: return null
+        val accountStr = cfString(key) ?: return null
+        // Explicitly retain CF strings — Kotlin/Native ARC may release them after the last
+        // lexical reference (i.e. after the CFDictionarySetValue calls below), but
+        // SecItemCopyMatching internally calls CFDictionaryCopyMutable which still needs
+        // the values alive.
+        CFRetain(serviceStr)
+        CFRetain(accountStr)
+
         val query = CFDictionaryCreateMutable(kCFAllocatorDefault, 0, null, null)!!
         CFDictionarySetValue(query, kSecClass, kSecClassGenericPassword)
-        CFDictionarySetValue(query, kSecAttrService, cfString(SERVICE))
-        CFDictionarySetValue(query, kSecAttrAccount, cfString(key))
+        CFDictionarySetValue(query, kSecAttrService, serviceStr)
+        CFDictionarySetValue(query, kSecAttrAccount, accountStr)
         CFDictionarySetValue(query, kSecMatchLimit, kSecMatchLimitOne)
         CFDictionarySetValue(query, kSecReturnData, kCFBooleanTrue)
 
@@ -88,6 +108,8 @@ object KeychainHelper {
             }
         }
 
+        CFRelease(serviceStr)
+        CFRelease(accountStr)
         CFRelease(query)
         return result
     }
@@ -96,12 +118,19 @@ object KeychainHelper {
      * Delete a stored item from the Keychain.
      */
     fun delete(key: String): Boolean {
+        val serviceStr = cfString(SERVICE) ?: return false
+        val accountStr = cfString(key) ?: return false
+        CFRetain(serviceStr)
+        CFRetain(accountStr)
+
         val query = CFDictionaryCreateMutable(kCFAllocatorDefault, 0, null, null)!!
         CFDictionarySetValue(query, kSecClass, kSecClassGenericPassword)
-        CFDictionarySetValue(query, kSecAttrService, cfString(SERVICE))
-        CFDictionarySetValue(query, kSecAttrAccount, cfString(key))
+        CFDictionarySetValue(query, kSecAttrService, serviceStr)
+        CFDictionarySetValue(query, kSecAttrAccount, accountStr)
 
         val status = SecItemDelete(query)
+        CFRelease(serviceStr)
+        CFRelease(accountStr)
         CFRelease(query)
         return status == errSecSuccess
     }

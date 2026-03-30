@@ -1,0 +1,8 @@
+// Copy this file to TestConfig.swift and fill in real credentials.
+// TestConfig.swift is gitignored — never commit actual credentials.
+enum TestConfig {
+    static let sshHost = "your-server-ip"
+    static let sshPort: Int32 = 22
+    static let sshUsername = "your-username"
+    static let sshPassword = "your-password"
+}

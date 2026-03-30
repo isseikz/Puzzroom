@@ -8,3 +8,21 @@ staticLibraries = libssh2.a libssl.a libcrypto.a
 # zlib is bundled with iOS SDK — no external .a needed
 linkerOpts.ios_arm64 = -lz
 linkerOpts.ios_simulator_arm64 = -lz
+
+---
+#include <fcntl.h>
+#include <unistd.h>
+
+/* fcntl(2) is variadic, which Kotlin/Native cannot call with 3 args on ARM64.
+   These C helpers call the 3-arg form correctly from native C code. */
+static int set_socket_nonblocking(int fd) {
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags < 0) return flags;
+    return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+}
+
+static int set_socket_blocking(int fd) {
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags < 0) return flags;
+    return fcntl(fd, F_SETFL, flags & ~O_NONBLOCK);
+}

@@ -6,8 +6,27 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		8C13F884222C6F3B15080DCF /* ConnectionScreenshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEBE4641C9E45CA349C4E744 /* ConnectionScreenshotTests.swift */; };
+		B6BE8C719BB90577D444908F /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6C7A87D76BBF06418BEFA14E /* Foundation.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		F6ECC582EF98ABF5670375B7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AA000080 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AA000050;
+			remoteInfo = VibeTerminalApp;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		057251C7053D489C1EE6B4AD /* UITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = UITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		6C7A87D76BBF06418BEFA14E /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		AA000010 /* VibeTerminal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VibeTerminal.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA000011 /* SSHTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SSHTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BEBE4641C9E45CA349C4E744 /* ConnectionScreenshotTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ConnectionScreenshotTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -31,7 +50,16 @@
 		};
 		AA000022 /* Configuration */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = Configuration;
+			sourceTree = "<group>";
+		};
+		AA000025 /* SSHTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			path = SSHTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -44,15 +72,49 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA000033 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CEC373C2557A4F03E1216EA0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B6BE8C719BB90577D444908F /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		AA000040 /* root */ = {
+		3BA25D9DD266697BCC55E65A /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				AE263B2B2390A8BB74C23A47 /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		76B2FC5B131131CD12A40271 /* UITests */ = {
+			isa = PBXGroup;
+			children = (
+				BEBE4641C9E45CA349C4E744 /* ConnectionScreenshotTests.swift */,
+			);
+			name = UITests;
+			path = UITests;
+			sourceTree = "<group>";
+		};
+		AA000040 = {
 			isa = PBXGroup;
 			children = (
 				AA000022 /* Configuration */,
 				AA000021 /* app */,
 				AA000041 /* Products */,
+				3BA25D9DD266697BCC55E65A /* Frameworks */,
+				76B2FC5B131131CD12A40271 /* UITests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -60,13 +122,41 @@
 			isa = PBXGroup;
 			children = (
 				AA000010 /* VibeTerminal.app */,
+				AA000011 /* SSHTests.xctest */,
+				057251C7053D489C1EE6B4AD /* UITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		AE263B2B2390A8BB74C23A47 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				6C7A87D76BBF06418BEFA14E /* Foundation.framework */,
+			);
+			name = iOS;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		01524EA4074E053DEEAED805 /* UITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1919592D8FA6776D0C7727AA /* Build configuration list for PBXNativeTarget "UITests" */;
+			buildPhases = (
+				B67C5103C880DAF88AB62C03 /* Sources */,
+				CEC373C2557A4F03E1216EA0 /* Frameworks */,
+				94A1AC0FE186E222710CB0CD /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				726A49A38C19DA2FE5EC0A17 /* PBXTargetDependency */,
+			);
+			name = UITests;
+			productName = UITests;
+			productReference = 057251C7053D489C1EE6B4AD /* UITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		AA000050 /* VibeTerminalApp */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = AA000060 /* Build configuration list for PBXNativeTarget "VibeTerminalApp" */;
@@ -84,11 +174,28 @@
 				AA000021 /* app */,
 			);
 			name = VibeTerminalApp;
-			packageProductDependencies = (
-			);
 			productName = VibeTerminalApp;
 			productReference = AA000010 /* VibeTerminal.app */;
 			productType = "com.apple.product-type.application";
+		};
+		AA000051 /* SSHTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA000062 /* Build configuration list for PBXNativeTarget "SSHTests" */;
+			buildPhases = (
+				AA000034 /* Sources */,
+				AA000033 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AA000025 /* SSHTests */,
+			);
+			name = SSHTests;
+			productName = SSHTests;
+			productReference = AA000011 /* SSHTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -100,7 +207,7 @@
 				LastSwiftUpdateCheck = 1620;
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
-					AA000050 /* VibeTerminalApp */ = {
+					AA000050 = {
 						CreatedOnToolsVersion = 16.2;
 					};
 				};
@@ -112,7 +219,7 @@
 				en,
 				Base,
 			);
-			mainGroup = AA000040 /* root */;
+			mainGroup = AA000040;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AA000041 /* Products */;
@@ -120,11 +227,20 @@
 			projectRoot = "";
 			targets = (
 				AA000050 /* VibeTerminalApp */,
+				AA000051 /* SSHTests */,
+				01524EA4074E053DEEAED805 /* UITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		94A1AC0FE186E222710CB0CD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AA000032 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -164,10 +280,50 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA000034 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B67C5103C880DAF88AB62C03 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8C13F884222C6F3B15080DCF /* ConnectionScreenshotTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		726A49A38C19DA2FE5EC0A17 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = VibeTerminalApp;
+			target = AA000050 /* VibeTerminalApp */;
+			targetProxy = F6ECC582EF98ABF5670375B7 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
-		AA000090 /* Debug (Project) */ = {
+		42B24442609B77199C8EE0B2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				PRODUCT_BUNDLE_IDENTIFIER = tokyo.isseikuzumaki.vibeterminal.UITests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TEST_TARGET_NAME = VibeTerminalApp;
+			};
+			name = Debug;
+		};
+		AA000090 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReferenceAnchor = AA000022 /* Configuration */;
 			baseConfigurationReferenceRelativePath = Config.xcconfig;
@@ -232,7 +388,7 @@
 			};
 			name = Debug;
 		};
-		AA000091 /* Release (Project) */ = {
+		AA000091 /* Release */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReferenceAnchor = AA000022 /* Configuration */;
 			baseConfigurationReferenceRelativePath = Config.xcconfig;
@@ -290,7 +446,7 @@
 			};
 			name = Release;
 		};
-		AA000092 /* Debug (Target) */ = {
+		AA000092 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = arm64;
@@ -320,7 +476,7 @@
 			};
 			name = Debug;
 		};
-		AA000093 /* Release (Target) */ = {
+		AA000093 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = arm64;
@@ -350,14 +506,100 @@
 			};
 			name = Release;
 		};
+		AA000094 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				CODE_SIGN_STYLE = Automatic;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/../../mobile-vibe-terminal/build/xcode-frameworks/Debug/iphonesimulator26.4",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = SSHTests;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+					"$(PROJECT_DIR)/../../mobile-vibe-terminal/build/xcode-frameworks/Debug/iphonesimulator26.4",
+				);
+				OTHER_LDFLAGS = (
+					"-framework",
+					VibeTerminal,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = tokyo.isseikuzumaki.vibeterminal.SSHTests;
+				PRODUCT_NAME = SSHTests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		AA000095 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				CODE_SIGN_STYLE = Automatic;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/../../mobile-vibe-terminal/build/xcode-frameworks/Release/iphonesimulator26.4",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = SSHTests;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+					"$(PROJECT_DIR)/../../mobile-vibe-terminal/build/xcode-frameworks/Release/iphonesimulator26.4",
+				);
+				OTHER_LDFLAGS = (
+					"-framework",
+					VibeTerminal,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = tokyo.isseikuzumaki.vibeterminal.SSHTests;
+				PRODUCT_NAME = SSHTests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		B17DD5D9E71EAB622D483A5B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				PRODUCT_BUNDLE_IDENTIFIER = tokyo.isseikuzumaki.vibeterminal.UITests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TEST_TARGET_NAME = VibeTerminalApp;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		1919592D8FA6776D0C7727AA /* Build configuration list for PBXNativeTarget "UITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B17DD5D9E71EAB622D483A5B /* Release */,
+				42B24442609B77199C8EE0B2 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		AA000060 /* Build configuration list for PBXNativeTarget "VibeTerminalApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				AA000092 /* Debug (Target) */,
-				AA000093 /* Release (Target) */,
+				AA000092 /* Debug */,
+				AA000093 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -365,14 +607,22 @@
 		AA000061 /* Build configuration list for PBXProject "VibeTerminal" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				AA000090 /* Debug (Project) */,
-				AA000091 /* Release (Project) */,
+				AA000090 /* Debug */,
+				AA000091 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA000062 /* Build configuration list for PBXNativeTarget "SSHTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA000094 /* Debug */,
+				AA000095 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
 	};
 	rootObject = AA000080 /* Project object */;
 }
