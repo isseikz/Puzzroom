@@ -41,7 +41,9 @@ import androidx.compose.ui.platform.LocalDensity
 import tokyo.isseikuzumaki.vibeterminal.terminal.DisplayTarget
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalDisplayManager
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalStateProvider
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -90,14 +92,18 @@ data class TerminalScreen(
 
         // Collect Input from Library (only when connected)
         // Note: handlerVersion ensures restart when handler changes (e.g., switching display modes)
+        // Collected on Dispatchers.Default so key input is never blocked by Main-thread
+        // recomposition (TerminalCanvas full redraw can take hundreds of ms on Kotlin/Native).
         LaunchedEffect(terminalInputState.isReady, state.isConnected, terminalInputState.handlerVersion) {
             Logger.d("TerminalScreen: LaunchedEffect - isReady=${terminalInputState.isReady}, isConnected=${state.isConnected}, handlerVersion=${terminalInputState.handlerVersion}")
             if (terminalInputState.isReady && state.isConnected) {
                 Logger.d("TerminalScreen: Starting to collect from ptyInputStream (handlerVersion=${terminalInputState.handlerVersion})")
-                terminalInputState.ptyInputStream.collect { bytes ->
-                    val text = bytes.decodeToString()
-                    Logger.d("TerminalScreen: Received input from ptyInputStream: '$text' (${bytes.size} bytes)")
-                    screenModel.sendInput(text)
+                withContext(Dispatchers.Default) {
+                    terminalInputState.ptyInputStream.collect { bytes ->
+                        val text = bytes.decodeToString()
+                        Logger.d("TerminalScreen: Received input from ptyInputStream: '$text' (${bytes.size} bytes)")
+                        screenModel.sendInput(text)
+                    }
                 }
             }
         }

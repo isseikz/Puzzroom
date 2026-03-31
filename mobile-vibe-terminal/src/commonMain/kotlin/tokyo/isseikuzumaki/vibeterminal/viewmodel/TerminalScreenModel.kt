@@ -138,6 +138,11 @@ class TerminalScreenModel(
     // Keep track of output listener job to monitor its lifecycle
     private var outputListenerJob: kotlinx.coroutines.Job? = null
 
+    // Frame-rate throttle: buffer is mutated immediately on SSH_RX but UI state
+    // is updated at most once per frame (~16ms). This avoids triggering multiple
+    // full recompositions during bursts of SSH output (e.g., cat, htop).
+    private var screenStateDirty = false
+
     init {
         Logger.d("=== TerminalScreenModel init ===")
         Logger.d("Config: $config")
@@ -304,6 +309,20 @@ class TerminalScreenModel(
 
         Logger.d("=== Starting Output Listener ===")
         outputListenerJob = screenModelScope.launch(Dispatchers.IO) {
+            // Screen refresh loop: flushes dirty state to UI at ~60fps.
+            // This decouples SSH_RX processing (immediate) from recomposition
+            // (throttled), which is critical on Kotlin/Native where each
+            // recomposition is more expensive than on JVM.
+            val refreshJob = launch {
+                while (isActive) {
+                    kotlinx.coroutines.delay(16L) // ~60fps
+                    if (screenStateDirty) {
+                        screenStateDirty = false
+                        updateScreenState()
+                    }
+                }
+            }
+
             try {
                 Logger.d("Output listener: Collecting from SSH output stream...")
                 sshRepository.getOutputStream().collect { line ->
@@ -342,6 +361,13 @@ class TerminalScreenModel(
                 Logger.e(e, "Output listener: Stream error: ${e.message}")
                 processOutput("Output stream error: ${e.message}\n")
                 _state.update { it.copy(isConnected = false, errorMessage = "Stream error: ${e.message}") }
+            } finally {
+                // Flush any remaining dirty state before stopping
+                if (screenStateDirty) {
+                    screenStateDirty = false
+                    updateScreenState()
+                }
+                refreshJob.cancel()
             }
         }
 
@@ -598,7 +624,7 @@ class TerminalScreenModel(
     private fun processOutput(text: String) {
         val commands = escapeParser.parse(text)
         commandExecutor.executeAll(commands)
-        updateScreenState()
+        screenStateDirty = true
     }
 
     /**
