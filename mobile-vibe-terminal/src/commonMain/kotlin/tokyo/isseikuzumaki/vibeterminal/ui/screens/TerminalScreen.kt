@@ -37,7 +37,6 @@ import io.github.isseikz.kmpinput.InputMode as KmpInputMode
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 
 import tokyo.isseikuzumaki.vibeterminal.terminal.DisplayTarget
 import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalDisplayManager
@@ -78,28 +77,11 @@ data class TerminalScreen(
 
         // Terminal Input Library State
         val terminalInputState = rememberTerminalInputContainerState()
-        val keyboardController = LocalSoftwareKeyboardController.current
 
         // Sync Input Mode (App -> Library)
         LaunchedEffect(state.isImeEnabled) {
             val mode = if (state.isImeEnabled) KmpInputMode.TEXT else KmpInputMode.RAW
             terminalInputState.setInputMode(mode)
-        }
-
-        // Sync Keyboard Visibility (App -> System)
-        LaunchedEffect(state.isSoftKeyboardVisible) {
-            if (state.isSoftKeyboardVisible) {
-                keyboardController?.show()
-            } else {
-                keyboardController?.hide()
-            }
-        }
-
-        // Monitor actual keyboard visibility (System -> App)
-        // This ensures the icon state stays in sync even when keyboard is dismissed by system/user
-        val isImeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
-        LaunchedEffect(isImeVisible) {
-            screenModel.setSoftKeyboardVisible(isImeVisible)
         }
 
         // ターミナル表示先を監視 (TerminalDisplayManager の derived state)

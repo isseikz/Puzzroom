@@ -120,16 +120,18 @@ fun SelectableTerminalContainer(
                 )
             }
             .pointerInput(selectionState.hasSelection) {
-                // 選択範囲外をタップしたら選択解除
-                detectTapGestures(
-                    onTap = {
-                        Logger.d("SelectableTerminalContainer: onTap, hasSelection=${selectionState.hasSelection}")
-                        if (selectionState.hasSelection) {
+                // Only intercept taps when a selection is active — otherwise let taps
+                // propagate to the parent TerminalInputContainer so it can call
+                // becomeFirstResponder() and show the software keyboard.
+                if (selectionState.hasSelection) {
+                    detectTapGestures(
+                        onTap = {
+                            Logger.d("SelectableTerminalContainer: onTap, clearing selection")
                             selectionState = TextSelectionState.Empty
                             showContextMenu = false
                         }
-                    }
-                )
+                    )
+                }
             }
             .pointerInput(onScroll, charWidth, charHeight) {
                 // Scroll gesture detection for mouse reporting

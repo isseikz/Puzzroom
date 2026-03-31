@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		8C13F884222C6F3B15080DCF /* ConnectionScreenshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEBE4641C9E45CA349C4E744 /* ConnectionScreenshotTests.swift */; };
+		A1B2C3D4E5F60001A2B3C4D5 /* KeyboardTapTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60002A2B3C4D5 /* KeyboardTapTests.swift */; };
 		B6BE8C719BB90577D444908F /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6C7A87D76BBF06418BEFA14E /* Foundation.framework */; };
 /* End PBXBuildFile section */
 
@@ -22,11 +23,12 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		057251C7053D489C1EE6B4AD /* UITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = UITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		057251C7053D489C1EE6B4AD /* VibeTerminal.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VibeTerminal.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6C7A87D76BBF06418BEFA14E /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		AA000010 /* VibeTerminal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VibeTerminal.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA000011 /* SSHTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SSHTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BEBE4641C9E45CA349C4E744 /* ConnectionScreenshotTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ConnectionScreenshotTests.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60002A2B3C4D5 /* KeyboardTapTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KeyboardTapTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -50,15 +52,11 @@
 		};
 		AA000022 /* Configuration */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = Configuration;
 			sourceTree = "<group>";
 		};
 		AA000025 /* SSHTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = SSHTests;
 			sourceTree = "<group>";
 		};
@@ -102,8 +100,8 @@
 			isa = PBXGroup;
 			children = (
 				BEBE4641C9E45CA349C4E744 /* ConnectionScreenshotTests.swift */,
+				A1B2C3D4E5F60002A2B3C4D5 /* KeyboardTapTests.swift */,
 			);
-			name = UITests;
 			path = UITests;
 			sourceTree = "<group>";
 		};
@@ -115,6 +113,7 @@
 				AA000041 /* Products */,
 				3BA25D9DD266697BCC55E65A /* Frameworks */,
 				76B2FC5B131131CD12A40271 /* UITests */,
+				D2B13B582F7AB4AE0028268B /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -123,7 +122,7 @@
 			children = (
 				AA000010 /* VibeTerminal.app */,
 				AA000011 /* SSHTests.xctest */,
-				057251C7053D489C1EE6B4AD /* UITests.xctest */,
+				057251C7053D489C1EE6B4AD /* VibeTerminal.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -134,6 +133,14 @@
 				6C7A87D76BBF06418BEFA14E /* Foundation.framework */,
 			);
 			name = iOS;
+			sourceTree = "<group>";
+		};
+		D2B13B582F7AB4AE0028268B /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				AA000025 /* SSHTests */,
+			);
+			name = "Recovered References";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -154,7 +161,7 @@
 			);
 			name = UITests;
 			productName = UITests;
-			productReference = 057251C7053D489C1EE6B4AD /* UITests.xctest */;
+			productReference = 057251C7053D489C1EE6B4AD /* VibeTerminal.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 		AA000050 /* VibeTerminalApp */ = {
@@ -292,6 +299,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8C13F884222C6F3B15080DCF /* ConnectionScreenshotTests.swift in Sources */,
+				A1B2C3D4E5F60001A2B3C4D5 /* KeyboardTapTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -455,7 +463,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"app/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = AC74T7WSZS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = app/Info.plist;
@@ -485,7 +493,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"app/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = AC74T7WSZS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = app/Info.plist;
