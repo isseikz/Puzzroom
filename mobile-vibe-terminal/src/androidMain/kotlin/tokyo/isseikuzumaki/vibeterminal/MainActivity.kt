@@ -1,5 +1,7 @@
 package tokyo.isseikuzumaki.vibeterminal
 
+import android.database.Cursor
+import android.provider.OpenableColumns
 import android.content.Context
 import android.content.res.Configuration
 import android.hardware.display.DisplayManager
@@ -54,7 +56,22 @@ class MainActivity : ComponentActivity() {
         if (uri != null) {
             activityScope.launch(Dispatchers.IO) {
                 try {
-                    val tempFile = File(cacheDir, "picked_file_${System.currentTimeMillis()}")
+                    val originalName = contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                        if (cursor.moveToFirst()) {
+                            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                            if (nameIndex != -1) cursor.getString(nameIndex) else null
+                        } else {
+                            null
+                        }
+                    }
+
+                    val fileName = if (!originalName.isNullOrBlank()) {
+                        File(originalName).name
+                    } else {
+                        "picked_file_${System.currentTimeMillis()}"
+                    }
+
+                    val tempFile = File(cacheDir, fileName)
                     contentResolver.openInputStream(uri)?.use { input ->
                         FileOutputStream(tempFile).use { output ->
                             input.copyTo(output)

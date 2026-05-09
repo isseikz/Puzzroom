@@ -1,6 +1,5 @@
 package tokyo.isseikuzumaki.vibeterminal.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,8 +14,6 @@ import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
-import tokyo.isseikuzumaki.vibeterminal.domain.model.FileTransferState
-import tokyo.isseikuzumaki.vibeterminal.domain.model.TransferStatus
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,95 +21,28 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import tokyo.isseikuzumaki.vibeterminal.domain.model.FileEntry
-import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
+import tokyo.isseikuzumaki.vibeterminal.domain.model.FileTransferState
+import tokyo.isseikuzumaki.vibeterminal.domain.model.TransferStatus
+import tokyo.isseikuzumaki.vibeterminal.viewmodel.FileExplorerState
 import kotlin.math.log10
 import kotlin.math.pow
 import org.jetbrains.compose.resources.stringResource
 import puzzroom.mobile_vibe_terminal.generated.resources.*
 
-data class FileExplorerState(
-    val currentPath: String = "/",
-    val files: List<FileEntry> = emptyList(),
-    val breadcrumbs: List<String> = listOf("/"),
-    val isLoading: Boolean = false,
-    val errorMessage: String? = null
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FileExplorerSheet(
-    sshRepository: SshRepository,
-    initialPath: String = "/",
+    state: FileExplorerState,
     onDismiss: () -> Unit,
     onFileSelected: (FileEntry) -> Unit,
     onInstall: (FileEntry) -> Unit,
     onShare: (FileEntry) -> Unit = {},
     onUploadRequest: () -> Unit = {},
     isConnected: Boolean = true,
-    activeTransfer: FileTransferState? = null,
-    onPathChanged: (String) -> Unit = {}
+    onLoadDirectory: (String) -> Unit = {},
+    onNavigateUp: () -> Unit = {}
 ) {
-    var state by remember { mutableStateOf(FileExplorerState(currentPath = initialPath)) }
-    val scope = rememberCoroutineScope()
-
-    fun generateBreadcrumbs(path: String): List<String> {
-        if (path == "/") return listOf("/")
-
-        val parts = path.trim('/').split("/")
-        val breadcrumbs = mutableListOf("/")
-
-        var currentPath = ""
-        for (part in parts) {
-            currentPath += "/$part"
-            breadcrumbs.add(currentPath)
-        }
-
-        return breadcrumbs
-    }
-
-    fun loadDirectory(path: String) {
-        scope.launch {
-            state = state.copy(isLoading = true, errorMessage = null)
-
-            val result = sshRepository.listFiles(path)
-
-            result.fold(
-                onSuccess = { files ->
-                    val breadcrumbs = generateBreadcrumbs(path)
-                    state = state.copy(
-                        currentPath = path,
-                        files = files,
-                        breadcrumbs = breadcrumbs,
-                        isLoading = false,
-                        errorMessage = null
-                    )
-                    // Notify parent of path change for persistence
-                    onPathChanged(path)
-                },
-                onFailure = { error ->
-                    state = state.copy(
-                        isLoading = false,
-                        errorMessage = error.message ?: "Failed to load directory"
-                    )
-                }
-            )
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        loadDirectory(initialPath)
-    }
-
-    fun navigateUp() {
-        val currentPath = state.currentPath
-        if (currentPath == "/") return
-
-        val parentPath = currentPath.substringBeforeLast("/").ifEmpty { "/" }
-        loadDirectory(parentPath)
-    }
-
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = Color(0xFF0D1117),
@@ -133,13 +63,13 @@ fun FileExplorerSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
-                    onClick = { navigateUp() },
-                    enabled = state.currentPath != "/"
+                    onClick = onNavigateUp,
+                    enabled = state.currentPath != "/" && state.currentPath != "~"
                 ) {
                     Icon(
                         Icons.Default.ArrowBack,
                         stringResource(Res.string.action_back),
-                        tint = if (state.currentPath != "/") Color(0xFF39D353) else Color.Gray
+                        tint = if (state.currentPath != "/" && state.currentPath != "~") Color(0xFF39D353) else Color.Gray
                     )
                 }
                 Text(
@@ -175,7 +105,11 @@ fun FileExplorerSheet(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         val rootLabel = stringResource(Res.string.file_explorer_root)
                         Text(
-                            text = if (breadcrumb == "/") rootLabel else breadcrumb.substringAfterLast("/"),
+                            text = when (breadcrumb) {
+                                "/" -> rootLabel
+                                "~" -> "~"
+                                else -> breadcrumb.substringAfterLast("/")
+                            },
                             style = MaterialTheme.typography.bodyMedium,
                             color = if (breadcrumb == state.currentPath) {
                                 Color(0xFF39D353)
@@ -185,7 +119,7 @@ fun FileExplorerSheet(
                             modifier = Modifier
                                 .clickable {
                                     if (breadcrumb != state.currentPath) {
-                                        loadDirectory(breadcrumb)
+                                        onLoadDirectory(breadcrumb)
                                     }
                                 }
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
@@ -254,14 +188,14 @@ fun FileExplorerSheet(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         items(state.files) { file ->
-                            val isTransferring = activeTransfer?.fileEntry?.path == file.path &&
-                                activeTransfer.status == TransferStatus.InProgress
+                            val isTransferring = state.activeTransfer?.fileEntry?.path == file.path &&
+                                state.activeTransfer.status == TransferStatus.InProgress
 
                             FileItem(
                                 file = file,
                                 onClick = {
                                     if (file.isDirectory) {
-                                        loadDirectory(file.path)
+                                        onLoadDirectory(file.path)
                                     } else {
                                         onFileSelected(file)
                                         onDismiss()
@@ -272,7 +206,7 @@ fun FileExplorerSheet(
                                     onDismiss()
                                 },
                                 onShare = { onShare(file) },
-                                transferProgress = if (isTransferring) activeTransfer.progress else null,
+                                transferProgress = if (isTransferring) state.activeTransfer.progress else null,
                                 isTransferring = isTransferring
                             )
                         }
@@ -355,7 +289,7 @@ private fun FileItem(
                             enabled = !isTransferring
                         ) {
                             Icon(
-                                Icons.Default.Download, // Using Download icon for install/deploy
+                                Icons.Default.Download,
                                 contentDescription = stringResource(Res.string.file_explorer_install_apk),
                                 tint = if (isTransferring) Color.Gray else Color(0xFF00FF00)
                             )

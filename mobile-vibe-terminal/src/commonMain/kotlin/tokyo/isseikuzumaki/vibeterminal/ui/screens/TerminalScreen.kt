@@ -77,6 +77,10 @@ data class TerminalScreen(
             FileExplorerScreenModel(sshRepository, fileDownloader, fileSharer)
         }
         val fileExplorerState by fileExplorerScreenModel.state.collectAsState()
+        // Sync File Explorer path with TerminalScreenModel for persistence
+        LaunchedEffect(fileExplorerState.currentPath) {
+            screenModel.updateLastFileExplorerPath(fileExplorerState.currentPath)
+        }
 
         // Terminal Input Library State
         val terminalInputState = rememberTerminalInputContainerState()
@@ -165,7 +169,6 @@ data class TerminalScreen(
             showFileExplorer = true
         }
 
-        var fileExplorerInitialPath by remember { mutableStateOf<String?>(null) }
         var isLoadingInitialPath by remember { mutableStateOf(false) }
         val coroutineScope = rememberCoroutineScope()
 
@@ -199,23 +202,17 @@ data class TerminalScreen(
                     actions = {
                         // File Explorer Button
                         IconButton(
-                            onClick = {
-                                isLoadingInitialPath = true
-                                coroutineScope.launch {
-                                    // Try to load saved path from database
-                                    val savedPath = screenModel.loadLastFileExplorerPath()
-                                    if (savedPath != null) {
-                                        // Use saved path (persisted across app restarts)
-                                        fileExplorerInitialPath = savedPath
-                                    } else {
-                                        // First time: Get home directory from SSH
-                                        val homeDir = screenModel.getRemoteHomeDirectory()
-                                        fileExplorerInitialPath = homeDir
-                                    }
-                                    isLoadingInitialPath = false
-                                    showFileExplorer = true
-                                }
-                            },
+                                 onClick = {
+                                     isLoadingInitialPath = true
+                                     coroutineScope.launch {
+                                         val savedPath = screenModel.loadLastFileExplorerPath()
+                                         val targetPath = savedPath ?: screenModel.getRemoteHomeDirectory()
+                                         fileExplorerScreenModel.loadDirectory(targetPath)
+                                         isLoadingInitialPath = false
+                                         showFileExplorer = true
+                                     }
+                                 },
+
                             enabled = state.isConnected && !isLoadingInitialPath
                         ) {
                             if (isLoadingInitialPath) {
@@ -510,18 +507,17 @@ data class TerminalScreen(
             }
         }
 
-        // File Explorer Sheet
-        if (showFileExplorer && fileExplorerInitialPath != null) {
-            FileExplorerSheet(
-                sshRepository = sshRepository,
-                initialPath = fileExplorerInitialPath!!,
-                onDismiss = { showFileExplorer = false },
-                onFileSelected = { file ->
-                    selectedFilePath = file.path
-                },
-                onInstall = { file ->
-                    screenModel.downloadAndInstallApk(file.path)
-                },
+         // File Explorer Sheet
+         if (showFileExplorer) {
+             FileExplorerSheet(
+                 state = fileExplorerState,
+                 onDismiss = { showFileExplorer = false },
+                 onFileSelected = { file ->
+                     selectedFilePath = file.path
+                 },
+                 onInstall = { file ->
+                     screenModel.downloadAndInstallApk(file.path)
+                 },
                  onShare = { file ->
                      fileExplorerScreenModel.shareFile(file)
                  },
@@ -533,12 +529,16 @@ data class TerminalScreen(
                          }
                      }
                  },
-                 activeTransfer = fileExplorerState.activeTransfer,
-                onPathChanged = { path ->
-                    screenModel.updateLastFileExplorerPath(path)
-                }
-            )
-        }
+                 isConnected = state.isConnected,
+                 onLoadDirectory = { path ->
+                     fileExplorerScreenModel.loadDirectory(path)
+                 },
+                 onNavigateUp = {
+                     fileExplorerScreenModel.navigateUp()
+                 }
+             )
+         }
+
 
         // Code Viewer Sheet
         selectedFilePath?.let { filePath ->
