@@ -23,6 +23,8 @@
     - Desktop: `./gradlew :composeApp:run`
     - Web (Wasm): `./gradlew :composeApp:wasmJsBrowserDevelopmentRun`
     - Web (JS): `./gradlew :composeApp:jsBrowserDevelopmentRun`
+- **Run Mobile Vibe Terminal**:
+    - Android: `./gradlew :mobile-vibe-terminal:assembleDebug`
 - **Testing**: `./gradlew :[module]:test`
 - **Coverage**: `./gradlew koverHtmlReport`
 - **Syncing shared-ui**: `./gradlew clean build` (if changes aren't reflecting)
