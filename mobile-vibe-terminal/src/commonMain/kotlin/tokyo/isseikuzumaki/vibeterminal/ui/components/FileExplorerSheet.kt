@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Share
@@ -48,6 +49,8 @@ fun FileExplorerSheet(
     onFileSelected: (FileEntry) -> Unit,
     onInstall: (FileEntry) -> Unit,
     onShare: (FileEntry) -> Unit = {},
+    onUploadRequest: () -> Unit = {},
+    isConnected: Boolean = true,
     activeTransfer: FileTransferState? = null,
     onPathChanged: (String) -> Unit = {}
 ) {
@@ -145,7 +148,20 @@ fun FileExplorerSheet(
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF39D353)
                 )
-                Spacer(modifier = Modifier.width(48.dp))
+                Row {
+                    // Upload Button
+                    IconButton(
+                        onClick = onUploadRequest,
+                        enabled = isConnected
+                    ) {
+                        Icon(
+                            Icons.Default.FileUpload,
+                            contentDescription = "Upload",
+                            tint = if (isConnected) Color(0xFF39D353) else Color.Gray
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(48.dp))
+                }
             }
 
             // Breadcrumbs

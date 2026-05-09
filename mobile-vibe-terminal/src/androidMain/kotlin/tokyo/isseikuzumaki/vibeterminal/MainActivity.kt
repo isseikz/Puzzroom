@@ -3,6 +3,7 @@ package tokyo.isseikuzumaki.vibeterminal
 import android.content.Context
 import android.content.res.Configuration
 import android.hardware.display.DisplayManager
+import android.net.Uri
 import android.os.Bundle
 import android.view.Display
 import android.view.KeyEvent
@@ -10,6 +11,7 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import cafe.adriel.voyager.navigator.Navigator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -17,13 +19,16 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.koin.android.ext.android.getKoin
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 import tokyo.isseikuzumaki.vibeterminal.di.appModule
 import tokyo.isseikuzumaki.vibeterminal.di.dataModule
 import tokyo.isseikuzumaki.vibeterminal.di.platformModule
+import tokyo.isseikuzumaki.vibeterminal.domain.picker.FilePicker
 import tokyo.isseikuzumaki.vibeterminal.input.HardwareKeyboardHandler
+import tokyo.isseikuzumaki.vibeterminal.picker.AndroidFilePicker
 import tokyo.isseikuzumaki.vibeterminal.service.TerminalPresentation
 import tokyo.isseikuzumaki.vibeterminal.service.isValidSecondaryDisplay
 import tokyo.isseikuzumaki.vibeterminal.terminal.DisplayTarget
@@ -33,6 +38,8 @@ import tokyo.isseikuzumaki.vibeterminal.ui.components.TriggerEventHost
 import tokyo.isseikuzumaki.vibeterminal.ui.screens.ConnectionListScreen
 import tokyo.isseikuzumaki.vibeterminal.ui.theme.VibeTerminalTheme
 import tokyo.isseikuzumaki.vibeterminal.util.Logger
+import java.io.File
+import java.io.FileOutputStream
 
 class MainActivity : ComponentActivity() {
 
@@ -40,6 +47,29 @@ class MainActivity : ComponentActivity() {
     private lateinit var displayManager: DisplayManager
     private val activityScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var isResumed = false
+
+    private lateinit var filePicker: AndroidFilePicker
+
+    private val filePickerLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            activityScope.launch(Dispatchers.IO) {
+                try {
+                    val tempFile = File(cacheDir, "picked_file_${System.currentTimeMillis()}")
+                    contentResolver.openInputStream(uri)?.use { input ->
+                        FileOutputStream(tempFile).use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                    filePicker.onFilePicked(tempFile)
+                } catch (e: Exception) {
+                    Logger.e(e, "Failed to copy picked file")
+                    filePicker.onFilePicked(null)
+                }
+            }
+        } else {
+            filePicker.onFilePicked(null)
+        }
+    }
 
     // Display listener for monitoring secondary display connection/disconnection
     private val displayListener = object : DisplayManager.DisplayListener {
@@ -74,6 +104,11 @@ class MainActivity : ComponentActivity() {
                 androidContext(this@MainActivity)
                 modules(appModule, dataModule, platformModule())
             }
+        }
+
+        filePicker = getKoin().get<FilePicker>() as AndroidFilePicker
+        filePicker.setOnTrigger {
+            filePickerLauncher.launch(arrayOf("*/*"))
         }
 
         // Initialize DisplayManager

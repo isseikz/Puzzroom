@@ -10,10 +10,12 @@ import tokyo.isseikuzumaki.vibeterminal.data.datastore.PreferencesHelper
 import tokyo.isseikuzumaki.vibeterminal.data.datastore.createDataStore
 import tokyo.isseikuzumaki.vibeterminal.data.repository.ConnectionRepositoryImpl
 import tokyo.isseikuzumaki.vibeterminal.domain.installer.ApkInstaller
+import tokyo.isseikuzumaki.vibeterminal.domain.picker.FilePicker
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.ConnectionRepository
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
 import tokyo.isseikuzumaki.vibeterminal.installer.AndroidApkInstaller
 import tokyo.isseikuzumaki.vibeterminal.installer.TriggerEventHandler
+import tokyo.isseikuzumaki.vibeterminal.picker.AndroidFilePicker
 import tokyo.isseikuzumaki.vibeterminal.security.PasswordEncryptionHelper
 import tokyo.isseikuzumaki.vibeterminal.security.SshKeyManager
 import tokyo.isseikuzumaki.vibeterminal.security.SshKeyProvider
@@ -52,6 +54,8 @@ actual fun platformModule() = module {
     factory<FileDownloader> { AndroidFileDownloader() }
 
     factory<FileSharer> { AndroidFileSharer() }
+
+    single<FilePicker> { AndroidFilePicker() }
 
     single {
         val context = get<Context>()

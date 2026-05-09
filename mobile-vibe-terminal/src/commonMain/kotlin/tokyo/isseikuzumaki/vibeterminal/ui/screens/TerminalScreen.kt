@@ -18,8 +18,9 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import org.koin.compose.koinInject
 import tokyo.isseikuzumaki.vibeterminal.domain.model.ConnectionConfig
-import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
 import tokyo.isseikuzumaki.vibeterminal.domain.downloader.FileDownloader
+import tokyo.isseikuzumaki.vibeterminal.domain.picker.FilePicker
+import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
 import tokyo.isseikuzumaki.vibeterminal.domain.sharer.FileSharer
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.TerminalScreenModel
 import tokyo.isseikuzumaki.vibeterminal.viewmodel.FileExplorerScreenModel
@@ -63,8 +64,9 @@ data class TerminalScreen(
         val sshRepository = koinInject<SshRepository>()
         val apkInstaller = koinInject<tokyo.isseikuzumaki.vibeterminal.domain.installer.ApkInstaller>()
         val connectionRepository = koinInject<tokyo.isseikuzumaki.vibeterminal.domain.repository.ConnectionRepository>()
-        val fileDownloader = koinInject<FileDownloader>()
-        val fileSharer = koinInject<FileSharer>()
+         val fileDownloader = koinInject<FileDownloader>()
+         val fileSharer = koinInject<FileSharer>()
+         val filePicker = koinInject<FilePicker>()
         val screenModel = remember(config) {
             TerminalScreenModel(config, sshRepository, apkInstaller, connectionRepository)
         }
@@ -520,10 +522,18 @@ data class TerminalScreen(
                 onInstall = { file ->
                     screenModel.downloadAndInstallApk(file.path)
                 },
-                onShare = { file ->
-                    fileExplorerScreenModel.shareFile(file)
-                },
-                activeTransfer = fileExplorerState.activeTransfer,
+                 onShare = { file ->
+                     fileExplorerScreenModel.shareFile(file)
+                 },
+                 onUploadRequest = {
+                     coroutineScope.launch {
+                         val file = filePicker.pickFile()
+                         if (file != null) {
+                             fileExplorerScreenModel.uploadFile(file)
+                         }
+                     }
+                 },
+                 activeTransfer = fileExplorerState.activeTransfer,
                 onPathChanged = { path ->
                     screenModel.updateLastFileExplorerPath(path)
                 }

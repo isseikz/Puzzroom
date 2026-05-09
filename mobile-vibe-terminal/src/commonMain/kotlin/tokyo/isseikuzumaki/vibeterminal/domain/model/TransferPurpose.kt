@@ -7,5 +7,7 @@ enum class TransferPurpose {
     /** Save file to device storage permanently */
     Download,
     /** Prepare file temporarily for sharing via system share sheet */
-    Share
+    Share,
+    /** Upload file from device to remote server */
+    Upload
 }
