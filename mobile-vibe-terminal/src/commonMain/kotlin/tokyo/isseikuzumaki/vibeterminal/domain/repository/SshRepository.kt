@@ -71,6 +71,21 @@ interface SshRepository {
     ): Result<Unit>
 
     /**
+     * Upload a file to the remote server via SFTP with progress reporting.
+     * @param localFile Local file to upload
+     * @param remotePath Path on the remote server where the file should be uploaded
+     * @param totalBytes Total file size in bytes for progress calculation
+     * @param onProgress Callback invoked with (bytesTransferred, totalBytes) during upload
+     * @return Result indicating success or failure
+     */
+    suspend fun uploadFileWithProgress(
+        localFile: File,
+        remotePath: String,
+        totalBytes: Long,
+        onProgress: (bytesTransferred: Long, totalBytes: Long) -> Unit
+    ): Result<Unit>
+
+    /**
      * List files in a directory on the remote server via SFTP
      * @param remotePath Path to the directory on the remote server
      * @return Result containing list of file entries or error

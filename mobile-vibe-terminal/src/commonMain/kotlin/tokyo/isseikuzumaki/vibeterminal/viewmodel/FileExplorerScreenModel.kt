@@ -16,11 +16,12 @@ import tokyo.isseikuzumaki.vibeterminal.domain.model.TransferStatus
 import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
 import tokyo.isseikuzumaki.vibeterminal.domain.sharer.FileSharer
 import tokyo.isseikuzumaki.vibeterminal.util.MimeTypeUtil
+import java.io.File
 
 data class FileExplorerState(
-    val currentPath: String = "/",
+    val currentPath: String = "~",
     val files: List<FileEntry> = emptyList(),
-    val breadcrumbs: List<String> = listOf("/"),
+    val breadcrumbs: List<String> = listOf("~"),
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val selectedFile: FileEntry? = null,
@@ -76,9 +77,11 @@ class FileExplorerScreenModel(
 
     fun navigateUp() {
         val currentPath = _state.value.currentPath
-        if (currentPath == "/") return
+        if (currentPath == "/" || currentPath == "~") return
 
-        val parentPath = currentPath.substringBeforeLast("/").ifEmpty { "/" }
+        val parentPath = currentPath.substringBeforeLast("/").let {
+            if (it.isEmpty()) "/" else it
+        }
         loadDirectory(parentPath)
     }
 
@@ -316,6 +319,124 @@ class FileExplorerScreenModel(
                                 errorMessage = getErrorMessage(error)
                             )
                         }
+                        // Clear transfer state after showing error
+                        kotlinx.coroutines.delay(2000)
+                        _state.update { it.copy(activeTransfer = null) }
+                    }
+                )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                _state.update {
+                    it.copy(
+                        activeTransfer = it.activeTransfer?.copy(status = TransferStatus.Cancelled),
+                        errorMessage = null
+                    )
+                }
+                kotlinx.coroutines.delay(500)
+                _state.update { it.copy(activeTransfer = null) }
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(
+                        activeTransfer = it.activeTransfer?.copy(
+                            status = TransferStatus.Failed,
+                            error = getErrorMessage(e)
+                        ),
+                        errorMessage = getErrorMessage(e)
+                    )
+                }
+                kotlinx.coroutines.delay(2000)
+                _state.update { it.copy(activeTransfer = null) }
+            }
+        }
+    }
+
+    /**
+     * Upload a file from the local device to the remote server.
+     */
+    fun uploadFile(localFile: File) {
+        if (localFile.isDirectory) return
+        if (_state.value.activeTransfer != null) return // Already transferring
+
+        transferJob = screenModelScope.launch {
+            try {
+                // Get current path as destination
+                val remotePath = _state.value.currentPath.let {
+                    if (it.endsWith("/")) "$it${localFile.name}" else "$it/${localFile.name}"
+                }
+
+                // Initialize transfer state
+                _state.update {
+                    it.copy(
+                        activeTransfer = FileTransferState(
+                            fileEntry = FileEntry(
+                                name = localFile.name,
+                                path = remotePath,
+                                isDirectory = false,
+                                size = localFile.length(),
+                                lastModified = localFile.lastModified()
+                            ),
+                            purpose = tokyo.isseikuzumaki.vibeterminal.domain.model.TransferPurpose.Upload,
+                            status = TransferStatus.Pending
+                        ),
+
+                        errorMessage = null
+                    )
+                }
+
+                // Update to in-progress
+                _state.update {
+                    it.copy(
+                        activeTransfer = it.activeTransfer?.copy(status = TransferStatus.InProgress)
+                    )
+                }
+
+                // Upload with progress
+                val result = sshRepository.uploadFileWithProgress(
+                    localFile = localFile,
+                    remotePath = remotePath,
+                    totalBytes = localFile.length()
+                ) { bytesTransferred, totalBytes ->
+                    val progress = if (totalBytes > 0) {
+                        (bytesTransferred.toFloat() / totalBytes).coerceIn(0f, 1f)
+                    } else 0f
+
+                    _state.update {
+                        it.copy(
+                            activeTransfer = it.activeTransfer?.copy(
+                                progress = progress,
+                                bytesTransferred = bytesTransferred
+                            )
+                        )
+                    }
+                }
+
+                result.fold(
+                    onSuccess = {
+                        _state.update {
+                            it.copy(
+                                activeTransfer = it.activeTransfer?.copy(
+                                    status = TransferStatus.Completed,
+                                    progress = 1f,
+                                    localPath = localFile.absolutePath
+                                ),
+                                transferSuccessMessage = "Uploaded: ${localFile.name}"
+                            )
+                        }
+
+                        // Clear transfer state after a short delay
+                        kotlinx.coroutines.delay(500)
+                        _state.update { it.copy(activeTransfer = null) }
+                    },
+                    onFailure = { error ->
+                        _state.update {
+                            it.copy(
+                                activeTransfer = it.activeTransfer?.copy(
+                                    status = TransferStatus.Failed,
+                                    error = getErrorMessage(error)
+                                ),
+                                errorMessage = getErrorMessage(error)
+                            )
+                        }
+                        // Clear transfer state after showing error
                         kotlinx.coroutines.delay(2000)
                         _state.update { it.copy(activeTransfer = null) }
                     }
@@ -392,14 +513,31 @@ class FileExplorerScreenModel(
     }
 
     private fun generateBreadcrumbs(path: String): List<String> {
-        if (path == "/") return listOf("/")
+        if (path == "/" || path == "~") return listOf(path)
 
-        val parts = path.trim('/').split("/")
-        val breadcrumbs = mutableListOf("/")
+        val isHomeRelative = path.startsWith("~")
+        val base = if (isHomeRelative) "~" else "/"
+        val pathWithoutBase = if (isHomeRelative) {
+            if (path.startsWith("~/")) path.substring(2) else ""
+        } else {
+            path.trimStart('/').trimEnd('/')
+        }
 
-        var currentPath = ""
+        if (pathWithoutBase.isEmpty()) return listOf(base)
+
+        val parts = pathWithoutBase.split("/")
+        val breadcrumbs = mutableListOf(base)
+        var currentPath = base
+
         for (part in parts) {
-            currentPath += "/$part"
+            if (part.isEmpty()) continue
+            if (currentPath == "~") {
+                currentPath += "/$part"
+            } else if (currentPath == "/") {
+                currentPath += part
+            } else {
+                currentPath += "/$part"
+            }
             breadcrumbs.add(currentPath)
         }
 

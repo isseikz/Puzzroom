@@ -53,6 +53,7 @@ class MinaSshdRepository(
     private var connectionUsername: String? = null
     private var connectionPassword: String? = null
     private var connectionKeyAlias: String? = null  // For public key authentication
+    private var remoteHomeDirectory: String? = null
 
     // Remote port forwarding for trigger channel
     private var triggerForwardingEnabled = false
@@ -216,8 +217,17 @@ class MinaSshdRepository(
             Timber.d("7. Adding password identity...")
             clientSession.addPasswordIdentity(password)
             Timber.d("8. Authenticating...")
-            clientSession.auth().verify(10, TimeUnit.SECONDS)
-            Timber.d("9. Authentication successful")
+             clientSession.auth().verify(10, TimeUnit.SECONDS)
+             Timber.d("9. Authentication successful")
+
+             // Capture remote home directory
+             executeCommand("echo \$HOME").onSuccess { home ->
+                 remoteHomeDirectory = home.trim()
+                 Timber.d("Captured remote home directory: $remoteHomeDirectory")
+             }.onFailure {
+                 Timber.e("Failed to capture remote home directory: ${it.message}")
+             }
+
 
             // 4. Open shell channel with PTY configuration
             Timber.d("10. Creating shell channel...")
@@ -445,8 +455,17 @@ class MinaSshdRepository(
             Timber.d("8. Adding public key identity...")
             clientSession.addPublicKeyIdentity(keyPair)
             Timber.d("9. Authenticating with public key...")
-            clientSession.auth().verify(10, TimeUnit.SECONDS)
-            Timber.d("10. Public key authentication successful")
+             clientSession.auth().verify(10, TimeUnit.SECONDS)
+             Timber.d("10. Public key authentication successful")
+
+             // Capture remote home directory
+             executeCommand("echo \$HOME").onSuccess { home ->
+                 remoteHomeDirectory = home.trim()
+                 Timber.d("Captured remote home directory: $remoteHomeDirectory")
+             }.onFailure {
+                 Timber.e("Failed to capture remote home directory: ${it.message}")
+             }
+
 
             // 5. Open shell channel with PTY configuration
             Timber.d("11. Creating shell channel...")
@@ -597,21 +616,15 @@ class MinaSshdRepository(
         val username = connectionUsername ?: throw IllegalStateException("Not connected")
         val password = connectionPassword
         val keyAlias = connectionKeyAlias
-
-        // Either password or keyAlias must be available
         if (password == null && keyAlias == null) {
             throw IllegalStateException("No authentication credentials available")
         }
-
         val sftpSshClient = SshClient.setUpDefaultClient()
         sftpSshClient.start()
-
         try {
             val futureSession = sftpSshClient.connect(username, host, port)
             val sftpSession = futureSession.verify(10, TimeUnit.SECONDS).session
-
             try {
-                // Authenticate using available credentials
                 if (keyAlias != null && sshKeyManager != null) {
                     val keyPair = sshKeyManager.getKeyPair(keyAlias)
                         ?: throw IllegalStateException("Key not found: $keyAlias")
@@ -620,7 +633,6 @@ class MinaSshdRepository(
                     sftpSession.addPasswordIdentity(password)
                 }
                 sftpSession.auth().verify(10, TimeUnit.SECONDS)
-
                 val sftpClient = SftpClientFactory.instance().createSftpClient(sftpSession)
                 try {
                     return@withContext block(sftpClient)
@@ -633,6 +645,12 @@ class MinaSshdRepository(
         } finally {
             sftpSshClient.stop()
         }
+    }
+
+    private suspend fun resolveRemotePath(sftpClient: SftpClient, path: String): String {
+        if (!path.startsWith("~")) return path
+        val home = remoteHomeDirectory ?: return path
+        return path.replaceFirst("~", home)
     }
 
     override suspend fun executeCommand(command: String): Result<String> {
@@ -719,157 +737,218 @@ class MinaSshdRepository(
         }
     }
 
-    override suspend fun downloadFile(remotePath: String, localFile: File): Result<Unit> {
-        return try {
-            Timber.d("=== SFTP Download Start ===")
-            Timber.d("Remote: $remotePath")
-            Timber.d("Local: ${localFile.absolutePath}")
+     override suspend fun downloadFile(remotePath: String, localFile: File): Result<Unit> {
+         return try {
+             Timber.d("=== SFTP Download Start ===")
+             Timber.d("Remote: $remotePath")
+             Timber.d("Local: ${localFile.absolutePath}")
+ 
+             withSftpSession { sftpClient ->
+                 val resolvedPath = resolveRemotePath(sftpClient, remotePath)
+                 Timber.d("Opening remote file for reading...")
+                 sftpClient.read(resolvedPath).use { inputStream ->
+                     Timber.d("Creating local file...")
+                     FileOutputStream(localFile).use { outputStream ->
+                         Timber.d("Copying file content...")
+                         val buffer = ByteArray(8192)
+                         var bytesRead: Int
+                         var totalBytes = 0L
+ 
+                         while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                             outputStream.write(buffer, 0, bytesRead)
+                             totalBytes += bytesRead
+                             if (totalBytes % (1024 * 1024) == 0L) { // Log every MB
+                                 Timber.d("Downloaded: ${totalBytes / (1024 * 1024)} MB")
+                             }
+                         }
+ 
+                         Timber.d("=== SFTP Download Complete ===")
+                         Timber.d("Total bytes: $totalBytes")
+                     }
+                 }
+                 Result.success(Unit)
+             }
+         } catch (e: Exception) {
+             Timber.e(e, "=== SFTP Download Failed ===")
+             Timber.e("Error: ${e.message}")
+             Result.failure(e)
+         }
+     }
 
-            withSftpSession { sftpClient ->
-                Timber.d("Opening remote file for reading...")
-                sftpClient.read(remotePath).use { inputStream ->
-                    Timber.d("Creating local file...")
-                    FileOutputStream(localFile).use { outputStream ->
-                        Timber.d("Copying file content...")
-                        val buffer = ByteArray(8192)
-                        var bytesRead: Int
-                        var totalBytes = 0L
 
-                        while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                            outputStream.write(buffer, 0, bytesRead)
-                            totalBytes += bytesRead
-                            if (totalBytes % (1024 * 1024) == 0L) { // Log every MB
-                                Timber.d("Downloaded: ${totalBytes / (1024 * 1024)} MB")
-                            }
-                        }
+     override suspend fun downloadFileWithProgress(
+         remotePath: String,
+         localFile: File,
+         totalBytes: Long,
+         onProgress: (bytesTransferred: Long, totalBytes: Long) -> Unit
+     ): Result<Unit> {
+         return try {
+             Timber.d("=== SFTP Download With Progress Start ===")
+             Timber.d("Remote: $remotePath")
+             Timber.d("Local: ${localFile.absolutePath}")
+             Timber.d("Total size: $totalBytes bytes")
+ 
+             withSftpSession { sftpClient ->
+                 val resolvedPath = resolveRemotePath(sftpClient, remotePath)
+                 Timber.d("Opening remote file for reading...")
+                 sftpClient.read(resolvedPath).use { inputStream ->
+                     Timber.d("Creating local file...")
+                     FileOutputStream(localFile).use { outputStream ->
+                         Timber.d("Copying file content with progress...")
+                         val buffer = ByteArray(8192)
+                         var bytesRead: Int = 0
+                         var bytesTransferred = 0L
+                         var lastProgressUpdate = 0L
+ 
+                         while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                             outputStream.write(buffer, 0, bytesRead)
+                             bytesTransferred += bytesRead
+ 
+                             // Debounce progress updates to avoid UI jank
+                             // Update every 32KB or when complete
+                             if (bytesTransferred - lastProgressUpdate >= 32768 || bytesTransferred == totalBytes) {
+                                 onProgress(bytesTransferred, totalBytes)
+                                 lastProgressUpdate = bytesTransferred
+                             }
+ 
+                             if (bytesTransferred % (1024 * 1024) == 0L) { // Log every MB
+                                 Timber.d("Downloaded: ${bytesTransferred / (1024 * 1024)} MB / ${totalBytes / (1024 * 1024)} MB")
+                             }
+                         }
+ 
+                         // Final progress update
+                         onProgress(bytesTransferred, totalBytes)
+ 
+                         Timber.d("=== SFTP Download With Progress Complete ===")
+                         Timber.d("Total bytes: $bytesTransferred")
+                     }
+                 }
+                 Result.success(Unit)
+             }
+         } catch (e: kotlinx.coroutines.CancellationException) {
+             Timber.d("=== SFTP Download Cancelled ===")
+             throw e
+         } catch (e: Exception) {
+             Timber.e(e, "=== SFTP Download With Progress Failed ===")
+             Timber.e("Error: ${e.message}")
+             Result.failure(e)
+         }
+     }
 
-                        Timber.d("=== SFTP Download Complete ===")
-                        Timber.d("Total bytes: $totalBytes")
-                    }
-                }
-                Result.success(Unit)
-            }
-        } catch (e: Exception) {
-            Timber.e(e, "=== SFTP Download Failed ===")
-            Timber.e("Error: ${e.message}")
-            Result.failure(e)
-        }
-    }
 
-    override suspend fun listFiles(remotePath: String): Result<List<FileEntry>> {
-        return try {
-            withSftpSession { sftpClient ->
-                val entries = mutableListOf<FileEntry>()
-                val dirEntries = sftpClient.readDir(remotePath)
 
-                for (entry in dirEntries) {
-                    val attrs = entry.attributes
-                    // Skip . and ..
-                    if (entry.filename == "." || entry.filename == "..") {
-                        continue
-                    }
+     override suspend fun listFiles(remotePath: String): Result<List<FileEntry>> {
+         return try {
+             withSftpSession { sftpClient ->
+                 val entries = mutableListOf<FileEntry>()
+                 val resolvedPath = resolveRemotePath(sftpClient, remotePath)
+                 val dirEntries = sftpClient.readDir(resolvedPath)
+ 
+                 for (entry in dirEntries) {
+                     val attrs = entry.attributes
+                     // Skip . and ..
+                     if (entry.filename == "." || entry.filename == "..") {
+                         continue
+                     }
+ 
+                     entries.add(
+                         FileEntry(
+                             name = entry.filename,
+                             path = if (resolvedPath.endsWith("/")) {
+                                 resolvedPath + entry.filename
+                             } else {
+                                 "$resolvedPath/${entry.filename}"
+                             },
+                             isDirectory = attrs.isDirectory,
+                             size = attrs.size,
+                             lastModified = attrs.modifyTime.toMillis()
+                         )
+                     )
+                 }
+ 
+                 Result.success(entries.sortedWith(
+                     compareByDescending<FileEntry> { it.isDirectory }
+                         .thenBy { it.name.lowercase() }
+                 ))
+             }
+         } catch (e: Exception) {
+             Result.failure(e)
+         }
+     }
 
-                    entries.add(
-                        FileEntry(
-                            name = entry.filename,
-                            path = if (remotePath.endsWith("/")) {
-                                remotePath + entry.filename
-                            } else {
-                                "$remotePath/${entry.filename}"
-                            },
-                            isDirectory = attrs.isDirectory,
-                            size = attrs.size,
-                            lastModified = attrs.modifyTime.toMillis()
-                        )
-                    )
-                }
 
-                Result.success(entries.sortedWith(
-                    compareByDescending<FileEntry> { it.isDirectory }
-                        .thenBy { it.name.lowercase() }
-                ))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
+     override suspend fun readFileContent(remotePath: String): Result<String> {
+         return try {
+             withSftpSession { sftpClient ->
+                 val resolvedPath = resolveRemotePath(sftpClient, remotePath)
+                 val content = sftpClient.read(resolvedPath).use { inputStream ->
+                     inputStream.bufferedReader().use { it.readText() }
+                 }
+                 Result.success(content)
+             }
+         } catch (e: Exception) {
+             Result.failure(e)
+         }
+     }
 
-    override suspend fun readFileContent(remotePath: String): Result<String> {
-        return try {
-            withSftpSession { sftpClient ->
-                val content = sftpClient.read(remotePath).use { inputStream ->
-                    inputStream.bufferedReader().use { it.readText() }
-                }
-                Result.success(content)
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
 
-    override suspend fun downloadFileWithProgress(
-        remotePath: String,
-        localFile: File,
-        totalBytes: Long,
-        onProgress: (bytesTransferred: Long, totalBytes: Long) -> Unit
-    ): Result<Unit> {
-        return try {
-            Timber.d("=== SFTP Download With Progress Start ===")
-            Timber.d("Remote: $remotePath")
-            Timber.d("Local: ${localFile.absolutePath}")
-            Timber.d("Total size: $totalBytes bytes")
+     override suspend fun uploadFileWithProgress(
+         localFile: File,
+         remotePath: String,
+         totalBytes: Long,
+         onProgress: (bytesTransferred: Long, totalBytes: Long) -> Unit
+     ): Result<Unit> {
+         return try {
+             Timber.d("=== SFTP Upload With Progress Start ===")
+             Timber.d("Local: ${localFile.absolutePath}")
+             Timber.d("Remote: $remotePath")
+             Timber.d("Total size: $totalBytes bytes")
+ 
+             withSftpSession { sftpClient ->
+                 val resolvedPath = resolveRemotePath(sftpClient, remotePath)
+                 Timber.d("Opening remote file for writing...")
+                 sftpClient.write(resolvedPath, 0, SftpClient.OpenMode.Write, SftpClient.OpenMode.Create, SftpClient.OpenMode.Truncate).use { outputStream ->
+                     Timber.d("Creating local input stream...")
+                     localFile.inputStream().use { inputStream ->
+                         Timber.d("Copying file content with progress...")
+                         val buffer = ByteArray(8192)
+                         var bytesRead: Int = 0
+                         var bytesTransferred = 0L
+                         var lastProgressUpdate = 0L
+ 
+                         while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                             outputStream.write(buffer, 0, bytesRead)
+                             bytesTransferred += bytesRead
+ 
+                             // Debounce progress updates to avoid UI jank
+                             // Update every 32KB or when complete
+                             if (bytesTransferred - lastProgressUpdate >= 32768 || bytesTransferred == totalBytes) {
+                                 onProgress(bytesTransferred, totalBytes)
+                                 lastProgressUpdate = bytesTransferred
+                             }
+ 
+                             if (bytesTransferred % (1024 * 1024) == 0L) { // Log every MB
+                                 Timber.d("Uploaded: ${bytesTransferred / (1024 * 1024)} MB / ${totalBytes / (1024 * 1024)} MB")
+                             }
+                         }
+ 
+                         // Final progress update
+                         onProgress(bytesTransferred, totalBytes)
+ 
+                         Timber.d("=== SFTP Upload With Progress Complete ===")
+                         Timber.d("Total bytes: $bytesTransferred")
+                     }
+                 }
+                 Result.success(Unit)
+             }
+         } catch (e: kotlinx.coroutines.CancellationException) {
+             Timber.d("=== SFTP Upload Cancelled ===")
+             throw e
+         } catch (e: Exception) {
+             Timber.e(e, "=== SFTP Upload With Progress Failed ===")
+             Timber.e("Error: ${e.message}")
+             Result.failure(e)
+         }
+     }
 
-            withSftpSession { sftpClient ->
-                Timber.d("Opening remote file for reading...")
-                sftpClient.read(remotePath).use { inputStream ->
-                    Timber.d("Creating local file...")
-                    FileOutputStream(localFile).use { outputStream ->
-                        Timber.d("Copying file content with progress...")
-                        val buffer = ByteArray(8192)
-                        var bytesRead: Int = 0
-                        var bytesTransferred = 0L
-                        var lastProgressUpdate = 0L
-
-                        while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                            outputStream.write(buffer, 0, bytesRead)
-                            bytesTransferred += bytesRead
-
-                            // Debounce progress updates to avoid UI jank
-                            // Update every 32KB or when complete
-                            if (bytesTransferred - lastProgressUpdate >= 32768 || bytesTransferred == totalBytes) {
-                                onProgress(bytesTransferred, totalBytes)
-                                lastProgressUpdate = bytesTransferred
-                            }
-
-                            if (bytesTransferred % (1024 * 1024) == 0L) { // Log every MB
-                                Timber.d("Downloaded: ${bytesTransferred / (1024 * 1024)} MB / ${totalBytes / (1024 * 1024)} MB")
-                            }
-                        }
-
-                        // Final progress update
-                        onProgress(bytesTransferred, totalBytes)
-
-                        Timber.d("=== SFTP Download With Progress Complete ===")
-                        Timber.d("Total bytes: $bytesTransferred")
-                    }
-                }
-                Result.success(Unit)
-            }
-        } catch (e: kotlinx.coroutines.CancellationException) {
-            Timber.d("=== SFTP Download Cancelled ===")
-            // Clean up partial file on cancellation
-            if (localFile.exists()) {
-                localFile.delete()
-            }
-            throw e
-        } catch (e: Exception) {
-            Timber.e(e, "=== SFTP Download With Progress Failed ===")
-            Timber.e("Error: ${e.message}")
-            // Clean up partial file on error
-            if (localFile.exists()) {
-                localFile.delete()
-            }
-            Result.failure(e)
-        }
-    }
 }
