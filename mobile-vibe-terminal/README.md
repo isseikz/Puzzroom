@@ -1,7 +1,7 @@
 # Vibe Terminal
 
-**Version:** 2.5.0  
-**Platform:** Android, Desktop (JVM), iOS (Future)  
+**Version:** 1.0.9  
+**Platform:** Android, Desktop (JVM), iOS (experimental)  
 **Language:** Kotlin Multiplatform
 
 ## 概要 (Overview)
@@ -11,12 +11,14 @@ Vibe Terminal は、AI時代のSSHクライアントです。スマートフォ�
 ## 主な機能 (Key Features)
 
 - **SSH Terminal**: Apache MINAによる高性能なSSH接続
-- **Code Peek Overlay**: SSH経由でファイルをモーダル表示
+- **Code Peek Overlay**: SSH経由でファイルをモーダル表示。双方向ナビゲーション、テキスト選択・コピー、シンタックスハイライト対応
 - **Magic Deploy**: ビルド完了を検知、またはサーバーからのトリガーを受信してAPKを自動転送・インストール
-- **Connection Management**: サーバー接続設定の永続化と管理
-- **Smart File Explorer**: SSHセッションの作業ディレクトリを起点としたファイルブラウザ
+- **Connection Management**: サーバー接続設定の永続化と管理。自動再接続、起動コマンド設定に対応
+- **Smart File Explorer**: SSHセッションの作業ディレクトリを起点としたファイルブラウザ。ファイル共有機能付き
 - **External Display Support**: 外部モニター接続時にターミナルを最適化表示。大画面でのコーディングやログ監視が可能（デスクトップモード対応）
 - **Hardware Stability**: 物理キーボードの挿抜や外部ディスプレイ接続時のリサイズ等によるActivity再生成を防止し、実行中のセッション状態を維持
+- **Mouse Reporting**: tmux/byobuなどのターミナルマルチプレクサでのスクロールやマウス操作をサポート
+- **Modifier Keys**: Shift/Ctrl/Altキーのxterm escape sequence対応。固定キー行（Fixed Key Row）による素早いキー入力
 
 ## アーキテクチャ (Architecture)
 
@@ -25,12 +27,14 @@ Vibe Terminal は、AI時代のSSHクライアントです。スマートフォ�
 - **DI**: Koin
 - **Database**: Room (KMP)
 - **SSH Core**: Apache MINA SSHD
+- **Terminal Input**: [kmp-terminal-input](https://github.com/isseikz/kmp-terminal-input)
+- **Preferences**: DataStore (KMP)
 
 ## データベースエンティティ (Database Entities)
 
 ### ServerConnection
 
-サーバー接続設定を保存するエンティティです。
+サーバー接続設定を保存するエンティティです（スキーマバージョン: 6）。
 
 ```kotlin
 @Entity(tableName = "server_connections")
@@ -42,9 +46,14 @@ data class ServerConnection(
     val port: Int = 22,
     val username: String,
     val authType: String, // "password" or "key"
+    val keyAlias: String? = null, // Key alias in Android KeyStore (for public key auth)
     val createdAt: Long,
     val lastUsedAt: Long? = null,
-    val deployPattern: String? = ">> VIBE_DEPLOY: (.*)"
+    val deployPattern: String? = ">> VIBE_DEPLOY: (.*)",
+    val startupCommand: String? = null, // Command to execute on shell startup (e.g., "tmux attach || tmux new")
+    val isAutoReconnect: Boolean = false, // Enable automatic reconnection on app restart
+    val monitorFilePath: String? = null,
+    val lastFileExplorerPath: String? = null // Last opened path in File Explorer
 )
 ```
 
@@ -59,8 +68,6 @@ File Explorerは、使いやすさを重視したパス管理機能を提供し�
 **2回目以降のオープン:**
 - 最後に開いたディレクトリをデータベースに永続化
 - アプリを再起動しても、前回開いたディレクトリから再開可能
-
-この機能により、File Explorerの使い勝手が大幅に向上し、毎回ルートディレクトリから探索する必要がなくなります。
 
 ## Magic Deploy
 
@@ -101,14 +108,12 @@ abstract class NotifyApkPathTask : DefaultTask() {
     @TaskAction
     fun notifyPath() {
         val dir = apkDirectory.get().asFile
-        // デバッグビルドのAPKを検索
         val apkFile = dir.walkTopDown().find { it.name.endsWith(".apk") && !it.name.contains("unaligned") }
         
         if (apkFile != null) {
             val absolutePath = apkFile.absolutePath
             println("Found APK at: $absolutePath")
             try {
-                // ローカルポート58080にパスを送信 (ncコマンドが必要)
                 execOperations.exec {
                     commandLine("sh", "-c", "echo \"$absolutePath\" | nc -w 1 localhost 58080")
                     isIgnoreExitValue = true
@@ -121,12 +126,10 @@ abstract class NotifyApkPathTask : DefaultTask() {
     }
 }
 
-// タスクを登録
 tasks.register<NotifyApkPathTask>("notifyApkPath") {
     apkDirectory.set(layout.buildDirectory.dir("outputs/apk/debug"))
 }
 
-// assembleDebugの後に実行するよう設定
 afterEvaluate {
     tasks.named("assembleDebug") {
         finalizedBy("notifyApkPath")
@@ -158,6 +161,9 @@ echo ">> VIBE_DEPLOY: /home/user/project/build/app.apk"
 ./gradlew :mobile-vibe-terminal:packageDistributionForCurrentOS
 ```
 
+### iOS (experimental)
+iOSターゲット（`iosArm64`, `iosSimulatorArm64`）は設定済みですが、SSH接続等の一部機能はスタブ実装です。
+
 ## テスト (Testing)
 
 ```bash
@@ -174,8 +180,9 @@ echo ">> VIBE_DEPLOY: /home/user/project/build/app.apk"
 
 - [DesignDocument.md](docs/DesignDocument.md) - 設計書
 - [Troubleshooting.md](docs/Troubleshooting.md) - トラブルシューティング
-- [TestCoverage.md](docs/TestCoverage.md) - テストカバレッジ
-- [Xterm-Control-Sequences.html](docs/Xterm-Control-Sequences.html) - Xterm制御シーケンス
+- [XtermControlSequenceCompliance.md](docs/XtermControlSequenceCompliance.md) - Xterm制御シーケンス準拠状況
+- [scrollback-and-mouse-reporting.md](docs/architecture/scrollback-and-mouse-reporting.md) - スクロールバック＆マウスレポーティング設計
+- [Maestro テストガイド](docs/maestro/README.md) - UIテスト自動化
 
 ## ライセンス (License)
 
