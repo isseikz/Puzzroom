@@ -26,6 +26,7 @@ plugins {
 include(":composeApp")
 include(":shared-ui")
 include(":nlt-app")
-include(":unison-app")
 include(":quick-deploy-app")
+include(":unison-app")
+include(":whisper-kmp")
 include(":mobile-vibe-terminal")

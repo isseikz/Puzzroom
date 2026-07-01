@@ -1,0 +1,16 @@
+# Built files
+/build
+*.so
+*.a
+*.o
+
+# CMake
+.cxx/
+.externalNativeBuild/
+
+# IDE
+.idea/
+*.iml
+
+# Test models (these are large files)
+*.bin
