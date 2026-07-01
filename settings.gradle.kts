@@ -12,6 +12,7 @@ pluginManagement {
 
 dependencyResolutionManagement {
     repositories {
+        mavenLocal() // For local SNAPSHOT versions
         google()
         mavenCentral()
         maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
@@ -28,3 +29,4 @@ include(":nlt-app")
 include(":quick-deploy-app")
 include(":unison-app")
 include(":whisper-kmp")
+include(":mobile-vibe-terminal")

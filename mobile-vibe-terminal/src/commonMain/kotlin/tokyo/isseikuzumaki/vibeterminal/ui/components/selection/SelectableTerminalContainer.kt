@@ -1,0 +1,238 @@
+package tokyo.isseikuzumaki.vibeterminal.ui.components.selection
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import tokyo.isseikuzumaki.vibeterminal.terminal.ScrollDirection
+import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalCell
+import tokyo.isseikuzumaki.vibeterminal.terminal.TerminalFontConfig
+import tokyo.isseikuzumaki.vibeterminal.util.ClipboardManager
+import tokyo.isseikuzumaki.vibeterminal.util.Logger
+import kotlin.math.abs
+
+/** 選択ハイライトの色（半透明の青） */
+private val SelectionHighlightColor = Color(0x4D2196F3)
+
+/** Minimum drag distance in pixels to trigger a scroll event */
+private const val SCROLL_THRESHOLD_PX = 30f
+
+/**
+ * テキスト選択機能を持つターミナルコンテナ
+ * 子コンポーネント（TerminalCanvas または TerminalBufferView）をラップし、
+ * 選択のオーバーレイとジェスチャー検出を追加する
+ *
+ * @param buffer Terminal screen buffer
+ * @param modifier Modifier for the container
+ * @param onScroll Callback when user scrolls. Returns true if the scroll was handled.
+ *                 Parameters: direction, column (1-based), row (1-based)
+ * @param content Child composable content
+ */
+@Composable
+fun SelectableTerminalContainer(
+    buffer: Array<Array<TerminalCell>>,
+    modifier: Modifier = Modifier,
+    onScroll: ((ScrollDirection, Int, Int) -> Boolean)? = null,
+    content: @Composable BoxScope.() -> Unit
+) {
+    var selectionState by remember { mutableStateOf(TextSelectionState.Empty) }
+    var showContextMenu by remember { mutableStateOf(false) }
+    var accumulatedScrollDelta by remember { mutableStateOf(0f) }
+
+    val textMeasurer = rememberTextMeasurer()
+    val textStyle = TextStyle(
+        fontFamily = TerminalFontConfig.fontFamily,
+        fontSize = TerminalFontConfig.fontSize
+    )
+
+    // Calculate cell dimensions
+    val sampleLayout = remember(textStyle) {
+        textMeasurer.measure(text = "W", style = textStyle)
+    }
+    val charWidth = sampleLayout.size.width.toFloat()
+    val charHeight = sampleLayout.size.height.toFloat()
+
+    val rows = buffer.size
+    val cols = buffer.firstOrNull()?.size ?: 0
+
+    Logger.d("SelectableTerminalContainer: buffer=${rows}x${cols}, charSize=${charWidth}x${charHeight}")
+
+    Box(
+        modifier = modifier
+            .pointerInput(charWidth, charHeight, rows, cols) {
+                detectDragGesturesAfterLongPress(
+                    onDragStart = { offset ->
+                        Logger.d("SelectableTerminalContainer: onDragStart at $offset")
+                        // ピクセル座標からセル位置を計算
+                        val (col, row) = calculateCellPosition(
+                            offset.x, offset.y, charWidth, charHeight, cols, rows
+                        )
+                        val position = TerminalPosition(row, col)
+                        Logger.d("SelectableTerminalContainer: Selection started at row=$row, col=$col")
+                        selectionState = TextSelectionState(
+                            isSelecting = true,
+                            anchorPosition = position,
+                            currentPosition = position
+                        )
+                        showContextMenu = false
+                    },
+                    onDrag = { change, _ ->
+                        change.consume()
+                        val (col, row) = calculateCellPosition(
+                            change.position.x, change.position.y, charWidth, charHeight, cols, rows
+                        )
+                        selectionState = selectionState.copy(
+                            currentPosition = TerminalPosition(row, col)
+                        )
+                    },
+                    onDragEnd = {
+                        Logger.d("SelectableTerminalContainer: onDragEnd, hasSelection=${selectionState.hasSelection}")
+                        if (selectionState.hasSelection) {
+                            showContextMenu = true
+                        }
+                    },
+                    onDragCancel = {
+                        Logger.d("SelectableTerminalContainer: onDragCancel")
+                        selectionState = TextSelectionState.Empty
+                        showContextMenu = false
+                    }
+                )
+            }
+            .pointerInput(selectionState.hasSelection) {
+                // 選択範囲外をタップしたら選択解除
+                detectTapGestures(
+                    onTap = {
+                        Logger.d("SelectableTerminalContainer: onTap, hasSelection=${selectionState.hasSelection}")
+                        if (selectionState.hasSelection) {
+                            selectionState = TextSelectionState.Empty
+                            showContextMenu = false
+                        }
+                    }
+                )
+            }
+            .pointerInput(onScroll, charWidth, charHeight) {
+                // Scroll gesture detection for mouse reporting
+                if (onScroll != null) {
+                    detectVerticalDragGestures(
+                        onDragStart = { offset ->
+                            accumulatedScrollDelta = 0f
+                        },
+                        onDragEnd = {
+                            accumulatedScrollDelta = 0f
+                        },
+                        onDragCancel = {
+                            accumulatedScrollDelta = 0f
+                        },
+                        onVerticalDrag = { change, dragAmount ->
+                            accumulatedScrollDelta += dragAmount
+
+                            // Only send scroll event when threshold is crossed
+                            // Natural scrolling: swipe up (negative delta) = scroll down (see older content)
+                            if (abs(accumulatedScrollDelta) >= SCROLL_THRESHOLD_PX) {
+                                val direction = if (accumulatedScrollDelta < 0) {
+                                    ScrollDirection.DOWN  // Swipe up = scroll down (natural scrolling)
+                                } else {
+                                    ScrollDirection.UP    // Swipe down = scroll up (natural scrolling)
+                                }
+
+                                // Calculate cell position (1-based for terminal) with safe bounds handling
+                                val (col, row) = calculateTerminalPosition(
+                                    change.position.x, change.position.y,
+                                    charWidth, charHeight, cols, rows
+                                )
+
+                                val handled = onScroll(direction, col, row)
+                                if (handled) {
+                                    change.consume()
+                                }
+
+                                // Reset accumulated delta after triggering
+                                accumulatedScrollDelta = 0f
+                            }
+                        }
+                    )
+                }
+            }
+    ) {
+        // ターミナルコンテンツ
+        content()
+
+        // 選択ハイライトオーバーレイ
+        if (selectionState.hasSelection) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                buffer.forEachIndexed { rowIndex, row ->
+                    row.forEachIndexed { colIndex, cell ->
+                        // Skip padding cells - the highlight is drawn from the main cell
+                        if (cell.isWideCharPadding) {
+                            return@forEachIndexed
+                        }
+
+                        if (selectionState.isCellSelected(rowIndex, colIndex)) {
+                            val x = colIndex * charWidth
+                            val y = rowIndex * charHeight
+                            // Use 2x width for wide characters
+                            val cellWidth = if (cell.isWideChar) charWidth * 2 else charWidth
+                            drawRect(
+                                color = SelectionHighlightColor,
+                                topLeft = Offset(x, y),
+                                size = Size(cellWidth, charHeight)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // コンテキストメニュー
+        if (showContextMenu && selectionState.hasSelection) {
+            // メニュー位置を選択範囲の上部中央に配置
+            val start = selectionState.startPosition
+            val end = selectionState.endPosition
+            if (start != null && end != null) {
+                val menuX = ((start.col + end.col) / 2f * charWidth).toInt()
+                val menuY = (start.row * charHeight - 48.dp.value * LocalDensity.current.density).toInt()
+                    .coerceAtLeast(0)
+
+                SelectionContextMenu(
+                    onCopy = {
+                        val selectedText = extractSelectedText(buffer, selectionState)
+                        if (selectedText.isNotEmpty()) {
+                            ClipboardManager.copyToClipboard(selectedText)
+                        }
+                        selectionState = TextSelectionState.Empty
+                        showContextMenu = false
+                    },
+                    onDismiss = {
+                        selectionState = TextSelectionState.Empty
+                        showContextMenu = false
+                    },
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .offset { IntOffset(menuX, menuY) }
+                        .padding(horizontal = 8.dp)
+                )
+            }
+        }
+    }
+}

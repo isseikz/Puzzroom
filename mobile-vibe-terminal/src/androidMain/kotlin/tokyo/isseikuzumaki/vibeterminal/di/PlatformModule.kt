@@ -1,0 +1,70 @@
+package tokyo.isseikuzumaki.vibeterminal.di
+
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import org.koin.dsl.module
+import tokyo.isseikuzumaki.vibeterminal.data.database.AppDatabase
+import tokyo.isseikuzumaki.vibeterminal.data.database.getRoomDatabase
+import tokyo.isseikuzumaki.vibeterminal.data.datastore.PreferencesHelper
+import tokyo.isseikuzumaki.vibeterminal.data.datastore.createDataStore
+import tokyo.isseikuzumaki.vibeterminal.data.repository.ConnectionRepositoryImpl
+import tokyo.isseikuzumaki.vibeterminal.domain.installer.ApkInstaller
+import tokyo.isseikuzumaki.vibeterminal.domain.repository.ConnectionRepository
+import tokyo.isseikuzumaki.vibeterminal.domain.repository.SshRepository
+import tokyo.isseikuzumaki.vibeterminal.installer.AndroidApkInstaller
+import tokyo.isseikuzumaki.vibeterminal.installer.TriggerEventHandler
+import tokyo.isseikuzumaki.vibeterminal.security.PasswordEncryptionHelper
+import tokyo.isseikuzumaki.vibeterminal.security.SshKeyManager
+import tokyo.isseikuzumaki.vibeterminal.security.SshKeyProvider
+import tokyo.isseikuzumaki.vibeterminal.ssh.MinaSshdRepository
+import tokyo.isseikuzumaki.vibeterminal.domain.downloader.FileDownloader
+import tokyo.isseikuzumaki.vibeterminal.domain.sharer.FileSharer
+import tokyo.isseikuzumaki.vibeterminal.downloader.AndroidFileDownloader
+import tokyo.isseikuzumaki.vibeterminal.sharer.AndroidFileSharer
+
+actual fun platformModule() = module {
+    single<AppDatabase> {
+        val context = get<Context>()
+        getRoomDatabase(context)
+    }
+
+    single<DataStore<Preferences>> {
+        val context = get<Context>()
+        createDataStore(context)
+    }
+
+    single { PasswordEncryptionHelper() }
+
+    single { SshKeyManager() }
+
+    single<SshKeyProvider> { get<SshKeyManager>() }
+
+    single { PreferencesHelper(get()) }
+
+    single<SshRepository> { MinaSshdRepository(get<SshKeyManager>()) }
+
+    factory<ApkInstaller> {
+        val context = get<Context>()
+        AndroidApkInstaller(context)
+    }
+
+    factory<FileDownloader> { AndroidFileDownloader() }
+
+    factory<FileSharer> { AndroidFileSharer() }
+
+    single {
+        val context = get<Context>()
+        val preferencesHelper = get<PreferencesHelper>()
+        val apkInstaller = get<ApkInstaller>()
+        val sshRepository = get<SshRepository>()
+        TriggerEventHandler.getInstance(context, preferencesHelper, apkInstaller, sshRepository)
+    }
+
+    factory<ConnectionRepository> {
+        val database = get<AppDatabase>()
+        val dataStore = get<DataStore<Preferences>>()
+        val passwordEncryption = get<PasswordEncryptionHelper>()
+        ConnectionRepositoryImpl(database.serverConnectionDao(), dataStore, passwordEncryption)
+    }
+}
